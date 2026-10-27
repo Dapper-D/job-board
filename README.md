@@ -18,7 +18,7 @@ Every morning a GitHub Actions workflow:
    - it asks for 6+ years of experience;
    - the pay tops out below your floor (postings that don't list pay are kept and marked "Salary not posted");
    - it's older than `max_age_days`.
-3. **Scores what's left** with a 0–10 technical match and a 0–10 overall fit, makes an Apply / Stretch / Skip call, and lists the posting's requirements next to your evidence. Without an AI key it uses a keyword match. With a key it asks the model, which may only cite evidence from your profile.
+3. **Scores... what's left** with a 0–10 technical match and a 0–10 overall fit, makes an Apply / Stretch / Skip call, and lists the posting's requirements next to your evidence. Without an AI key it uses a keyword match. With a key it asks the model, which may only cite evidence from your profile.
 4. **Retires closed postings.** If a job disappears from a company's own board, or its link returns 404 or says it's closed, it moves to "Left off the board". Job-board listings are also retired 45 days after they first appear.
 5. **Publishes** `docs/` to GitHub Pages.
 
