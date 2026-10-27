@@ -1,0 +1,53 @@
+# Copy this file to profile.toml and fill it in. profile.toml is git-ignored,
+# so your details stay off GitHub. For the scheduled GitHub Action, paste the
+# whole contents of profile.toml into a repository secret named PROFILE_TOML.
+
+name = "Your Name"
+home_country = "CA"                 # ISO code of the country you live in
+years_experience = 1                # professional years, used to flag "5+ years" asks
+availability = "Available full-time from January 2027"   # shown on every card; "" to hide
+
+# Skills you can back up with a project or job. Used by the keyword scorer
+# and passed to the AI scorer as your evidence.
+skills = [
+  "python", "javascript", "typescript", "bash", "sql", "node.js", "react", "next.js",
+  "postgresql", "prisma", "rest api", "git", "linux", "tcp/ip",
+  "nmap", "openvas", "metasploit", "vulnerability assessment",
+]
+
+# Short, truthful descriptions of your experience and projects.
+# The AI scorer may only cite what's written here.
+evidence = """
+Experience: ...
+Projects: ...
+Education: ...
+"""
+
+# Work authorization. Used to drop jobs you couldn't legally take.
+[work_authorization]
+citizen_of_home_country = false
+permanent_resident = false
+authorized_in_home_country = true   # e.g. on an open work permit
+authorized_elsewhere = []           # e.g. ["US"] if you hold US work authorization
+needs_sponsorship_elsewhere = true
+can_hold_security_clearance = false
+
+# Where you'd work.
+[location]
+onsite_keywords = [
+  "vancouver", "burnaby", "surrey", "richmond", "new westminster", "coquitlam",
+  "british columbia", ", bc",
+]
+home_country_keywords = ["canada", "ontario", "toronto", "alberta", "quebec", "british columbia"]
+remote_ok_keywords = [
+  "canada", "north america", "americas", "anywhere", "worldwide", "global",
+  "us or canada", "us/canada", "usa or canada", "united states or canada",
+]
+open_to_relocation_with_sponsorship = true
+
+# Resume project order per track (first = lead project).
+[project_order]
+Security = ["Project A", "Project B"]
+"Full-stack" = ["Project C", "Project D"]
+AI = ["Project D", "Project A"]
+"IT / Support" = ["Project A"]

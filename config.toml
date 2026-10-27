@@ -1,0 +1,113 @@
+# General settings for the job board. Nothing personal goes here,
+# so this file is safe to commit. Your own details live in profile.toml.
+
+[run]
+max_age_days = 21          # only add postings published within this many days
+max_new_per_run = 40       # cap on new jobs scored per run (keeps AI costs predictable)
+pay_floor_cad = 72800      # $35/hr x 2,080 hrs. Jobs that top out below this are dropped.
+pay_goal_cad = 100000
+request_timeout = 20       # seconds per HTTP request
+user_agent = "job-board/1.0 (personal job search; +https://github.com/Dapper-D/job-board)"
+keep_removed = 30          # how many closed/removed postings to list on the page
+max_listing_days = 45      # drop a posting this many days after it first appeared (likely filled)
+liveness_checks = 40       # max apply links re-checked per run for job-board listings
+timezone = "America/Vancouver"
+
+[site]
+title = "Oladapo's Job Board"
+subtitle = "Security, full-stack and AI roles in Canada and remote, checked daily."
+# The site is public if your repo is public. Set this to false to leave your
+# own evidence (the "your evidence" column and notes about you) out of the
+# published data. Scores and requirements still show.
+show_evidence = true
+
+# Approximate conversion rates to CAD. Update these now and then;
+# they only affect the pay filter and sorting.
+[currency_to_cad]
+CAD = 1.00
+USD = 1.38
+GBP = 1.80
+EUR = 1.55
+CHF = 1.65
+AUD = 0.90
+NZD = 0.82
+SGD = 1.05
+AED = 0.38
+
+# A job title must contain at least one "include" phrase and none of the "exclude" phrases.
+# Matching is case-insensitive.
+[titles]
+include = [
+  "security analyst", "soc analyst", "cyber", "information security", "infosec",
+  "security engineer", "security operations", "threat", "incident response",
+  "vulnerability", "penetration", "pentest", "detection",
+  "software developer", "software engineer", "full stack", "full-stack", "fullstack",
+  "frontend", "front-end", "front end", "web developer", "backend", "back-end",
+  "ai engineer", "ai developer", "llm", "applied ai", "machine learning engineer",
+  "it support", "it security", "technical support", "support engineer", "it analyst",
+  "network support", "systems analyst",
+]
+exclude = [
+  "senior", "sr.", "sr ", "staff", "principal", "lead", "manager", "director",
+  "head of", "architect", "vp", "vice president", "chief", "intern", "co-op",
+  "coop", "student", "sales", "account executive", "recruiter",
+  "ios", "android", "embedded", "firmware",
+]
+
+# Postings whose text contains any of these are dropped as likely scams or
+# as jobs you can't legally take. Matching is case-insensitive.
+[scam]
+phrases = [
+  "application fee", "training fee", "registration fee", "pay for training",
+  "purchase equipment", "buy your own equipment", "send you a check",
+  "gift card", "western union", "crypto payment", "paid in bitcoin",
+  "on telegram", "via telegram", "on whatsapp", "via whatsapp", "text this number",
+  "contact us on signal", "no experience needed, earn", "unlimited earning",
+  "data entry from home", "task-based", "ai trainer", "annotation task",
+]
+
+# Sources. Every source here is an official public API or feed that allows
+# programmatic access. LinkedIn, Indeed and Glassdoor are left out on purpose:
+# their terms forbid scraping. See README.md.
+#
+# Company boards: add the board name from the company's careers URL.
+#   Greenhouse: job-boards.greenhouse.io/<board>
+#   Lever:      jobs.lever.co/<company>
+#   Ashby:      jobs.ashbyhq.com/<board>
+# Run `python -m jobboard check-sources` to find names that don't resolve.
+
+[sources.greenhouse]
+boards = [
+  "earlycareerprograms",   # Asana early career (Vancouver)
+  "gitlab", "cloudflare", "datadog", "elastic", "grafanalabs",
+  "mattermost", "scaleai", "gleanwork", "bugcrowd", "airtable",
+]
+
+[sources.lever]
+companies = ["Instrumentl"]
+
+[sources.ashby]
+boards = [
+  "jobber", "hopper", "flaglerhealth", "Unblocked", "rivianvw.tech", "oscilar",
+]
+
+[sources.remotive]
+enabled = true
+searches = ["security", "soc", "junior developer", "full stack", "react", "ai engineer"]
+
+[sources.remoteok]
+enabled = true
+
+[sources.himalayas]
+enabled = true
+pages = 3                 # 20 jobs per page
+
+[sources.weworkremotely]
+feeds = [
+  "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+  "https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss",
+  "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
+]
+
+[sources.hackernews]
+enabled = true            # the monthly "Ask HN: Who is hiring?" thread

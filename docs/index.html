@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Job Board</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="lbl">Canada · remote · sponsored roles abroad</div>
+      <h1 id="siteTitle">Job Board</h1>
+      <p id="siteSubtitle">Postings from companies' own job boards and trusted job sites, filtered and scored daily.</p>
+    </div>
+    <div class="counts">
+      <div><span class="lbl">On board</span><b id="cTotal">–</b></div>
+      <div><span class="lbl">Up to $100k+</span><b id="c100">–</b></div>
+      <div><span class="lbl">Apply calls</span><b id="cApply">–</b></div>
+      <div><span class="lbl">Last refresh</span><b id="cRun" class="mono" style="font-size:1rem">–</b></div>
+    </div>
+  </header>
+
+  <div class="filters" role="group" aria-label="Filters">
+    <button class="chip" data-v="all" aria-pressed="true">All</button>
+    <button class="chip" data-v="Security" aria-pressed="false">Security</button>
+    <button class="chip" data-v="Full-stack" aria-pressed="false">Full-stack</button>
+    <button class="chip" data-v="AI" aria-pressed="false">AI</button>
+    <button class="chip" data-v="IT / Support" aria-pressed="false">IT / Support</button>
+    <span class="sep"></span>
+    <select id="region" aria-label="Region">
+      <option value="all">All regions</option>
+      <option value="Canada">Canada</option>
+      <option value="Remote (worldwide)">Remote, open to Canada</option>
+      <option value="USA">USA (sponsored)</option>
+      <option value="International">International (sponsored)</option>
+    </select>
+    <button class="chip" id="f100" aria-pressed="false">Pays up to $100k+</button>
+    <button class="chip" id="fApply" aria-pressed="false">Apply calls only</button>
+    <select id="status" aria-label="Application status">
+      <option value="all">Any status</option>
+      <option value="Not started">Not started</option>
+      <option value="Draft prepared">Draft prepared</option>
+      <option value="Applied">Applied</option>
+      <option value="Interview">Interview</option>
+    </select>
+    <select id="sort" aria-label="Sort">
+      <option value="overall">Best overall fit</option>
+      <option value="salary">Highest pay</option>
+      <option value="posted">Newest</option>
+    </select>
+  </div>
+
+  <div id="list" class="list"><div class="empty">Loading postings…</div></div>
+
+  <div class="panels">
+    <section class="panel">
+      <h2>Sources in the last refresh</h2>
+      <p class="note" id="scoredBy"></p>
+      <div class="tbl"><table class="src"><tbody id="sources"><tr><td>No refresh yet.</td><td></td></tr></tbody></table></div>
+    </section>
+    <section class="panel">
+      <h2>Left off the board</h2>
+      <p class="note">Postings that closed since they were added.</p>
+      <ul class="plain" id="removed"><li>None yet.</li></ul>
+      <p class="note" style="margin-top:6px">Filtered out in the last refresh:</p>
+      <ul class="plain" id="skipped"><li>Nothing yet.</li></ul>
+    </section>
+  </div>
+  <p class="note" style="margin-top:18px">Your application statuses are saved in this browser only. Always read the full posting before you apply.</p>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
