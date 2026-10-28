@@ -3,12 +3,12 @@
     "title": "Oladapo's Job Board",
     "subtitle": "Security, full-stack and AI roles in Canada and remote, checked daily."
   },
-  "lastRun": "2026-10-27",
-  "lastRunAt": "2026-10-27T18:14:42+00:00",
+  "lastRun": "2026-10-28",
+  "lastRunAt": "2026-10-28T18:49:41+00:00",
   "scoredBy": "keyword scoring (no AI)",
   "payFloorCad": 72800,
   "payGoalCad": 100000,
-  "added": 18,
+  "added": 2,
   "closed": 0,
   "sources": [
     {
@@ -21,31 +21,31 @@
       "key": "greenhouse:gitlab",
       "label": "Greenhouse · Gitlab",
       "ok": true,
-      "count": 236
+      "count": 235
     },
     {
       "key": "greenhouse:cloudflare",
       "label": "Greenhouse · Cloudflare",
       "ok": true,
-      "count": 460
+      "count": 459
     },
     {
       "key": "greenhouse:datadog",
       "label": "Greenhouse · Datadog",
       "ok": true,
-      "count": 428
+      "count": 393
     },
     {
       "key": "greenhouse:elastic",
       "label": "Greenhouse · Elastic",
       "ok": true,
-      "count": 404
+      "count": 408
     },
     {
       "key": "greenhouse:grafanalabs",
       "label": "Greenhouse · Grafanalabs",
       "ok": true,
-      "count": 133
+      "count": 131
     },
     {
       "key": "greenhouse:mattermost",
@@ -57,37 +57,37 @@
       "key": "greenhouse:scaleai",
       "label": "Greenhouse · Scaleai",
       "ok": true,
-      "count": 167
+      "count": 170
     },
     {
       "key": "greenhouse:gleanwork",
       "label": "Greenhouse · Gleanwork",
       "ok": true,
-      "count": 133
+      "count": 134
     },
     {
       "key": "greenhouse:bugcrowd",
       "label": "Greenhouse · Bugcrowd",
       "ok": true,
-      "count": 9
+      "count": 10
     },
     {
       "key": "greenhouse:airtable",
       "label": "Greenhouse · Airtable",
       "ok": true,
-      "count": 4
+      "count": 5
     },
     {
       "key": "lever:Instrumentl",
       "label": "Lever · Instrumentl",
       "ok": true,
-      "count": 10
+      "count": 9
     },
     {
       "key": "ashby:jobber",
       "label": "Ashby · Jobber",
       "ok": true,
-      "count": 42
+      "count": 39
     },
     {
       "key": "ashby:hopper",
@@ -111,7 +111,7 @@
       "key": "ashby:rivianvw.tech",
       "label": "Ashby · Rivianvw",
       "ok": true,
-      "count": 157
+      "count": 161
     },
     {
       "key": "ashby:oscilar",
@@ -123,7 +123,7 @@
       "key": "remotive",
       "label": "Remotive",
       "ok": true,
-      "count": 10
+      "count": 11
     },
     {
       "key": "remoteok",
@@ -141,7 +141,7 @@
       "key": "weworkremotely",
       "label": "We Work Remotely",
       "ok": true,
-      "count": 140
+      "count": 138
     },
     {
       "key": "hackernews",
@@ -151,38 +151,38 @@
     }
   ],
   "skipped": {
-    "Title excluded": 2157,
-    "Title not a target role": 449,
-    "On-site abroad without stated visa sponsorship": 106,
-    "Remote, but not stated as open to Canada": 30,
+    "Title excluded": 2118,
+    "Title not a target role": 454,
+    "On-site abroad without stated visa sponsorship": 108,
+    "Remote, but not stated as open to Canada": 32,
     "Requires security clearance": 3,
-    "Posted 26 days ago": 3,
-    "Posted 68 days ago": 2,
-    "Posted 83 days ago": 2,
-    "Posted 28 days ago": 2,
+    "Posted 27 days ago": 3,
+    "Posted 69 days ago": 2,
+    "Posted 84 days ago": 2,
     "Posted 29 days ago": 2,
-    "Posted 69 days ago": 1,
-    "Posted 111 days ago": 1,
-    "Posted 62 days ago": 1,
-    "Posted 76 days ago": 1,
-    "Posted 33 days ago": 1,
-    "Posted 88 days ago": 1,
-    "Scam signal": 1,
-    "Posted 189 days ago": 1,
-    "Posted 35 days ago": 1,
-    "Posted 41 days ago": 1,
-    "Posted 39 days ago": 1,
-    "Pay tops out at about C$13,800/yr": 1,
+    "Posted 70 days ago": 1,
+    "Posted 112 days ago": 1,
+    "Posted 63 days ago": 1,
+    "Posted 77 days ago": 1,
     "Posted 34 days ago": 1,
-    "Posted 45 days ago": 1,
-    "Posted 58 days ago": 1,
-    "Posted 66 days ago": 1,
+    "Posted 89 days ago": 1,
+    "Scam signal": 1,
+    "Posted 190 days ago": 1,
+    "Posted 36 days ago": 1,
+    "Posted 42 days ago": 1,
+    "Posted 40 days ago": 1,
+    "Already on the board (another source)": 1,
+    "Posted 35 days ago": 1,
+    "Posted 46 days ago": 1,
+    "Posted 59 days ago": 1,
+    "Posted 67 days ago": 1,
+    "No employer named": 1,
     "Pay tops out at about C$33,120/yr": 1,
     "Asks for 8+ years": 1,
-    "Posted 166 days ago": 1,
-    "Posted 24 days ago": 1,
+    "Posted 167 days ago": 1,
     "Posted 25 days ago": 1,
-    "Posted 22 days ago": 1
+    "Posted 26 days ago": 1,
+    "Posted 23 days ago": 1
   },
   "removed": [],
   "warnings": []
