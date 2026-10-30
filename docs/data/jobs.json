@@ -13,7 +13,7 @@
       "salaryMax": 0,
       "posted": "2026-10-10",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/typeform-full-stack-developer",
@@ -168,7 +168,7 @@
       "salaryMax": 405720,
       "posted": "2026-10-11",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/vercel-software-engineer-backend",
@@ -243,7 +243,7 @@
       "salaryMax": 223560,
       "posted": "2026-10-23",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "employer",
       "sourceName": "Greenhouse · GitLab",
       "applyUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8771512002",
@@ -458,7 +458,7 @@
       "salaryMax": 0,
       "posted": "2026-10-17",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "Remotive",
       "applyUrl": "https://remotive.com/remote-jobs/software-development/software-engineer-ai-coding-tasks-2091158",
@@ -534,7 +534,7 @@
       "salaryMax": 0,
       "posted": "2026-10-16",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/askable-software-engineer-ai-coding-tasks-contract",
@@ -610,7 +610,7 @@
       "salaryMax": 0,
       "posted": "2026-10-15",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "Hacker News · Who is hiring",
       "applyUrl": "https://treat.health/en/careers/full-stack-engineer/",
@@ -670,7 +670,7 @@
       "salaryMax": 0,
       "posted": "2026-10-12",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/toptal-full-stack-e-commerce-developer-with-sage-x3-experience",
@@ -723,6 +723,121 @@
       "active": true
     },
     {
+      "id": "gitlab-backend-engineer-source-code-repository--90641620",
+      "uid": "greenhouse:gitlab:8922427002",
+      "sourceKey": "greenhouse:gitlab",
+      "company": "GitLab",
+      "title": "Backend Engineer, Source Code: Repository Services (Ruby)",
+      "location": "Remote, Canada",
+      "mode": "Remote",
+      "region": "Canada",
+      "salary": "Salary not posted",
+      "salaryMax": 0,
+      "posted": "2026-10-29",
+      "firstSeen": "2026-10-30",
+      "checked": "2026-10-30",
+      "verify": "employer",
+      "sourceName": "Greenhouse · GitLab",
+      "applyUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8922427002",
+      "tracks": [
+        "Full-stack"
+      ],
+      "tech": 4,
+      "overall": 4,
+      "rec": "Stretch",
+      "why": "Matches 2 of 7 tools named in the posting; missing rust, ruby, docker, kubernetes.",
+      "req": [
+        {
+          "r": "rust",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "ruby",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "postgresql",
+          "e": "sql",
+          "s": "Strong"
+        },
+        {
+          "r": "docker",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "kubernetes",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "ci/cd",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "compliance",
+          "e": "compliance",
+          "s": "Strong"
+        }
+      ],
+      "blockers": "Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Under50",
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
+      "id": "anthropic-autonomous-systems-security-engineer-00c035b4",
+      "uid": "wwr:https://weworkremotely.com/remote-jobs/anthropic-autonomous-systems-security-engineer",
+      "sourceKey": "weworkremotely",
+      "company": "Anthropic",
+      "title": "Autonomous Systems Security Engineer",
+      "location": "Remote (Anywhere in the World)",
+      "mode": "Remote",
+      "region": "Remote (worldwide)",
+      "salary": "US$320k–405k/yr (≈ C$442k–559k/yr)",
+      "salaryMax": 558900,
+      "posted": "2026-10-30",
+      "firstSeen": "2026-10-30",
+      "checked": "2026-10-30",
+      "verify": "listing",
+      "sourceName": "We Work Remotely",
+      "applyUrl": "https://weworkremotely.com/remote-jobs/anthropic-autonomous-systems-security-engineer",
+      "tracks": [
+        "Security"
+      ],
+      "tech": 5,
+      "overall": 3,
+      "rec": "Skip",
+      "why": "Matches 1 of 2 tools named in the posting; missing incident response.",
+      "req": [
+        {
+          "r": "git",
+          "e": "git",
+          "s": "Strong"
+        },
+        {
+          "r": "incident response",
+          "e": "Not on resume",
+          "s": "Gap"
+        }
+      ],
+      "blockers": "Remote from Canada: confirm whether they hire you as an employee (directly or via an employer of record) or as a contractor. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Automatic Vulnerability Tool",
+        "AI-Powered Threat Detection Platform (In Progress)",
+        "Under50"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
       "id": "planetscale-enterprise-support-engineer-8e5b9f90",
       "uid": "wwr:https://weworkremotely.com/remote-jobs/planetscale-enterprise-support-engineer",
       "sourceKey": "weworkremotely",
@@ -735,7 +850,7 @@
       "salaryMax": 276000,
       "posted": "2026-10-18",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/planetscale-enterprise-support-engineer",
@@ -810,7 +925,7 @@
       "salaryMax": 220731,
       "posted": "2026-10-20",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "employer",
       "sourceName": "Ashby · Rivianvw",
       "applyUrl": "https://jobs.ashbyhq.com/rivianvw.tech/45773489-7107-4942-92d0-3f9c48ef79e0",
@@ -866,7 +981,7 @@
       "salaryMax": 202929,
       "posted": "2026-10-26",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "employer",
       "sourceName": "Ashby · Rivianvw",
       "applyUrl": "https://jobs.ashbyhq.com/rivianvw.tech/7dc83f47-86a1-46df-9530-6b4b349884c5",
@@ -911,7 +1026,7 @@
       "salaryMax": 0,
       "posted": "2026-10-07",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/dremio-software-engineer-query-execution",
@@ -944,81 +1059,6 @@
       "active": true
     },
     {
-      "id": "rivianvw-software-engineer-connectivity-cloud-acc3321d",
-      "uid": "ashby:rivianvw.tech:bede70c1-9c88-4772-aa0d-fccfc7b3994b",
-      "sourceKey": "ashby:rivianvw.tech",
-      "company": "Rivianvw",
-      "title": "Software Engineer, Connectivity Cloud",
-      "location": "Palo Alto, California (United States)",
-      "mode": "Remote",
-      "region": "Remote (worldwide)",
-      "salary": "US$116k–160k/yr (≈ C$160k–221k/yr)",
-      "salaryMax": 220731,
-      "posted": "2026-10-26",
-      "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
-      "verify": "employer",
-      "sourceName": "Ashby · Rivianvw",
-      "applyUrl": "https://jobs.ashbyhq.com/rivianvw.tech/bede70c1-9c88-4772-aa0d-fccfc7b3994b",
-      "tracks": [
-        "Full-stack"
-      ],
-      "tech": 6,
-      "overall": 2,
-      "rec": "Skip",
-      "why": "Matches 6 of 9 tools named in the posting; missing aws, docker, kubernetes.",
-      "req": [
-        {
-          "r": "java",
-          "e": "javascript",
-          "s": "Strong"
-        },
-        {
-          "r": "typescript",
-          "e": "typescript",
-          "s": "Strong"
-        },
-        {
-          "r": "sql",
-          "e": "sql",
-          "s": "Strong"
-        },
-        {
-          "r": "aws",
-          "e": "Not on resume",
-          "s": "Gap"
-        },
-        {
-          "r": "docker",
-          "e": "Not on resume",
-          "s": "Gap"
-        },
-        {
-          "r": "kubernetes",
-          "e": "Not on resume",
-          "s": "Gap"
-        },
-        {
-          "r": "git",
-          "e": "git",
-          "s": "Strong"
-        },
-        {
-          "r": "troubleshooting",
-          "e": "troubleshooting",
-          "s": "Strong"
-        }
-      ],
-      "blockers": "Location line doesn't name Canada; the description does. Confirm before applying. Asks for 3+ years; you have about 1. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
-      "projects": [
-        "Under50",
-        "Text-to-Image Generator",
-        "Automatic Vulnerability Tool"
-      ],
-      "scoredBy": "keywords",
-      "active": true
-    },
-    {
       "id": "jumio-machine-learning-engineer-iv-computer-vi-5fdecb52",
       "uid": "wwr:https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-computer-vision",
       "sourceKey": "weworkremotely",
@@ -1031,7 +1071,7 @@
       "salaryMax": 0,
       "posted": "2026-10-10",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-computer-vision",
@@ -1092,7 +1132,7 @@
       "salaryMax": 0,
       "posted": "2026-10-08",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer",
@@ -1203,7 +1243,7 @@
       "salaryMax": 400200,
       "posted": "2026-10-25",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/planetscale-software-engineer-planetscale-postgres",
@@ -1273,7 +1313,7 @@
       "salaryMax": 0,
       "posted": "2026-10-08",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-29",
+      "checked": "2026-10-30",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-biometrics",
