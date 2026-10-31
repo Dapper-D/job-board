@@ -1,6 +1,57 @@
 {
   "jobs": [
     {
+      "id": "velixo-applied-ai-engineer-4e1ececb",
+      "uid": "himalayas:https://himalayas.app/companies/velixo/jobs/applied-ai-engineer",
+      "sourceKey": "himalayas",
+      "company": "Velixo",
+      "title": "Applied AI Engineer",
+      "location": "Remote (Canada)",
+      "mode": "Remote",
+      "region": "Canada",
+      "salary": "Salary not posted",
+      "salaryMax": 0,
+      "posted": "2026-10-31",
+      "firstSeen": "2026-10-31",
+      "checked": "2026-10-31",
+      "verify": "listing",
+      "sourceName": "Himalayas",
+      "applyUrl": "https://himalayas.app/companies/velixo/jobs/applied-ai-engineer?utm_source=api",
+      "tracks": [
+        "AI",
+        "Full-stack"
+      ],
+      "tech": 7,
+      "overall": 7,
+      "rec": "Apply",
+      "why": "Matches 3 of 3 tools named in the posting.",
+      "req": [
+        {
+          "r": "python",
+          "e": "python",
+          "s": "Strong"
+        },
+        {
+          "r": "typescript",
+          "e": "typescript",
+          "s": "Strong"
+        },
+        {
+          "r": "llm",
+          "e": "llm",
+          "s": "Strong"
+        }
+      ],
+      "blockers": "Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool",
+        "AI-Powered Threat Detection Platform (In Progress)"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
       "id": "typeform-full-stack-developer-d4f8a0f4",
       "uid": "wwr:https://weworkremotely.com/remote-jobs/typeform-full-stack-developer",
       "sourceKey": "weworkremotely",
@@ -13,7 +64,7 @@
       "salaryMax": 0,
       "posted": "2026-10-10",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/typeform-full-stack-developer",
@@ -168,7 +219,7 @@
       "salaryMax": 405720,
       "posted": "2026-10-11",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/vercel-software-engineer-backend",
@@ -243,7 +294,7 @@
       "salaryMax": 223560,
       "posted": "2026-10-23",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "employer",
       "sourceName": "Greenhouse · GitLab",
       "applyUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8771512002",
@@ -458,7 +509,7 @@
       "salaryMax": 0,
       "posted": "2026-10-17",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "Remotive",
       "applyUrl": "https://remotive.com/remote-jobs/software-development/software-engineer-ai-coding-tasks-2091158",
@@ -534,7 +585,7 @@
       "salaryMax": 0,
       "posted": "2026-10-16",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/askable-software-engineer-ai-coding-tasks-contract",
@@ -610,7 +661,7 @@
       "salaryMax": 0,
       "posted": "2026-10-15",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "Hacker News · Who is hiring",
       "applyUrl": "https://treat.health/en/careers/full-stack-engineer/",
@@ -670,7 +721,7 @@
       "salaryMax": 0,
       "posted": "2026-10-12",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/toptal-full-stack-e-commerce-developer-with-sage-x3-experience",
@@ -735,7 +786,7 @@
       "salaryMax": 0,
       "posted": "2026-10-29",
       "firstSeen": "2026-10-30",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "employer",
       "sourceName": "Greenhouse · GitLab",
       "applyUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8922427002",
@@ -805,7 +856,7 @@
       "salaryMax": 558900,
       "posted": "2026-10-30",
       "firstSeen": "2026-10-30",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/anthropic-autonomous-systems-security-engineer",
@@ -850,7 +901,7 @@
       "salaryMax": 276000,
       "posted": "2026-10-18",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/planetscale-enterprise-support-engineer",
@@ -925,7 +976,7 @@
       "salaryMax": 220731,
       "posted": "2026-10-20",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "employer",
       "sourceName": "Ashby · Rivianvw",
       "applyUrl": "https://jobs.ashbyhq.com/rivianvw.tech/45773489-7107-4942-92d0-3f9c48ef79e0",
@@ -981,7 +1032,7 @@
       "salaryMax": 202929,
       "posted": "2026-10-26",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "employer",
       "sourceName": "Ashby · Rivianvw",
       "applyUrl": "https://jobs.ashbyhq.com/rivianvw.tech/7dc83f47-86a1-46df-9530-6b4b349884c5",
@@ -1014,6 +1065,52 @@
       "active": true
     },
     {
+      "id": "well-health-technologies-corp-applied-ai-engineer-9121cc5c",
+      "uid": "himalayas:https://himalayas.app/companies/well-health-technologies-corp/jobs/applied-ai-engineer-3517343165",
+      "sourceKey": "himalayas",
+      "company": "WELL Health Technologies Corp",
+      "title": "Applied AI Engineer",
+      "location": "Remote (Canada)",
+      "mode": "Remote",
+      "region": "Canada",
+      "salary": "C$150k–170k/yr",
+      "salaryMax": 170000,
+      "posted": "2026-10-31",
+      "firstSeen": "2026-10-31",
+      "checked": "2026-10-31",
+      "verify": "listing",
+      "sourceName": "Himalayas",
+      "applyUrl": "https://himalayas.app/companies/well-health-technologies-corp/jobs/applied-ai-engineer-3517343165?utm_source=api",
+      "tracks": [
+        "AI",
+        "Full-stack"
+      ],
+      "tech": 5,
+      "overall": 3,
+      "rec": "Skip",
+      "why": "Matches 1 of 2 tools named in the posting; missing rag.",
+      "req": [
+        {
+          "r": "python",
+          "e": "python",
+          "s": "Strong"
+        },
+        {
+          "r": "rag",
+          "e": "Not on resume",
+          "s": "Gap"
+        }
+      ],
+      "blockers": "Asks for 5+ years; you have about 1. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool",
+        "AI-Powered Threat Detection Platform (In Progress)"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
       "id": "dremio-software-engineer-query-execution-50684583",
       "uid": "wwr:https://weworkremotely.com/remote-jobs/dremio-software-engineer-query-execution",
       "sourceKey": "weworkremotely",
@@ -1026,7 +1123,7 @@
       "salaryMax": 0,
       "posted": "2026-10-07",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/dremio-software-engineer-query-execution",
@@ -1059,6 +1156,146 @@
       "active": true
     },
     {
+      "id": "gitlab-backend-engineer-knowledge-graph-aaa43ab6",
+      "uid": "wwr:https://weworkremotely.com/remote-jobs/gitlab-backend-engineer-knowledge-graph",
+      "sourceKey": "weworkremotely",
+      "company": "GitLab",
+      "title": "Backend Engineer, Knowledge Graph",
+      "location": "Remote (Anywhere in the World)",
+      "mode": "Remote",
+      "region": "Remote (worldwide)",
+      "salary": "US$115k–162k/yr (≈ C$159k–224k/yr)",
+      "salaryMax": 223560,
+      "posted": "2026-10-31",
+      "firstSeen": "2026-10-31",
+      "checked": "2026-10-31",
+      "verify": "listing",
+      "sourceName": "We Work Remotely",
+      "applyUrl": "https://weworkremotely.com/remote-jobs/gitlab-backend-engineer-knowledge-graph",
+      "tracks": [
+        "Full-stack"
+      ],
+      "tech": 4,
+      "overall": 2,
+      "rec": "Skip",
+      "why": "Matches 2 of 6 tools named in the posting; missing rust, ruby, vue, incident response.",
+      "req": [
+        {
+          "r": "typescript",
+          "e": "typescript",
+          "s": "Strong"
+        },
+        {
+          "r": "rust",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "ruby",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "vue",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "incident response",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "compliance",
+          "e": "compliance",
+          "s": "Strong"
+        }
+      ],
+      "blockers": "Remote from Canada: confirm whether they hire you as an employee (directly or via an employer of record) or as a contractor. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Under50",
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
+      "id": "fluence-international-inc-full-stack-developer-b13d0c51",
+      "uid": "remotive:2091165",
+      "sourceKey": "remotive",
+      "company": "Fluence International, Inc.",
+      "title": "Full-Stack Developer",
+      "location": "Remote (Worldwide)",
+      "mode": "Remote",
+      "region": "Remote (worldwide)",
+      "salary": "US$3,500–5,000/mo (≈ C$58k–83k/yr)",
+      "salaryMax": 82800,
+      "posted": "2026-10-29",
+      "firstSeen": "2026-10-31",
+      "checked": "2026-10-31",
+      "verify": "listing",
+      "sourceName": "Remotive",
+      "applyUrl": "https://remotive.com/remote-jobs/software-development/full-stack-developer-2091165",
+      "tracks": [
+        "Full-stack"
+      ],
+      "tech": 6,
+      "overall": 2,
+      "rec": "Skip",
+      "why": "Matches 6 of 9 tools named in the posting; missing aws, docker, owasp.",
+      "req": [
+        {
+          "r": "javascript",
+          "e": "javascript",
+          "s": "Strong"
+        },
+        {
+          "r": "typescript",
+          "e": "typescript",
+          "s": "Strong"
+        },
+        {
+          "r": "react",
+          "e": "react",
+          "s": "Strong"
+        },
+        {
+          "r": "next.js",
+          "e": "next.js",
+          "s": "Strong"
+        },
+        {
+          "r": "aws",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "docker",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "owasp",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "llm",
+          "e": "llm",
+          "s": "Strong"
+        }
+      ],
+      "blockers": "Remote from Canada: confirm whether they hire you as an employee (directly or via an employer of record) or as a contractor. Asks for 3+ years; you have about 1. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Under50",
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
       "id": "jumio-machine-learning-engineer-iv-computer-vi-5fdecb52",
       "uid": "wwr:https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-computer-vision",
       "sourceKey": "weworkremotely",
@@ -1071,7 +1308,7 @@
       "salaryMax": 0,
       "posted": "2026-10-10",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-computer-vision",
@@ -1132,7 +1369,7 @@
       "salaryMax": 0,
       "posted": "2026-10-08",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer",
@@ -1243,7 +1480,7 @@
       "salaryMax": 400200,
       "posted": "2026-10-25",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/planetscale-software-engineer-planetscale-postgres",
@@ -1313,7 +1550,7 @@
       "salaryMax": 0,
       "posted": "2026-10-08",
       "firstSeen": "2026-10-27",
-      "checked": "2026-10-30",
+      "checked": "2026-10-31",
       "verify": "listing",
       "sourceName": "We Work Remotely",
       "applyUrl": "https://weworkremotely.com/remote-jobs/jumio-machine-learning-engineer-iv-biometrics",
@@ -1357,6 +1594,56 @@
         "Text-to-Image Generator",
         "Automatic Vulnerability Tool",
         "AI-Powered Threat Detection Platform (In Progress)"
+      ],
+      "scoredBy": "keywords",
+      "active": true
+    },
+    {
+      "id": "metalbear-backend-software-engineer-rust-fully-rem-1c0d932d",
+      "uid": "himalayas:https://himalayas.app/companies/metalbear/jobs/backend-software-engineer-rust-fully-remote-7266071388",
+      "sourceKey": "himalayas",
+      "company": "MetalBear",
+      "title": "Backend Software Engineer (Rust, Fully Remote)",
+      "location": "Remote (Poland)",
+      "mode": "Remote",
+      "region": "Remote (worldwide)",
+      "salary": "Salary not posted",
+      "salaryMax": 0,
+      "posted": "2026-10-31",
+      "firstSeen": "2026-10-31",
+      "checked": "2026-10-31",
+      "verify": "listing",
+      "sourceName": "Himalayas",
+      "applyUrl": "https://himalayas.app/companies/metalbear/jobs/backend-software-engineer-rust-fully-remote-7266071388?utm_source=api",
+      "tracks": [
+        "Full-stack"
+      ],
+      "tech": 3,
+      "overall": 0,
+      "rec": "Skip",
+      "why": "Matches 0 of 3 tools named in the posting; missing rust, docker, kubernetes.",
+      "req": [
+        {
+          "r": "rust",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "docker",
+          "e": "Not on resume",
+          "s": "Gap"
+        },
+        {
+          "r": "kubernetes",
+          "e": "Not on resume",
+          "s": "Gap"
+        }
+      ],
+      "blockers": "Location line doesn't name Canada; the description does. Confirm before applying. Asks for 3+ years; you have about 1. Full-time start realistically Jan 2027 (after Douglas graduation, on PGWP)",
+      "projects": [
+        "Under50",
+        "Text-to-Image Generator",
+        "Automatic Vulnerability Tool"
       ],
       "scoredBy": "keywords",
       "active": true

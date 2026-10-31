@@ -3,13 +3,13 @@
     "title": "Oladapo's Job Board",
     "subtitle": "Security, full-stack and AI roles in Canada and remote, checked daily."
   },
-  "lastRun": "2026-10-30",
-  "lastRunAt": "2026-10-30T18:34:57+00:00",
+  "lastRun": "2026-10-31",
+  "lastRunAt": "2026-10-31T17:41:17+00:00",
   "scoredBy": "keyword scoring (no AI)",
   "payFloorCad": 72800,
   "payGoalCad": 100000,
-  "added": 2,
-  "closed": 1,
+  "added": 5,
+  "closed": 0,
   "sources": [
     {
       "key": "greenhouse:earlycareerprograms",
@@ -27,25 +27,25 @@
       "key": "greenhouse:cloudflare",
       "label": "Greenhouse · Cloudflare",
       "ok": true,
-      "count": 460
+      "count": 464
     },
     {
       "key": "greenhouse:datadog",
       "label": "Greenhouse · Datadog",
       "ok": true,
-      "count": 398
+      "count": 397
     },
     {
       "key": "greenhouse:elastic",
       "label": "Greenhouse · Elastic",
       "ok": true,
-      "count": 402
+      "count": 407
     },
     {
       "key": "greenhouse:grafanalabs",
       "label": "Greenhouse · Grafanalabs",
       "ok": true,
-      "count": 124
+      "count": 120
     },
     {
       "key": "greenhouse:mattermost",
@@ -57,19 +57,19 @@
       "key": "greenhouse:scaleai",
       "label": "Greenhouse · Scaleai",
       "ok": true,
-      "count": 169
+      "count": 170
     },
     {
       "key": "greenhouse:gleanwork",
       "label": "Greenhouse · Gleanwork",
       "ok": true,
-      "count": 129
+      "count": 127
     },
     {
       "key": "greenhouse:bugcrowd",
       "label": "Greenhouse · Bugcrowd",
       "ok": true,
-      "count": 11
+      "count": 12
     },
     {
       "key": "greenhouse:airtable",
@@ -111,7 +111,7 @@
       "key": "ashby:rivianvw.tech",
       "label": "Ashby · Rivianvw",
       "ok": true,
-      "count": 160
+      "count": 161
     },
     {
       "key": "ashby:oscilar",
@@ -123,7 +123,7 @@
       "key": "remotive",
       "label": "Remotive",
       "ok": true,
-      "count": 12
+      "count": 13
     },
     {
       "key": "remoteok",
@@ -141,7 +141,7 @@
       "key": "weworkremotely",
       "label": "We Work Remotely",
       "ok": true,
-      "count": 137
+      "count": 140
     },
     {
       "key": "hackernews",
@@ -151,36 +151,35 @@
     }
   ],
   "skipped": {
-    "Title excluded": 2105,
-    "Title not a target role": 452,
-    "On-site abroad without stated visa sponsorship": 107,
-    "Remote, but not stated as open to Canada": 30,
+    "Title excluded": 2109,
+    "Title not a target role": 450,
+    "On-site abroad without stated visa sponsorship": 106,
+    "Remote, but not stated as open to Canada": 31,
     "Requires security clearance": 3,
-    "Posted 29 days ago": 3,
-    "Posted 71 days ago": 2,
-    "Posted 169 days ago": 2,
+    "Posted 30 days ago": 3,
+    "Already on the board (another source)": 2,
+    "Posted 72 days ago": 2,
+    "Posted 170 days ago": 2,
     "Asks for 8+ years": 2,
-    "Posted 86 days ago": 2,
-    "Posted 72 days ago": 1,
-    "Posted 65 days ago": 1,
-    "Posted 79 days ago": 1,
-    "Posted 36 days ago": 1,
-    "Posted 91 days ago": 1,
+    "Posted 87 days ago": 2,
+    "Posted 73 days ago": 1,
+    "Posted 80 days ago": 1,
+    "Posted 66 days ago": 1,
+    "Posted 92 days ago": 1,
     "Scam signal": 1,
-    "Posted 192 days ago": 1,
-    "Posted 38 days ago": 1,
-    "Posted 44 days ago": 1,
-    "Posted 42 days ago": 1,
+    "Posted 193 days ago": 1,
+    "Posted 39 days ago": 1,
+    "Posted 45 days ago": 1,
+    "Posted 43 days ago": 1,
     "Remote, but requires foreign work authorization": 1,
-    "Already on the board (another source)": 1,
-    "Posted 37 days ago": 1,
-    "Posted 48 days ago": 1,
-    "Posted 61 days ago": 1,
-    "Posted 69 days ago": 1,
+    "Posted 38 days ago": 1,
+    "Posted 49 days ago": 1,
+    "Posted 62 days ago": 1,
+    "Posted 70 days ago": 1,
     "Pay tops out at about C$33,120/yr": 1,
-    "Posted 27 days ago": 1,
     "Posted 28 days ago": 1,
-    "Posted 25 days ago": 1
+    "Posted 29 days ago": 1,
+    "Posted 26 days ago": 1
   },
   "removed": [
     "Rivianvw — Software Engineer, Connectivity Cloud (No longer on the company's job board, 2026-10-30)"
