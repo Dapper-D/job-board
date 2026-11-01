@@ -3,12 +3,12 @@
     "title": "Oladapo's Job Board",
     "subtitle": "Security, full-stack and AI roles in Canada and remote, checked daily."
   },
-  "lastRun": "2026-10-31",
-  "lastRunAt": "2026-10-31T17:41:17+00:00",
+  "lastRun": "2026-11-01",
+  "lastRunAt": "2026-11-01T18:25:41+00:00",
   "scoredBy": "keyword scoring (no AI)",
   "payFloorCad": 72800,
   "payGoalCad": 100000,
-  "added": 5,
+  "added": 0,
   "closed": 0,
   "sources": [
     {
@@ -27,7 +27,7 @@
       "key": "greenhouse:cloudflare",
       "label": "Greenhouse · Cloudflare",
       "ok": true,
-      "count": 464
+      "count": 463
     },
     {
       "key": "greenhouse:datadog",
@@ -123,7 +123,7 @@
       "key": "remotive",
       "label": "Remotive",
       "ok": true,
-      "count": 13
+      "count": 12
     },
     {
       "key": "remoteok",
@@ -141,7 +141,7 @@
       "key": "weworkremotely",
       "label": "We Work Remotely",
       "ok": true,
-      "count": 140
+      "count": 146
     },
     {
       "key": "hackernews",
@@ -151,35 +151,35 @@
     }
   ],
   "skipped": {
-    "Title excluded": 2109,
-    "Title not a target role": 450,
-    "On-site abroad without stated visa sponsorship": 106,
+    "Title excluded": 2116,
+    "Title not a target role": 453,
+    "On-site abroad without stated visa sponsorship": 105,
     "Remote, but not stated as open to Canada": 31,
     "Requires security clearance": 3,
-    "Posted 30 days ago": 3,
+    "Posted 31 days ago": 3,
     "Already on the board (another source)": 2,
-    "Posted 72 days ago": 2,
-    "Posted 170 days ago": 2,
+    "Posted 73 days ago": 2,
+    "Posted 171 days ago": 2,
     "Asks for 8+ years": 2,
-    "Posted 87 days ago": 2,
-    "Posted 73 days ago": 1,
-    "Posted 80 days ago": 1,
-    "Posted 66 days ago": 1,
-    "Posted 92 days ago": 1,
+    "Posted 88 days ago": 2,
+    "Posted 74 days ago": 1,
+    "Posted 81 days ago": 1,
+    "Posted 67 days ago": 1,
+    "Posted 93 days ago": 1,
     "Scam signal": 1,
-    "Posted 193 days ago": 1,
-    "Posted 39 days ago": 1,
-    "Posted 45 days ago": 1,
-    "Posted 43 days ago": 1,
+    "Posted 194 days ago": 1,
+    "Posted 40 days ago": 1,
+    "Posted 46 days ago": 1,
+    "Posted 44 days ago": 1,
     "Remote, but requires foreign work authorization": 1,
-    "Posted 38 days ago": 1,
-    "Posted 49 days ago": 1,
-    "Posted 62 days ago": 1,
-    "Posted 70 days ago": 1,
+    "Posted 39 days ago": 1,
+    "Posted 50 days ago": 1,
+    "Posted 63 days ago": 1,
+    "Posted 71 days ago": 1,
     "Pay tops out at about C$33,120/yr": 1,
-    "Posted 28 days ago": 1,
     "Posted 29 days ago": 1,
-    "Posted 26 days ago": 1
+    "Posted 30 days ago": 1,
+    "Posted 27 days ago": 1
   },
   "removed": [
     "Rivianvw — Software Engineer, Connectivity Cloud (No longer on the company's job board, 2026-10-30)"
