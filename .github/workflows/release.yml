@@ -1,0 +1,76 @@
+# Builds, tests, signs and publishes a release when a maintainer pushes a version tag (e.g. v2.3.0),
+# or publishes a release with that tag from the GitHub website.
+#
+# Safety:
+# - The signing key is a secret of the "release" environment. That environment requires a maintainer's
+#   approval and only accepts v* tags (set in Settings -> Environments), so nobody can sign anything unreviewed.
+# - Only runs for tags: code in pull requests never sees the key.
+# - Actions are pinned to exact commits.
+name: Release
+on:
+  push:
+    tags: ['v*.*.*']
+  release:
+    types: [published]
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write   # create the release and upload the signed files
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - name: Work out the version
+        id: v
+        shell: bash
+        env:
+          REF: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          tag="$REF"
+          version="$(node -p "require('./app/package.json').version")"
+          if [ "$tag" != "v$version" ]; then echo "::error::Tag $tag doesn't match app/package.json version $version"; exit 1; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"; echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Install and test
+        working-directory: app
+        run: |
+          npm ci --no-fund --no-audit --ignore-scripts
+          node tests/run-tests.mjs
+      - name: Build and sign
+        working-directory: app
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then echo "::error::The release environment has no RELEASE_SIGNING_KEY secret"; exit 1; fi
+          umask 077
+          keyfile="$RUNNER_TEMP/release-signing-key.pem"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
+          JHK_RELEASE_KEY="$keyfile" node release.mjs pack | tee "$RUNNER_TEMP/pack.txt"
+          rm -f "$keyfile"
+      - name: Publish the release with the signed files
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          fp="$(grep -o 'Release key fingerprint: .*' "$RUNNER_TEMP/pack.txt" | head -1)"
+          files=("dist/job-hunt-kit-$VERSION.tar.gz" "dist/job-hunt-kit-$VERSION.tar.gz.sig")
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" "${files[@]}" --title "$VERSION" --generate-notes
+          else
+            gh release upload "$TAG" "${files[@]}" --clobber
+          fi
+          notes="$(gh release view "$TAG" --json body -q .body)"
+          case "$notes" in *"Release key fingerprint"*) ;; *) gh release edit "$TAG" --notes "$notes"$'\n\n'"$fp" ;; esac
