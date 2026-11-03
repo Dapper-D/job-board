@@ -2,7 +2,7 @@
 // Every API call must carry the per-install token that is injected into the page,
 // and the Host header must be localhost, so other websites can't read or change your data.
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, openSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -10,6 +10,7 @@ import { APP, DATA, LOGS } from './lib/paths.mjs';
 import { loadConfig, saveConfig } from './lib/config.mjs';
 import * as store from './lib/store.mjs';
 import { ask, status as aiStatus, PROVIDERS } from './lib/ai.mjs';
+import { check as checkUpdate, readState as updateState, writeState as writeUpdateState, localVersion } from './lib/update.mjs';
 import { createRequire } from 'node:module';
 const PDFMAKE = join(dirname(createRequire(import.meta.url).resolve('pdfmake/package.json')), 'build', 'pdfmake.min.js');
 
@@ -40,7 +41,7 @@ function pageConfig() {
   const c = loadConfig();
   return { name: c.name, city: c.city, region: c.region, country: c.country, currency: c.currency, floor: c.floor, goal: c.goal,
     tracks: c.tracks, school: c.school, workAuth: c.workAuth, onsiteRegions: c.onsiteRegions, provider: c.ai.provider,
-    providerLabel: (PROVIDERS[c.ai.provider] || {}).label || c.ai.provider, isWindows: process.platform === 'win32' };
+    providerLabel: (PROVIDERS[c.ai.provider] || {}).label || c.ai.provider, isWindows: process.platform === 'win32', version: localVersion() };
 }
 
 function boardHtml() {
@@ -49,6 +50,8 @@ function boardHtml() {
   const shim = '<script>' + readFileSync(join(APP, 'public', 'shim.js'), 'utf8') + '</script>';
   return html.replace('<!--KIT-BOOT-->', boot + shim);
 }
+
+const pickState = () => { const u = updateState(); return { state: u.state || 'idle', error: u.error || '', to: u.to || '', migrateNotes: u.migrateNotes || [], version: localVersion() }; };
 
 let refreshChild = null;
 function startRefresh() {
@@ -84,6 +87,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/version') return send(res, 200, { v: store.version(), refreshing: !!refreshChild });
     if (req.method === 'GET' && url.pathname === '/api/all') return send(res, 200, { ...store.snapshot(), refreshing: !!refreshChild });
     if (req.method === 'GET' && url.pathname === '/api/ai-status') return send(res, 200, await aiStatus());
+    if (req.method === 'GET' && url.pathname === '/api/update') return send(res, 200, { ...(await checkUpdate()), ...pickState() });
 
     if (req.method !== 'POST') return send(res, 405, { error: 'method' });
     const body = await readBody(req);
@@ -113,6 +117,16 @@ const server = createServer(async (req, res) => {
       catch (e) { return send(res, 200, { error: e.message, code: e.code || 'ai_failed' }); }
     }
     if (url.pathname === '/api/refresh') return send(res, 200, { started: startRefresh(), refreshing: true });
+    // Updates: check GitHub Releases, and run the updater in the background (it stops and restarts this server).
+    if (url.pathname === '/api/update') return send(res, 200, { ...(await checkUpdate({ force: !!body.force })), ...pickState() });
+    if (url.pathname === '/api/update/apply') {
+      if (updateState().state === 'updating' && Date.now() - new Date(updateState().startedAt || 0).getTime() < 20 * 60e3) return send(res, 200, { started: false, state: 'updating' });
+      writeUpdateState({ state: 'updating', startedAt: new Date().toISOString(), error: '' });
+      const out = openSync(join(LOGS, 'update.log'), 'a');
+      spawn(process.execPath, [join(APP, 'update.mjs'), '--yes', '--start-board'], { cwd: APP, detached: true, stdio: ['ignore', out, out], windowsHide: true }).unref();
+      return send(res, 200, { started: true, state: 'updating' });
+    }
+    if (url.pathname === '/api/shutdown') { send(res, 200, { ok: true }); setTimeout(() => process.exit(0), 200); return; }
     return send(res, 404, { error: 'not found' });
   } catch (e) {
     return send(res, 500, { error: 'server error' });

@@ -134,7 +134,7 @@ mark{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:0 2
       <h1 id="kTitle">Job Board</h1>
       <p>Each posting was checked on the employer's site or a major job board, scored against your resume, and checked for signs of a ghost or fake job. Refreshed every day on this computer. <span id="kPay"></span></p>
       <p class="note" id="kAi"></p>
-      <div class="tools"><button class="btn sm" type="button" id="refreshBtn">Refresh now</button></div>
+      <div class="tools"><button class="btn sm" type="button" id="refreshBtn">Refresh now</button><button class="btn sm primary" type="button" id="updTop" hidden>Update available</button></div>
     </div>
     <div class="counts">
       <div><span class="lbl">To apply</span><b id="cTotal">–</b></div>
@@ -240,6 +240,14 @@ mark{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:0 2
     <p class="note">Postings found during checks that were closed, filled, duplicated or couldn't be verified.</p>
     <ul class="removed" id="removed"><li>None recorded yet.</li></ul>
   </section>
+  <section class="panel" id="updPanel" aria-labelledby="uh">
+    <h2 id="uh">Updates</h2>
+    <p class="note" id="updInfo" role="status" aria-live="polite">Checking for updates…</p>
+    <ul class="plain" id="updTodo" hidden></ul>
+    <details id="updNotesBox" hidden><summary>What’s new</summary><div id="updNotes" class="note" style="white-space:pre-wrap"></div></details>
+    <div class="tools"><button class="btn sm primary" type="button" id="updGo" hidden>Update now</button><button class="btn sm" type="button" id="updCheck">Check for updates</button></div>
+    <p class="hint">Updates keep your answers, jobs, statuses, documents and logs. The board restarts and reloads by itself (usually 1–3 minutes).</p>
+  </section>
   <section class="panel">
     <h2>How the AI is used</h2>
     <p class="note">The daily refresh uses your AI (<span id="kAiName">your AI</span>) to score new jobs and write each tailored resume and cover letter once; the PDFs are also saved in the kit’s <span class="mono">documents</span> folder. The buttons under “Tools” only run when you click, and saved results stay on the job so you never pay for the same draft twice. “Research company” and “Who to contact” run during the next refresh, with web search. Everything is stored on this computer.</p>
@@ -278,6 +286,43 @@ mark{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:0 2
     const tick = () => { rb.disabled = !!window.__KIT.refreshing; rb.textContent = window.__KIT.refreshing ? 'Refreshing… (this can take a while)' : 'Refresh now'; };
     setInterval(tick, 2000);
     rb.addEventListener('click', () => { window.__KIT.api('/api/refresh', {}).then(() => { window.__KIT.refreshing = true; tick(); }).catch(() => {}); });
+
+    // ---- updates (GitHub Releases) ----
+    const ui = { info: $('#updInfo'), go: $('#updGo'), top: $('#updTop'), chk: $('#updCheck'), box: $('#updNotesBox'), notes: $('#updNotes'), todo: $('#updTodo') };
+    let polling = null;
+    const showUpd = u => {
+      if (!u) return;
+      ui.go.hidden = ui.top.hidden = !(u.available && u.state !== 'updating');
+      ui.top.textContent = 'Update available (' + u.latest + ')';
+      ui.box.hidden = !(u.available && u.notes); ui.notes.textContent = u.notes || '';
+      const todo = u.state === 'done' ? (u.migrateNotes || []) : [];
+      ui.todo.hidden = !todo.length; ui.todo.replaceChildren(...todo.map(t => el('li', null, t)));
+      if (u.state === 'updating') ui.info.textContent = 'Updating to ' + (u.latest || 'the new version') + '… The board restarts and reloads by itself.';
+      else if (u.state === 'failed') ui.info.textContent = 'The last update didn’t finish: ' + (u.error || 'see logs/update.log') + ' Your previous version is still installed.';
+      else if (u.available) ui.info.textContent = 'Version ' + u.latest + ' is available. You have ' + u.version + '.';
+      else ui.info.textContent = 'You have the latest version (' + u.version + ').' + (u.state === 'done' && u.to ? ' Updated to ' + u.to + '.' : '') + (u.checkError ? ' (' + u.checkError + ')' : '');
+      if (todo.length) ui.info.textContent += ' To finish the update:';
+    };
+    const loadUpd = force => window.__KIT.api('/api/update', force ? { force: true } : undefined).then(showUpd).catch(() => { ui.info.textContent = 'Couldn’t check for updates right now.'; });
+    const poll = (from) => {
+      if (polling) return;
+      polling = setInterval(() => {
+        window.__KIT.api('/api/update').then(u => {
+          if (u.state === 'done' && u.version !== from) { clearInterval(polling); location.reload(); }
+          else if (u.state === 'failed') { clearInterval(polling); polling = null; showUpd(u); }
+          else showUpd(u);
+        }).catch(() => { ui.info.textContent = 'Updating… the board is restarting.'; });
+      }, 3000);
+    };
+    ui.chk.addEventListener('click', () => { ui.info.textContent = 'Checking…'; loadUpd(true); });
+    ui.top.addEventListener('click', () => $('#updPanel').scrollIntoView({ behavior: 'smooth' }));
+    ui.go.addEventListener('click', () => {
+      const from = (window.__KIT.cfg || {}).version;
+      ui.go.disabled = true; ui.go.hidden = ui.top.hidden = true;
+      ui.info.textContent = 'Starting the update…';
+      window.__KIT.api('/api/update/apply', {}).then(() => poll(from)).catch(() => { ui.go.disabled = false; ui.info.textContent = 'Couldn’t start the update. Try again, or run “node update.mjs” in the app folder.'; });
+    });
+    loadUpd(false).then(() => window.__KIT.api('/api/update').then(u => { if (u.state === 'updating') poll(u.version); }).catch(() => {}));
   })();
   const STATUSES = ['Not started', 'Draft prepared', 'Applied', 'Viewed', 'Interview', 'Offer', 'Rejected', 'Not interested'];
   const DONE = new Set(['Applied', 'Viewed', 'Interview', 'Offer', 'Rejected', 'Not interested']);
@@ -441,7 +486,8 @@ mark{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:0 2
 
   function render() {
     const list = $('#list'); list.replaceChildren();
-    let jobs = S.jobs.filter(j => (j.active !== false || MINE.has(statusOf(j))) && !isHidden(j));
+    // Skip calls never show, unless you already gave the job a status yourself (so your history stays intact).
+    let jobs = S.jobs.filter(j => (j.active !== false || MINE.has(statusOf(j))) && !isHidden(j) && (j.rec !== 'Skip' || statusOf(j) !== 'Not started'));
     const open = jobs.filter(j => !j.closed && !DONE.has(statusOf(j)) && j.active !== false);
     $('#cTotal').textContent = open.length;
     $('#cMine').textContent = S.jobs.filter(j => MINE.has(statusOf(j))).length;
@@ -888,7 +934,7 @@ mark{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:0 2
     if (!S.sample) { out.replaceChildren(el('p', 'hint', 'Start the board with the Job Board shortcut to use this.')); return; }
     const st = statusOf;
     const mine = S.jobs.filter(j => SENT.has(st(j))).map(j => ({ job: j.company + ' — ' + j.title, status: st(j), applied: (S.dates[j.id] || {}).applied || 'unknown', reminder: (followUp(j) || {}).what || '' }));
-    const open = S.jobs.filter(j => !j.closed && j.active !== false && !DONE.has(st(j)) && !isHidden(j)).sort((a, b) => (b.overall || 0) - (a.overall || 0)).slice(0, 8)
+    const open = S.jobs.filter(j => !j.closed && j.active !== false && !DONE.has(st(j)) && !isHidden(j) && j.rec !== 'Skip').sort((a, b) => (b.overall || 0) - (a.overall || 0)).slice(0, 8)
       .map(j => ({ job: j.company + ' — ' + j.title, call: j.rec, overall: j.overall, pay: j.salary, posted: j.posted, legit: j.legit && j.legit.tier }));
     const gaps = topGaps(5).map(([label, c]) => label + ' (' + c.n + ' jobs)');
     const prompt = 'CANDIDATE\n' + candidate() + '\n\nTHEIR APPLICATIONS\n' + JSON.stringify(mine) + '\n\nBEST OPEN JOBS NOT YET APPLIED TO\n' + JSON.stringify(open) + '\n\nSKILLS THEY KEEP MISSING\n' + gaps.join('; ') + '\n\nToday is ' + today() + '. ' + RULES +

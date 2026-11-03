@@ -131,6 +131,8 @@ async function main() {
     const verify = host === 'ats' || host === 'employer' ? 'employer' : 'listing';
     const overall = Math.max(0, Math.min(10, Math.round(ev.overall - (verify === 'listing' ? 1 : 0))));
     const rec = overall >= 6 ? ev.rec : overall >= 4 ? (ev.rec === 'Skip' ? 'Skip' : 'Stretch') : 'Skip';
+    // Skip calls (missing too many must-haves) never go on the board; the queue entry says why.
+    if (rec === 'Skip') { qDone(c, { state: 'skipped', result: 'Poor fit: ' + (ev.verdict || ev.why || 'missing too many requirements').replace(/^Skip\.\s*/, '') }); drop('poor fit (Skip)'); continue; }
     const id = slug(ev.company, ev.title, p.finalUrl);
     const seenSig = new Set();
     jobs[id] = {
@@ -220,6 +222,7 @@ async function main() {
   }
   if (Object.keys(rPatch).length) store.putUser('requests', store.merge(store.getUser('requests') || {}, rPatch));
 
+  try { const u = await (await import('./lib/update.mjs')).check(); if (u.available) log('Update available: version ' + u.latest + ' (you have ' + u.current + '). Click Update on the board.'); } catch {}
   meta.lastRun = today();
   meta.sources = sources;
   meta.log = L;

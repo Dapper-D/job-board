@@ -13,7 +13,7 @@ const HOME = join(T, 'home'); const CO = join(T, 'co');
 mkdirSync(join(CO, 'data'), { recursive: true }); mkdirSync(HOME, { recursive: true });
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
-const env = { ...process.env, KIT_HOME: HOME, CAREER_OPS_DIR: CO, KIT_AI_PROVIDER: 'mock', KIT_ALLOW_HTTP: '1', KIT_PORT: '4791' };
+const env = { ...process.env, KIT_HOME: HOME, CAREER_OPS_DIR: CO, KIT_AI_PROVIDER: 'mock', KIT_ALLOW_HTTP: '1', KIT_PORT: '4791', KIT_UPDATE_API: 'http://127.0.0.1:9' };
 
 const pages = {
   '/job1': `<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"SOC Analyst","hiringOrganization":{"name":"Acme Security"},"jobLocationType":"TELECOMMUTE","baseSalary":{"currency":"CAD","value":{"minValue":80000,"maxValue":95000,"unitText":"YEAR"}},"description":"Monitor alerts, triage incidents, Python and Linux. Work with the security team on detection and response across the platform."}</script></head><body>SOC Analyst at Acme. Monitor alerts and triage incidents. Requirements: Python, networking, Linux. Nice to have: SIEM. Remote in Canada.</body></html>`,

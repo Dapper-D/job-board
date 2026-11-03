@@ -77,6 +77,12 @@ const port = cfg.port || 4777;
 (await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(1500) }).then(r => r.ok, () => false))
   ? pass('Board running at http://127.0.0.1:' + port + '/') : warn('Board not running right now', 'Use the Job Board shortcut, or: node start.mjs');
 
+try {
+  const u = await (await import('./lib/update.mjs')).check();
+  if (u.available) warn(`Version ${u.latest} is available (you have ${u.current})`, 'Click Update on the board, or run: node update.mjs');
+  else pass('Kit version ' + u.current + (u.latest ? ' (latest)' : u.checkError ? ' (' + u.checkError + ')' : ''));
+} catch {}
+
 if (process.argv.includes('--refresh')) {
   console.log('\nRunning a refresh now (this can take a while)...\n');
   const r = spawnSync(process.execPath, ['refresh.mjs', '--log', join(LOGS, 'refresh-' + new Date().toLocaleDateString('en-CA') + '.log')], { cwd: APP, stdio: 'inherit' });

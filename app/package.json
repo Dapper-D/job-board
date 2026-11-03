@@ -1,6 +1,6 @@
 {
   "name": "job-hunt-kit",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Local job board + career-ops, powered by the AI you already pay for: Codex (ChatGPT), Claude Code (Claude) or Gemini CLI (Google). Windows, Mac and Linux.",
@@ -13,7 +13,8 @@
     "onboard": "node onboard.mjs",
     "test": "node tests/run-tests.mjs",
     "setup": "node setup.mjs",
-    "doctor": "node doctor.mjs"
+    "doctor": "node doctor.mjs",
+    "update": "node update.mjs"
   },
   "dependencies": {
     "mammoth": "^1.8.0",

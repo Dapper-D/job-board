@@ -3,6 +3,7 @@
 //   codex   - OpenAI Codex CLI, signed in with ChatGPT (uses the ChatGPT plan's Codex allowance)
 //   claude  - Claude Code CLI, signed in with a Claude plan (Pro/Max)
 //   gemini  - Gemini CLI, signed in with a Google account (free tier available)
+//   openai  - (older kits) OpenAI API key from .env, billed by OpenAI; kept so those installs keep working
 //   mock    - canned answers, for tests only
 // The CLIs are installed into the kit's own tools/ folder by setup (no admin rights needed);
 // a copy already on PATH is used as a fallback. All of them share the sign-in stored in your home folder.
@@ -10,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
-import { loadConfig } from './config.mjs';
+import { loadConfig, loadEnv } from './config.mjs';
 import { KIT } from './paths.mjs';
 
 export class AiError extends Error { constructor(code, msg) { super(msg || code); this.code = code; } }
@@ -139,6 +140,26 @@ async function runGemini(prompt, { schema, timeoutSec, model }) {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
+async function runOpenAI(prompt, { schema, search, timeoutSec }) {
+  const key = loadEnv().OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!key) throw new AiError('not_logged_in', 'No OpenAI API key found in .env. Switch to a sign-in AI with: node login.mjs codex');
+  const body = { model: loadConfig().ai.apiModel || 'gpt-5-mini', input: prompt };
+  if (search) body.tools = [{ type: 'web_search' }];
+  if (schema) body.text = { format: { type: 'json_schema', name: 'result', schema, strict: true } };
+  let r;
+  try { r = await fetch('https://api.openai.com/v1/responses', { method: 'POST', signal: AbortSignal.timeout((timeoutSec || 240) * 1000), headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key }, body: JSON.stringify(body) }); }
+  catch (e) { throw new AiError('ai_failed', 'Could not reach OpenAI: ' + e.message); }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new AiError('not_logged_in', 'The OpenAI API key was rejected.');
+  if (r.status === 429) throw new AiError('rate_limited', 'OpenAI rate limit or out of API credit.');
+  if (!r.ok) throw new AiError('ai_failed', 'OpenAI error ' + r.status + ': ' + ((j.error && j.error.message) || '').slice(0, 200));
+  if (j.output_text) return j.output_text.trim();
+  const parts = [];
+  for (const o of j.output || []) for (const c of o.content || []) if (c.type === 'output_text' && c.text) parts.push(c.text);
+  if (!parts.length) throw new AiError('ai_failed', 'OpenAI returned no text.');
+  return parts.join('\n').trim();
+}
+
 let mockHandler = null;
 export function setMock(fn) { mockHandler = fn; }
 export const providerOf = cfg => process.env.KIT_AI_PROVIDER || (cfg || loadConfig()).ai.provider;
@@ -153,6 +174,7 @@ export async function ask(prompt, opts = {}) {
     if (provider === 'claude') return runClaude(p, o);
     if (provider === 'gemini') return runGemini(p, o);
     if (provider === 'codex') return runCodex(p, o);
+    if (provider === 'openai') return runOpenAI(p, o);
     throw new AiError('not_installed', 'Unknown AI provider "' + provider + '" in config.json. Use codex, claude or gemini.');
   };
   const text = await once();
@@ -169,6 +191,7 @@ export async function status() {
   const provider = providerOf(cfg);
   const P = PROVIDERS[provider];
   if (provider === 'mock') return { provider, label: 'test mode', ready: true };
+  if (provider === 'openai') { const ready = !!(loadEnv().OPENAI_API_KEY || process.env.OPENAI_API_KEY); return { provider, label: 'OpenAI API key', ready, why: ready ? '' : 'no OpenAI API key in .env' }; }
   if (!P) return { provider, ready: false, why: 'unknown AI provider in config.json' };
   const base = { provider, label: P.label };
   if (provider === 'gemini') {
