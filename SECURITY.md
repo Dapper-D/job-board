@@ -43,8 +43,12 @@ Please **don't** open a public issue for a security problem. Use GitHub's **Secu
 - The AI vendors (OpenAI, Anthropic, Google) receive the text sent to them, under your plan's terms.
 - Always read a tailored resume or cover letter before sending it.
 
-## For the maintainer
+## For maintainers
 
-- The release signing key lives in your home folder (`~/.job-hunt-kit/release-signing-key.pem`), never in the repo. Back it up offline.
-- If the key is ever exposed, make a new one (`node app/release.mjs keygen --force`), publish a release, and tell users to run `update-kit.ps1` / `update-kit.sh` once.
-- Turn on two-factor authentication for your GitHub account, and branch protection for `main`.
+- The release signing key exists only as the `RELEASE_SIGNING_KEY` secret of the repo's `release` environment, plus one backup in a password manager. No maintainer keeps it on a laptop, so a lost or stolen laptop can't sign updates.
+- Signing runs only for `v*` tags, only after a required maintainer approval, with actions pinned to exact commits. Pull requests never get the secret.
+- If the key is ever exposed:
+  1. Run `node app/release.mjs keygen --github` and replace the secret.
+  2. Commit the new public key and publish a release.
+  3. Tell users to run `update-kit.ps1` / `update-kit.sh` once, since their kits only trust the old key.
+- Keep two-factor sign-in on for everyone with write access, protect `main` and `v*` tags with rulesets, and require Code Owners review for the files in `.github/CODEOWNERS`.

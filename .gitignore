@@ -9,3 +9,7 @@ cv-preview.md
 career-ops/
 tools/
 node_modules/
+.update/
+backups/
+app/.kit-files.json
+dist/

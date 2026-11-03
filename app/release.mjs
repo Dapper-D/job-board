@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// For the maintainer only: sign releases so kits can tell a genuine update from a tampered one.
-//   node release.mjs keygen   once: makes your private signing key (kept OUTSIDE the repo, in your home folder)
-//                             and writes the matching public key into app/kit.json, update-kit.ps1 and update-kit.sh
+// For maintainers: sign releases so kits can tell a genuine update from a tampered one.
+// Normally GitHub does the signing (.github/workflows/release.yml) with the key stored as a secret of the
+// "release" environment, so no maintainer keeps the key on a laptop.
+//   node release.mjs keygen --github   once: makes the key, PRINTS the private key for you to paste into GitHub
+//                             (nothing is saved on this computer), and writes the public key into
+//                             app/kit.json, update-kit.ps1 and update-kit.sh
+//   node release.mjs keygen   same, but saves the private key in your home folder (to sign releases yourself)
 //   node release.mjs fingerprint  anyone: shows the fingerprint of the release key built into this kit
 //   node release.mjs pack     for each release: builds dist/job-hunt-kit-<version>.tar.gz and its .sig
 //                             (upload both to the GitHub release)
@@ -29,7 +33,24 @@ function setPublicKey(pub) {
   }
 }
 
-if (cmd === 'keygen') {
+if (cmd === 'keygen' && process.argv.includes('--github')) {
+  const { privateKey } = generateKeyPairSync('ed25519');
+  const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+  const pub = createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).toString('base64');
+  setPublicKey(pub);
+  console.log(`
+1) Copy EVERYTHING between the lines (including the BEGIN and END lines):
+------------------------------------------------------------
+${pem.trim()}
+------------------------------------------------------------
+2) GitHub: your repo -> Settings -> Environments -> "release" -> Add environment secret
+   Name: RELEASE_SIGNING_KEY    Value: paste it    -> Add secret
+3) Also save it in your password manager as a backup (GitHub won't show it again).
+   Then close this window: the key was not saved anywhere on this computer.
+
+The public key was written to app/kit.json, update-kit.ps1 and update-kit.sh. Commit and push those three files.
+Release key fingerprint: ${fingerprint(pub)}`);
+} else if (cmd === 'keygen') {
   if (existsSync(KEY) && !process.argv.includes('--force')) { console.log('A signing key already exists at ' + KEY + '. (Use --force to replace it; kits trusting the old key would then stop updating.)'); }
   else {
     const { privateKey } = generateKeyPairSync('ed25519');
@@ -61,7 +82,7 @@ if (cmd === 'keygen') {
   if (t.status !== 0) { console.log('tar failed'); process.exit(1); }
   rmSync(stage, { recursive: true, force: true });
   const data = readFileSync(out);
-  const sig = sign(null, data, createPrivateKey(readFileSync(KEY))).toString('base64');
+  const sig = sign(null, data, readPrivateKey()).toString('base64');
   writeFileSync(out + '.sig', sig + '\n');
   if (!verifyRelease(data, sig, pub)) { console.log('Signature check failed'); process.exit(1); }
   console.log('Paste this line into the release notes:\n  Release key fingerprint: ' + fingerprint(pub));
@@ -70,10 +91,18 @@ if (cmd === 'keygen') {
   const k = JSON.parse(readFileSync(join(APP, 'kit.json'), 'utf8')).releaseKey;
   console.log(k ? 'Release key fingerprint: ' + fingerprint(k) : 'This kit has no release key.');
 } else {
-  console.log('Use: node release.mjs keygen | pack | fingerprint');
+  console.log('Use: node release.mjs keygen --github | keygen | pack | fingerprint');
+}
+function readPrivateKey() {
+  const text = readFileSync(KEY, 'utf8').replace(/\r/g, '').trim();
+  if (!/^-----BEGIN PRIVATE KEY-----\n[\s\S]+\n-----END PRIVATE KEY-----$/.test(text)) {
+    console.log('The signing key is not a private key. It must be the whole block from "-----BEGIN PRIVATE KEY-----" to "-----END PRIVATE KEY-----" (the public key starting "MCow..." won\'t work).');
+    process.exit(1);
+  }
+  return createPrivateKey(text + '\n');
 }
 function createPrivateKeyPub() {
-  return createPublicKey(createPrivateKey(readFileSync(KEY))).export({ type: 'spki', format: 'der' }).toString('base64');
+  return createPublicKey(readPrivateKey()).export({ type: 'spki', format: 'der' }).toString('base64');
 }
 // Short, readable fingerprint of a public key: SHA-256 of the key, first 16 bytes, in groups.
 function fingerprint(pubB64) {

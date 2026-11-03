@@ -214,18 +214,33 @@ Run `node app/uninstall.mjs`. It removes the daily schedule and the shortcut. Th
 - [pdfmake](https://github.com/bpampuch/pdfmake): MIT.
 - Codex, Claude Code and Gemini CLI belong to OpenAI, Anthropic and Google; your plan's terms and limits apply.
 
-## For the maintainer: publishing an update
+## Contributing
 
-Releases are signed, so kits can tell a genuine update from a tampered one.
+Pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Tests run automatically on Windows, Mac and Linux for every pull request.
 
-**Once, before your first release:**
-1. In the `app` folder run `node release.mjs keygen`. It saves your private signing key to `~/.job-hunt-kit/release-signing-key.pem`, outside the repo. Back that file up offline and never share or commit it.
-2. Keygen also writes the matching public key into `app/kit.json`, `update-kit.ps1` and `update-kit.sh`. Commit and push those three files.
-3. Keygen prints the key's fingerprint. Keep it handy; `pack` prints the same line for your release notes.
+## For maintainers: publishing an update
 
-**Every release:**
-1. Bump `version` in `app/package.json` (e.g. `2.2.0` to `2.3.0`), commit and push.
-2. In the `app` folder run `node release.mjs pack`. It makes `dist/job-hunt-kit-<version>.tar.gz` and `.tar.gz.sig`.
-3. On GitHub, go to **Releases** → **Draft a new release**, create the tag `v<version>`, write what changed (people see it in the Updates panel) plus the fingerprint line `pack` printed, **attach both files**, and **Publish**.
+Releases are built, tested and **signed by GitHub** (`.github/workflows/release.yml`). The signing key is a secret of the repo's `release` environment, so no maintainer keeps it on a laptop, and every release needs a maintainer's approval.
 
-Kits check about every 6 hours and during each daily refresh. Releases without both signed files are ignored, and so are pushes without a release. The repository the kits check is set in `app/kit.json`.
+**Each release:**
+1. Bump `version` in `app/package.json` (e.g. `2.2.0` to `2.3.0`), through a pull request like any change.
+2. Publish a release on GitHub (**Releases → Draft a new release**) with the tag `v2.3.0`, and write what changed (people see it in the Updates panel). Or push the tag `v2.3.0` instead.
+3. A maintainer approves the **Release** run (Actions tab → the run → **Review deployments** → Approve). GitHub tests the code, signs it, and attaches `job-hunt-kit-2.3.0.tar.gz` and `.sig` to the release, with the key fingerprint in the notes.
+
+Kits check about every 6 hours and during each daily refresh. They only install releases that have both signed files.
+
+**One-time setup** (repo owner):
+1. **Key:** in the `app` folder run `node release.mjs keygen --github`. It prints the private key once (nothing is saved on your computer) and writes the public key into `app/kit.json`, `update-kit.ps1` and `update-kit.sh`; commit those three files. Then:
+   - **Settings → Environments → New environment** `release`.
+   - Add **Required reviewers** (the maintainers).
+   - Under **Deployment branches and tags**, choose **Selected** and add the tag rule `v*`.
+   - Add the environment secret `RELEASE_SIGNING_KEY` with the printed key. Keep a copy in a password manager, since GitHub won't show it again.
+2. **Protect main:** **Settings → Rules → Rulesets → New branch ruleset** for `main`:
+   - require a pull request with 1 approval and Code Owners review
+   - require the **Tests** checks to pass
+   - block force pushes and deletion
+3. **Protect release tags:** a tag ruleset for `v*` that restricts creating, updating and deleting tags to maintainers.
+4. **Actions:** under **Settings → Actions → General**:
+   - set "Workflow permissions" to **Read repository contents**
+   - set "Fork pull request workflows" to **Require approval for all outside collaborators**
+5. **Accounts:** everyone with write access turns on two-factor sign-in. Also turn on **Private vulnerability reporting** (Settings → Security).
