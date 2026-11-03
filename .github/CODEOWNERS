@@ -1,0 +1,24 @@
+# Changes to these need a review from the maintainer (turn on "Require review from Code Owners" in branch protection).
+# They decide what code reaches people's computers and how the board is protected.
+/.github/                     @Dapper-D
+/app/kit.json                 @Dapper-D
+/app/package.json             @Dapper-D
+/app/package-lock.json        @Dapper-D
+/app/update.mjs               @Dapper-D
+/app/release.mjs              @Dapper-D
+/app/migrate.mjs              @Dapper-D
+/app/setup.mjs                @Dapper-D
+/app/server.mjs               @Dapper-D
+/app/public/shim.js           @Dapper-D
+/app/lib/update.mjs           @Dapper-D
+/app/lib/ai.mjs               @Dapper-D
+/app/lib/safefetch.mjs        @Dapper-D
+/app/lib/secure.mjs           @Dapper-D
+/app/lib/platform.mjs         @Dapper-D
+/app/lib/install.mjs          @Dapper-D
+/app/lib/careerops-pin.mjs    @Dapper-D
+/update-kit.ps1               @Dapper-D
+/update-kit.sh                @Dapper-D
+/setup.ps1                    @Dapper-D
+/setup.sh                     @Dapper-D
+/SECURITY.md                  @Dapper-D
