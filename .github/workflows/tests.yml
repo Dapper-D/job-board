@@ -1,0 +1,36 @@
+# Runs the test suite on every pull request and every push to main, on Windows, Mac and Linux.
+# No secrets are available here, so code from a pull request can't reach the release key.
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - name: Install (exact versions from package-lock.json, no install scripts)
+        working-directory: app
+        run: npm ci --no-fund --no-audit --ignore-scripts
+      - name: Run tests
+        working-directory: app
+        run: node tests/run-tests.mjs
+      - name: Check for vulnerable dependencies
+        working-directory: app
+        run: npm audit --omit=dev --audit-level=high
