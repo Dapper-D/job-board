@@ -1,2 +1,0 @@
-requests>=2.31,<3
-tzdata>=2024.1   # time zones on Windows; harmless elsewhere

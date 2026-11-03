@@ -1,17 +1,11 @@
-# Your personal details and keys. Never commit these.
-profile.toml
+# Your data (never commit these)
+config.json
 .env
-private/
-
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
-venv/
-
-# Editors and OS
-.vscode/
-.idea/
-.DS_Store
-docs/data/*.tmp
+data/
+logs/
+documents/
+cv-preview.md
+# Installed by setup
+career-ops/
+tools/
+node_modules/
