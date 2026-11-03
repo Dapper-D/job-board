@@ -5,6 +5,8 @@
 # Your answers, jobs, statuses, documents and logs are kept. Nothing is installed from scratch.
 set -u
 REPO="Dapper-D/job-board"
+# Releases must be signed with the maintainer's key; this is its public half (set by: node app/release.mjs keygen).
+RELEASE_KEY="MCowBQYDK2VwAyEAkpRtru0g0ON/RzjOmTK1W1jyYTdaB3YZUDfO7x/XLmg="
 API="${KIT_UPDATE_API:-https://api.github.com}"
 KIT="${1:-$(cd "$(dirname "$0")" && pwd)}"
 red() { printf '\033[31m%s\033[0m\n' "$1"; }
@@ -20,7 +22,11 @@ command -v node >/dev/null || { red "Node.js not found. Run setup.sh first."; ex
 
 INFO="$(curl -fsSL -H 'User-Agent: job-hunt-kit-updater' "$API/repos/$REPO/releases/latest")" || { red "Couldn't reach GitHub to find the latest version."; exit 1; }
 LATEST="$(printf '%s' "$INFO" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).tag_name.replace(/^v/,'')))")"
-URL="$(printf '%s' "$INFO" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).tarball_url))")"
+[ -n "$RELEASE_KEY" ] || { red "This updater has no release key yet, so it cannot check that an update is genuine."; exit 1; }
+asset() { printf '%s' "$INFO" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=(JSON.parse(s).assets||[]).find(x=>x.name===process.argv[1]);console.log(a?a.browser_download_url:'')})" "$1"; }
+URL="$(asset "job-hunt-kit-$LATEST.tar.gz")"; SIGURL="$(asset "job-hunt-kit-$LATEST.tar.gz.sig")"
+[ -n "$URL" ] && [ -n "$SIGURL" ] || { red "The latest release ($LATEST) has no signed archive yet. Try again later."; exit 1; }
+for u in "$URL" "$SIGURL"; do case "$u" in "https://github.com/$REPO/releases/download/"*|"$API"*) ;; *) red "Unexpected download address in the release."; exit 1;; esac; done
 echo "Kit folder: $KIT"
 echo "Installed version: $(node -p "require('$KIT/app/package.json').version")"
 echo "Latest version:    $LATEST"
@@ -31,11 +37,17 @@ case "$GO" in [nN]*) exit 0;; esac
 
 TMP="$(mktemp -d)"
 echo "Downloading..."
-curl -fsSL -H 'User-Agent: job-hunt-kit-updater' -o "$TMP/release.tar.gz" "$URL" || { red "Download failed."; exit 1; }
+curl -fsSL -H 'User-Agent: job-hunt-kit-updater' -o "$TMP/release.tar.gz" "$URL" && curl -fsSL -H 'User-Agent: job-hunt-kit-updater' -o "$TMP/release.tar.gz.sig" "$SIGURL" || { red "Download failed."; exit 1; }
+# Check the signature BEFORE unpacking or running anything from the download.
+JHK_KEY="$RELEASE_KEY" JHK_FILE="$TMP/release.tar.gz" node -e "const c=require('crypto'),fs=require('fs');const k=c.createPublicKey({key:Buffer.from(process.env.JHK_KEY,'base64'),format:'der',type:'spki'});process.exit(c.verify(null,fs.readFileSync(process.env.JHK_FILE),k,Buffer.from(fs.readFileSync(process.env.JHK_FILE+'.sig','utf8').trim(),'base64'))?0:1)" \
+  || { rm -rf "$TMP"; red "The download is not signed by the kit maintainer, so it was NOT installed."; exit 1; }
+echo "Signature checked: this is a genuine release."
+if tar -tvzf "$TMP/release.tar.gz" | grep -qvE '^[-d]' || tar -tvzf "$TMP/release.tar.gz" | grep -qE ' link to | -> '; then red "The update archive contains links, so it was not installed."; exit 1; fi
 tar -xzf "$TMP/release.tar.gz" -C "$TMP"
 SRC="$(dirname "$(ls -d "$TMP"/*/app/update.mjs | head -1)")/.."
 [ -f "$SRC/app/update.mjs" ] || { red "The download doesn't look like the kit."; exit 1; }
 SRC="$(cd "$SRC" && pwd)"
+[ "$(node -p "require('$SRC/app/package.json').version")" = "$LATEST" ] || { red "The archive's version doesn't match the release."; exit 1; }
 (cd "$SRC/app" && node update.mjs --install-into "$KIT" --source "$SRC" --start-board)
 CODE=$?
 rm -rf "$TMP"

@@ -10,6 +10,8 @@
 param([string]$KitPath = '')
 $ErrorActionPreference = 'Continue'
 $Repo = 'Dapper-D/job-board'
+# Releases must be signed with the maintainer's key; this is its public half (set by: node app/release.mjs keygen).
+$RELEASE_KEY = 'MCowBQYDK2VwAyEAkpRtru0g0ON/RzjOmTK1W1jyYTdaB3YZUDfO7x/XLmg='
 function Fail($m) { Write-Host "`n$m" -ForegroundColor Red; Read-Host 'Press Enter to close'; exit 1 }
 $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
 
@@ -34,6 +36,11 @@ Write-Host "Installed version: $($pkg.version)"
 try { $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers @{ 'User-Agent' = 'job-hunt-kit-updater' } }
 catch { Fail "Couldn't reach GitHub to find the latest version ($($_.Exception.Message))." }
 $latest = $rel.tag_name.TrimStart('v')
+if (-not $RELEASE_KEY) { Fail 'This updater has no release key yet, so it cannot check that an update is genuine.' }
+$asset = $rel.assets | Where-Object { $_.name -eq "job-hunt-kit-$latest.tar.gz" } | Select-Object -First 1
+$sigAsset = $rel.assets | Where-Object { $_.name -eq "job-hunt-kit-$latest.tar.gz.sig" } | Select-Object -First 1
+if (-not $asset -or -not $sigAsset) { Fail "The latest release ($latest) has no signed archive yet. Try again later." }
+foreach ($a in @($asset, $sigAsset)) { if ($a.browser_download_url -notlike "https://github.com/$Repo/releases/download/*") { Fail 'Unexpected download address in the release.' } }
 Write-Host "Latest version:    $latest`n"
 if ($rel.body) { Write-Host "What's new:"; Write-Host $rel.body; Write-Host '' }
 $go = Read-Host 'Update now? Your answers, jobs, documents and logs are kept (y/n) [y]'
@@ -42,11 +49,23 @@ if ($go -match '^n') { exit 0 }
 $tmp = Join-Path $env:TEMP ('jhk-update-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 Write-Host 'Downloading...'
-try { Invoke-WebRequest -Uri $rel.tarball_url -OutFile (Join-Path $tmp 'release.tar.gz') -UseBasicParsing -Headers @{ 'User-Agent' = 'job-hunt-kit-updater' } }
-catch { Fail "Download failed ($($_.Exception.Message))." }
-tar -xzf (Join-Path $tmp 'release.tar.gz') -C $tmp
+$file = Join-Path $tmp 'release.tar.gz'
+try {
+  Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $file -UseBasicParsing -Headers @{ 'User-Agent' = 'job-hunt-kit-updater' }
+  Invoke-WebRequest -Uri $sigAsset.browser_download_url -OutFile "$file.sig" -UseBasicParsing -Headers @{ 'User-Agent' = 'job-hunt-kit-updater' }
+} catch { Fail "Download failed ($($_.Exception.Message))." }
+# Check the signature BEFORE unpacking or running anything from the download.
+$env:JHK_KEY = $RELEASE_KEY; $env:JHK_FILE = $file
+node -e "const c=require('crypto'),fs=require('fs');const k=c.createPublicKey({key:Buffer.from(process.env.JHK_KEY,'base64'),format:'der',type:'spki'});process.exit(c.verify(null,fs.readFileSync(process.env.JHK_FILE),k,Buffer.from(fs.readFileSync(process.env.JHK_FILE+'.sig','utf8').trim(),'base64'))?0:1)"
+if ($LASTEXITCODE -ne 0) { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue; Fail 'The download is not signed by the kit maintainer, so it was NOT installed.' }
+Write-Host 'Signature checked: this is a genuine release.'
+$bad = tar -tvzf $file | Where-Object { $_ -notmatch '^[-d]' -or $_ -match ' link to | -> ' }
+if ($bad) { Fail 'The update archive contains links, so it was not installed.' }
+tar -xzf $file -C $tmp
 $src = Get-ChildItem $tmp -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'app\update.mjs') } | Select-Object -First 1
 if (-not $src) { Fail "The download doesn't look like the kit." }
+$newVer = (Get-Content (Join-Path $src.FullName 'app\package.json') -Raw | ConvertFrom-Json).version
+if ($newVer -ne $latest) { Fail "The archive's version ($newVer) doesn't match the release ($latest)." }
 
 # The new version installs itself (keeps your data, backs up the old files, restarts the board).
 Push-Location (Join-Path $src.FullName 'app')

@@ -1,10 +1,11 @@
 // End-to-end smoke test with the mock AI and a local test site. No network, no AI usage.
 //   node tests/run-tests.mjs
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, cpSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
+import * as http from 'node:http';
 import { fileURLToPath } from 'node:url';
 
 const APP = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -64,8 +65,13 @@ r = await run(['refresh.mjs', '--no-scan']);
 ok(Object.keys(JSON.parse(readFileSync(join(HOME, 'data', 'jobs.json'), 'utf8'))).length === Object.keys(jobs).length, 'second refresh adds no duplicates');
 
 const srv = spawn(process.execPath, ['server.mjs'], { cwd: APP, env, stdio: 'ignore' });
-await new Promise(r => setTimeout(r, 1200));
-const token = JSON.parse(readFileSync(join(HOME, 'config.json'), 'utf8')).token;
+process.on('exit', () => { try { srv.kill(); } catch {} });
+let token = '';
+for (let i = 0; i < 40; i++) {
+  await new Promise(r => setTimeout(r, 250));
+  token = JSON.parse(readFileSync(join(HOME, 'config.json'), 'utf8')).token || '';
+  if (token && await fetch('http://127.0.0.1:4791/api/version', { headers: { 'x-kit-token': token } }).then(r => r.ok, () => false)) break;
+}
 const base = 'http://127.0.0.1:4791';
 ok((await fetch(base + '/api/all')).status === 403, 'API refuses requests without the token');
 const H = { 'x-kit-token': token, 'content-type': 'application/json' };
@@ -78,8 +84,42 @@ const all = await (await fetch(base + '/api/all', { headers: H })).json();
 ok(all.user.tracker[id] === 'Applied' && all.user.dates[id].applied === '2026-01-02' && all.user.dates[id].changed === '2026-01-03', 'status saved and dates merged, not overwritten');
 const ai = await (await fetch(base + '/api/ai', { method: 'POST', headers: H, body: JSON.stringify({ prompt: 'TASK write a note' }) })).json();
 ok(typeof ai.text === 'string' && ai.text.length > 0, 'AI endpoint answers');
-const html = await (await fetch(base + '/')).text();
-ok(html.includes('window.__KIT') && html.includes('window.claude'), 'board page served with its local connector');
+// ---- security of the local server ----
+const locked = await fetch(base + '/');
+const lockedText = await locked.text();
+ok(locked.status === 401 && !lockedText.includes(token) && !lockedText.includes('window.claude'), 'page is locked without a session, and never shows the token');
+const hostStatus = await new Promise(res => { const { request } = http; const q = request({ host: '127.0.0.1', port: 4791, path: '/', headers: { host: 'evil.example:4791' } }, r => { r.resume(); res(r.statusCode); }); q.on('error', () => res(0)); q.end(); });
+ok(hostStatus === 421, 'wrong Host header refused (DNS rebinding)');
+const code = (await (await fetch(base + '/api/launch', { method: 'POST', headers: H, body: '{}' })).json()).code;
+ok((await fetch(base + '/api/launch', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status === 403, 'launch codes only for token holders');
+const launched = await fetch(base + '/?launch=' + code, { redirect: 'manual' });
+const cookie = (launched.headers.get('set-cookie') || '').split(';')[0];
+ok(launched.status === 302 && /^jhk_session=[a-f0-9]{64}$/.test(cookie) && /HttpOnly/.test(launched.headers.get('set-cookie')) && /SameSite=Strict/.test(launched.headers.get('set-cookie')), 'launch code sets an HttpOnly SameSite=Strict session cookie');
+ok((await fetch(base + '/?launch=' + code, { redirect: 'manual' })).status === 401, 'launch codes work only once');
+const page = await fetch(base + '/', { headers: { cookie } });
+const html = await page.text();
+const cspH = page.headers.get('content-security-policy') || '';
+ok(html.includes('window.__KIT') && html.includes('window.claude') && !html.includes(token), 'board page served with its session, without the token');
+const nonce = (cspH.match(/'nonce-([^']+)'/) || [])[1];
+ok(nonce && !/script-src[^;]*unsafe-inline/.test(cspH) && /default-src 'none'/.test(cspH) && (html.match(/<script(?=[\s>])/g) || []).length === (html.match(new RegExp('<script nonce="' + nonce.replace(/[+/=]/g, '\\$&') + '"', 'g')) || []).length, 'CSP: nonce on every script, no inline-script loophole');
+ok(page.headers.get('x-frame-options') === 'DENY' && page.headers.get('cross-origin-opener-policy') === 'same-origin' && page.headers.get('referrer-policy') === 'no-referrer', 'security headers set');
+ok((await fetch(base + '/api/all', { headers: { cookie } })).status === 403, 'cookie alone is not enough (needs the page header)');
+ok((await fetch(base + '/api/all', { headers: { cookie, 'x-kit-csrf': '1' } })).status === 200, 'page requests with cookie + header work');
+ok((await fetch(base + '/api/all', { headers: { cookie, 'x-kit-csrf': '1', origin: 'http://127.0.0.1:8080' } })).status === 403, 'requests from another origin (even another localhost port) refused');
+ok((await fetch(base + '/api/write', { method: 'POST', headers: { cookie, 'x-kit-csrf': '1', 'content-type': 'application/json', 'sec-fetch-site': 'cross-site' }, body: '{}' })).status === 403, 'cross-site requests refused');
+ok((await fetch(base + '/api/shutdown', { method: 'POST', headers: { cookie, 'x-kit-csrf': '1', 'content-type': 'application/json' }, body: '{}' })).status === 403, 'the page cannot shut the server down');
+ok((await fetch(base + '/api/write', { method: 'POST', headers: H, body: '{bad json' })).status === 400, 'bad JSON gets 400');
+ok((await fetch(base + '/fonts/atkinson-hyperlegible-latin-400-normal.woff2')).status === 200 && (await fetch(base + '/fonts/../config.json')).status !== 200, 'fonts served locally; no path tricks');
+if (process.platform !== 'win32') ok((statSync(join(HOME, 'config.json')).mode & 0o077) === 0 && (statSync(join(HOME, 'data')).mode & 0o077) === 0, 'config.json and data/ readable only by the owner');
+const { isPublicAddress } = await import('../lib/safefetch.mjs');
+ok(['127.0.0.1', '10.0.0.5', '192.168.1.1', '169.254.169.254', '::1', '::ffff:10.0.0.1', 'fd12::1', '100.64.0.1'].every(a => !isPublicAddress(a)) && isPublicAddress('8.8.8.8'), 'job-link fetching refuses private and local addresses');
+const { verifyRelease } = await import('../lib/update.mjs');
+const { generateKeyPairSync, sign } = await import('node:crypto');
+const kp = generateKeyPairSync('ed25519'); const pub = kp.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+const blob = Buffer.from('release bytes'); const sig = sign(null, blob, kp.privateKey).toString('base64');
+ok(verifyRelease(blob, sig, pub) && !verifyRelease(Buffer.from('release bytez'), sig, pub), 'release signatures: genuine accepted, tampered rejected');
+let threw = false; try { verifyRelease(blob, sig, ''); } catch { threw = true; }
+ok(threw, 'no release key means no update (fails closed)');
 ok((await fetch(base + '/fonts/Carlito-Regular.ttf')).status === 200 && (await fetch(base + '/vendor/pdfmake.min.js')).status === 200 && (await fetch(base + '/tailorpdf.js')).status === 200, 'fonts and PDF builder served locally');
 const snap = await (await fetch(base + '/api/all', { headers: H })).json();
 ok(snap.lib && snap.lib.name === 'Sam Tester', 'board receives the resume library');

@@ -21,6 +21,12 @@ Everything stays on your computer.
 
 ---
 
+## Official download
+
+The only official place to get the Job Hunt Kit is **github.com/Dapper-D/job-board** (the **Releases** page). Copies elsewhere aren't checked by the maintainer.
+
+Every official release is signed, and its notes show the release key fingerprint. To check that your kit trusts the same key, run `node app/release.mjs fingerprint` in the kit folder. Your kit only installs updates signed with that key.
+
 ## What you need
 
 - Windows 10/11, macOS, or Linux.
@@ -67,6 +73,7 @@ Setup is safe to run again: it keeps your answers and data.
 The board has an **Updates** panel. When a new version is out, an **Update available** button appears at the top. Click it, read what's new, and click **Update now**.
 
 The update:
+- installs only releases signed by the maintainer, checking the signature before anything runs
 - keeps your answers, jobs, statuses, documents and logs
 - backs up the old files first, and puts them back if anything goes wrong
 - restarts the board and reloads it by itself, usually within 1–3 minutes
@@ -84,7 +91,7 @@ You can also update from the `app` folder with `node update.mjs`.
 
 ## Every day
 
-- Open the **Job Board** shortcut, or run `node app/start.mjs`. The board is at `http://127.0.0.1:4777`.
+- Open the **Job Board** shortcut, or run `node app/start.mjs`. The board is at `http://127.0.0.1:4777`. For your privacy it only unlocks from the shortcut; after that, a bookmark works in the same browser.
 - New jobs appear after each daily refresh. Click **Refresh now** to run one yourself.
 - For each job worth applying to, click **Resume + cover letter (PDF)**. The same files are also saved in the kit's `documents` folder, one subfolder per job.
 - Paste any job link into **Add a job**. It's checked, scored and tailored at the next refresh.
@@ -179,18 +186,20 @@ To answer the setup questions again, run `node onboard.mjs` in the `app` folder.
 - **No tailored resumes:** run `node app/doctor.mjs`. The usual causes are a missing resume library (fix: `node app/onboard.mjs --library`) or the AI not being signed in.
 - **Nothing new on the board:** check the newest `logs/refresh-*.log`. The board's **Last refresh** panel also says what was searched and why jobs were left off.
 - **The board won't open:** run `node app/start.mjs`, then check `logs/server.log`.
+- **"Open your board with the Job Board shortcut":** that's the privacy lock. Use the shortcut (or `node app/start.mjs`) once in this browser.
 - **Mac:** the daily refresh runs when you're logged in. If the Mac was asleep at that time, it runs when it wakes.
 - **Linux:** the daily refresh uses cron, so the computer has to be on at that time.
 
 ## Privacy and safety
 
-- The board only listens on your own computer (`127.0.0.1`), and every request needs a secret token that only the board page has.
-- The AI tools run read-only:
-  - Codex: read-only sandbox
-  - Claude Code: no file or command tools; web search only for research
-  - Gemini: plan mode
-- Job pages are treated as data. Text inside a posting can't give the AI instructions.
+- Everything stays on your computer. The board only listens on `127.0.0.1` and only unlocks from the Job Board shortcut.
+- Your private files are readable only by your account.
+- Job pages are treated as data, and your AI runs with no access to your files or commands. A posting can't instruct it to do anything.
+- Postings are only fetched from public `https` sites, never from your home network.
+- Updates are signed and checked before they run.
 - Nothing is ever submitted or sent for you. You apply yourself.
+
+Details, and how to report a security problem: [SECURITY.md](SECURITY.md).
 
 ## Remove it
 
@@ -201,13 +210,22 @@ Run `node app/uninstall.mjs`. It removes the daily schedule and the shortcut. Th
 - This kit: MIT (see `LICENSE`).
 - [career-ops](https://github.com/career-ops-hq/career-ops): MIT. It does the scanning and the in-depth workflows.
 - Carlito font: SIL Open Font License 1.1 (`app/fonts/OFL.txt`).
+- Board fonts (Bricolage Grotesque, Atkinson Hyperlegible, JetBrains Mono): SIL Open Font License 1.1 (`app/public/fonts/LICENSES.txt`).
 - [pdfmake](https://github.com/bpampuch/pdfmake): MIT.
 - Codex, Claude Code and Gemini CLI belong to OpenAI, Anthropic and Google; your plan's terms and limits apply.
 
 ## For the maintainer: publishing an update
 
-1. Change the code. Bump `version` in `app/package.json` (e.g. `2.1.0` to `2.2.0`) and push.
-2. On GitHub, go to **Releases** → **Draft a new release**.
-3. Create the tag `v2.2.0` (the same number), write what changed in the description (people see it in the Updates panel), and click **Publish release**.
+Releases are signed, so kits can tell a genuine update from a tampered one.
 
-Kits check about every 6 hours and during each daily refresh, so the Update button appears within a day. Pushes without a release never reach people. The repository the kits check is set in `app/kit.json`.
+**Once, before your first release:**
+1. In the `app` folder run `node release.mjs keygen`. It saves your private signing key to `~/.job-hunt-kit/release-signing-key.pem`, outside the repo. Back that file up offline and never share or commit it.
+2. Keygen also writes the matching public key into `app/kit.json`, `update-kit.ps1` and `update-kit.sh`. Commit and push those three files.
+3. Keygen prints the key's fingerprint. Keep it handy; `pack` prints the same line for your release notes.
+
+**Every release:**
+1. Bump `version` in `app/package.json` (e.g. `2.2.0` to `2.3.0`), commit and push.
+2. In the `app` folder run `node release.mjs pack`. It makes `dist/job-hunt-kit-<version>.tar.gz` and `.tar.gz.sig`.
+3. On GitHub, go to **Releases** → **Draft a new release**, create the tag `v<version>`, write what changed (people see it in the Updates panel) plus the fingerprint line `pack` printed, **attach both files**, and **Publish**.
+
+Kits check about every 6 hours and during each daily refresh. Releases without both signed files are ignored, and so are pushes without a release. The repository the kits check is set in `app/kit.json`.

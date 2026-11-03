@@ -32,8 +32,9 @@ export function cliCommand(provider, args) {
   const p = PROVIDERS[provider];
   const env = process.env[provider.toUpperCase() + '_BIN'];
   if (env) return { cmd: env, args, shell: false };
-  const local = join(TOOLS, ...p.entry);
-  if (existsSync(local)) return p.node ? { cmd: process.execPath, args: [local, ...args], shell: false } : { cmd: local, args, shell: false };
+  const candidates = [join(TOOLS, ...p.entry), process.env.APPDATA && join(process.env.APPDATA, 'npm', 'node_modules', ...p.entry)].filter(Boolean);
+  for (const f of candidates) if (existsSync(f)) return p.node ? { cmd: process.execPath, args: [f, ...args], shell: false } : { cmd: f, args, shell: false };
+  // Last resort on Windows: the .cmd launcher through cmd.exe. Arguments are quoted; the prompt always goes through stdin.
   if (isWin) return { cmd: p.bin + '.cmd', args: args.map(a => a === '' ? '""' : /[\s"&|<>^]/.test(a) ? '"' + a.replace(/"/g, '""') + '"' : a), shell: true };
   return { cmd: p.bin, args, shell: false };
 }
@@ -96,7 +97,8 @@ async function runCodex(prompt, { schema, search, timeoutSec, model }) {
     const out = join(dir, 'last.txt');
     const args = [];
     if (search) args.push('--search');
-    args.push('exec', '--skip-git-repo-check', '--ephemeral', '-s', 'read-only', '--color', 'never', '-C', dir, '-o', out);
+    // --ignore-user-config / --ignore-rules: the user's own MCP servers and command rules never apply to job-posting text.
+    args.push('exec', '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '--ignore-rules', '-s', 'read-only', '--color', 'never', '-C', dir, '-o', out);
     if (model) args.push('-m', model);
     if (schema) { const sf = join(dir, 'schema.json'); writeFileSync(sf, JSON.stringify(schema)); args.push('--output-schema', sf); }
     args.push('-'); // prompt on stdin
@@ -110,8 +112,10 @@ async function runCodex(prompt, { schema, search, timeoutSec, model }) {
 async function runClaude(prompt, { schema, search, timeoutSec, model }) {
   const dir = mkdtempSync(join(tmpdir(), 'jhk-'));
   try {
-    const args = ['-p', '--output-format', 'json', '--no-session-persistence', '--permission-mode', 'dontAsk'];
-    if (search) args.push('--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch'); else args.push('--tools', '');
+    // No tools at all, except web search for research. No MCP servers or slash commands. Posting text can't make it
+    // read files, run commands or fetch an attacker's URL.
+    const args = ['-p', '--output-format', 'json', '--no-session-persistence', '--permission-mode', 'dontAsk', '--strict-mcp-config', '--disable-slash-commands'];
+    if (search) args.push('--tools', 'WebSearch', '--allowedTools', 'WebSearch'); else args.push('--tools', '');
     if (schema) args.push('--json-schema', JSON.stringify(schema));
     if (model) args.push('--model', model);
     const r = await run('claude', args, { input: prompt, cwd: dir, timeoutSec });
@@ -125,11 +129,18 @@ async function runClaude(prompt, { schema, search, timeoutSec, model }) {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-async function runGemini(prompt, { schema, timeoutSec, model }) {
+// Gemini's plan mode still allows reading local files, so an admin-tier policy (beats user settings) denies every tool,
+// except Google web search when the task needs it.
+function geminiPolicy(dir, search) {
+  const f = join(dir, 'policy.toml');
+  writeFileSync(f, `[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 900\ndenyMessage = "Tools are turned off for the Job Hunt Kit."\n` +
+    (search ? `\n[[rule]]\ntoolName = "google_web_search"\ndecision = "allow"\npriority = 950\n` : ''));
+  return f;
+}
+async function runGemini(prompt, { schema, search, timeoutSec, model }) {
   const dir = mkdtempSync(join(tmpdir(), 'jhk-'));
   try {
-    // plan = read-only approval mode: it can search the web and read pages, never edit files or run commands.
-    const args = ['-p', 'Follow the instructions above.', '-o', 'json', '--approval-mode', 'plan', '--skip-trust'];
+    const args = ['-p', 'Follow the instructions above.', '-o', 'json', '--approval-mode', 'plan', '--skip-trust', '--admin-policy', geminiPolicy(dir, search), '--allowed-mcp-server-names', 'none', '-e', 'none'];
     if (model) args.push('-m', model);
     const r = await run('gemini', args, { input: prompt + (schema ? schemaNote(schema) : ''), cwd: dir, timeoutSec });
     let j = null; try { j = JSON.parse(r.out.slice(r.out.indexOf('{'))); } catch {}

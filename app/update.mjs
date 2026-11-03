@@ -22,7 +22,7 @@ async function stopBoard(kit) {
   let cfg = {};
   try { cfg = JSON.parse(readFileSync(join(kit, 'config.json'), 'utf8').replace(/^\uFEFF/, '')); } catch {}
   const base = `http://127.0.0.1:${cfg.port || 4777}/`;
-  const up = () => fetch(base, { signal: AbortSignal.timeout(1500) }).then(r => r.ok, () => false);
+  const up = () => fetch(base, { signal: AbortSignal.timeout(1500) }).then(r => r.status < 500, () => false); // 401 = running, just locked
   if (!(await up())) return false;
   const r = await fetch(base + 'api/shutdown', { method: 'POST', headers: { 'x-kit-token': cfg.token || '', 'content-type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(3000) }).catch(() => null);
   if (!r || !r.ok) {

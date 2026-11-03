@@ -12,6 +12,8 @@ import { loadConfig, saveConfig } from './lib/config.mjs';
 import { PROVIDERS, status, login } from './lib/ai.mjs';
 import { installProvider } from './lib/install.mjs';
 import { OS, sh, schedule, shortcut, background } from './lib/platform.mjs';
+import { harden } from './lib/secure.mjs';
+import { pinCareerOps } from './lib/careerops-pin.mjs';
 
 const argv = process.argv.slice(2);
 const flag = n => argv.includes(n);
@@ -34,13 +36,17 @@ console.log('This installs the board, career-ops and your AI tool, asks some que
 note('setup started on ' + OS + ', node ' + process.version);
 
 step('Board app');
-if (!sh('npm', ['install', '--no-fund', '--no-audit'], { cwd: APP }).ok) fail('Installing the board app failed. Check your internet connection and run setup again.');
+// npm ci installs exactly the versions in package-lock.json (checked against their recorded hashes), and no install scripts.
+if (!sh('npm', ['ci', '--no-fund', '--no-audit', '--ignore-scripts'], { cwd: APP }).ok) fail('Installing the board app failed. Check your internet connection and run setup again.');
 
 if (!flag('--skip-career-ops')) {
   step('career-ops (job scanner, MIT licence)');
-  if (existsSync(join(CAREER_OPS, 'scan.mjs'))) sh('git', ['-C', CAREER_OPS, 'pull', '--ff-only']);
-  else if (!sh('git', ['clone', '--depth', '1', 'https://github.com/career-ops-hq/career-ops.git', CAREER_OPS]).ok) fail('Downloading career-ops failed. Check your internet connection and run setup again.');
-  if (!sh('npm', ['install', '--no-fund', '--no-audit'], { cwd: CAREER_OPS }).ok) fail('Installing career-ops failed.');
+  // A tested career-ops version, pinned by commit in app/kit.json (it runs on this computer every day).
+  const r = pinCareerOps();
+  if (!r.ok) fail(r.why);
+  info('career-ops ' + r.commit.slice(0, 7));
+  const lock = existsSync(join(CAREER_OPS, 'package-lock.json'));
+  if (!sh('npm', [lock ? 'ci' : 'install', '--no-fund', '--no-audit'], { cwd: CAREER_OPS }).ok) fail('Installing career-ops failed.');
   info('Installing the browser career-ops uses for some career sites...');
   sh('npx', ['playwright', 'install', 'chromium'], { cwd: CAREER_OPS });
 }
@@ -98,6 +104,7 @@ if (!flag('--no-first-refresh')) {
   if (!/^n/i.test(go)) { background('run-refresh.mjs', [], 'first-refresh.log'); info('Started. Watch progress in logs/refresh-' + new Date().toLocaleDateString('en-CA') + '.log, or on the board.'); }
 }
 
+harden({ force: true });
 step('Health check');
 spawnSync(process.execPath, ['doctor.mjs'], { cwd: APP, stdio: 'inherit' });
 spawnSync(process.execPath, ['start.mjs'], { cwd: APP, stdio: 'inherit' });

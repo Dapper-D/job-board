@@ -2,8 +2,11 @@
 //
 // How an update runs:
 //   1. check()   - asks GitHub for the latest release (cached for 6 hours) and compares versions.
-//   2. stage()   - downloads that release's source archive and unpacks it into .update/ (tar is built into
-//                  Windows 10+, macOS and Linux).
+//   2. stage()   - downloads that release's job-hunt-kit-<version>.tar.gz and its .sig, and checks the Ed25519
+//                  signature against the release key pinned in app/kit.json BEFORE unpacking anything. Only the
+//                  maintainer's private key (never in the repo) can sign, so a hijacked GitHub account, a tampered
+//                  download or an older version can't be installed. Then it unpacks into .update/ (tar is built into
+//                  Windows 10+, macOS and Linux) and refuses links and odd paths.
 //   3. The NEW version's own installer (its app/update.mjs --install-into) does the install, so fixes to the
 //      installer itself ship with each release:
 //        - stops the board, backs up every kit file it will replace,
@@ -11,14 +14,13 @@
 //        - runs npm install and the new version's migrate.mjs (schedule, shortcut, AI tool, resume library),
 //        - restarts the board. If anything fails it restores the backup.
 // Never touched: config.json, .env, data/, documents/, logs/, career-ops/, tools/, cv-preview.md.
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, copyFileSync, createWriteStream } from 'node:fs';
-import { join, dirname, relative, sep } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, lstatSync, copyFileSync } from 'node:fs';
+import { join, dirname, relative, sep, isAbsolute } from 'node:path';
+import { createPublicKey, verify as verifySig } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
 import { APP, KIT, DATA } from './paths.mjs';
 
-export const KEEP = ['config.json', '.env', 'data', 'documents', 'logs', 'career-ops', 'tools', 'cv-preview.md', 'node_modules', '.update', '.git', 'backups'];
+export const KEEP = ['config.json', '.env', 'data', 'documents', 'logs', 'career-ops', 'tools', 'cv-preview.md', 'node_modules', '.update', '.git', 'backups', 'dist'];
 const STATE = join(DATA, 'update.json');
 const UPD = join(KIT, '.update');
 const MANIFEST = join(APP, '.kit-files.json');
@@ -26,10 +28,17 @@ const MANIFEST = join(APP, '.kit-files.json');
 export function localVersion(root = APP) {
   try { return JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version || '0.0.0'; } catch { return '0.0.0'; }
 }
-export function repo() {
-  if (process.env.KIT_UPDATE_REPO) return process.env.KIT_UPDATE_REPO;
-  try { return JSON.parse(readFileSync(join(APP, 'kit.json'), 'utf8')).repo; } catch { return 'Dapper-D/job-board'; }
+const kitJson = () => { try { return JSON.parse(readFileSync(join(APP, 'kit.json'), 'utf8')); } catch { return {}; } };
+export function repo() { return process.env.KIT_UPDATE_REPO || kitJson().repo || 'Dapper-D/job-board'; }
+// Base64 (SPKI DER) Ed25519 public key that release archives must be signed with.
+export const releaseKey = () => kitJson().releaseKey || '';
+export function verifyRelease(data, sigB64, keyB64 = releaseKey()) {
+  if (!keyB64) throw new Error('This kit has no release key, so it can\'t check updates are genuine');
+  const key = createPublicKey({ key: Buffer.from(keyB64, 'base64'), format: 'der', type: 'spki' });
+  if (key.asymmetricKeyType !== 'ed25519') throw new Error('The release key isn\'t an Ed25519 key');
+  return verifySig(null, data, key, Buffer.from(String(sigB64).trim(), 'base64'));
 }
+export const assetName = v => `job-hunt-kit-${v}.tar.gz`;
 const API = () => (process.env.KIT_UPDATE_API || 'https://api.github.com').replace(/\/$/, '');
 // "v2.10.0" > "v2.9.3"
 export function newer(a, b) {
@@ -52,35 +61,69 @@ export async function check({ force = false } = {}) {
   const current = localVersion();
   const st = readState();
   if (!force && st.checkedAt && Date.now() - new Date(st.checkedAt).getTime() < 6 * 3600e3 && st.latest) {
-    return { ...st, current, available: newer(st.latest, current) };
+    return { ...st, current, available: !st.checkError && newer(st.latest, current) };
   }
   try {
     const r = await fetch(`${API()}/repos/${repo()}/releases/latest`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'job-hunt-kit-updater' }, signal: AbortSignal.timeout(20000) });
     if (r.status === 404) return writeState({ checkedAt: new Date().toISOString(), latest: '', checkError: 'No releases published yet', current, available: false });
     if (!r.ok) throw new Error('GitHub said ' + r.status);
     const j = await r.json();
-    const s = writeState({ checkedAt: new Date().toISOString(), latest: String(j.tag_name || '').replace(/^v/i, ''), notes: String(j.body || '').slice(0, 6000),
-      url: j.html_url || '', tarball: j.tarball_url || '', published: j.published_at || '', checkError: '' });
-    return { ...s, current, available: newer(s.latest, current) };
+    const latest = String(j.tag_name || '').replace(/^v/i, '');
+    const asset = n => ((j.assets || []).find(a => a.name === n) || {}).browser_download_url || '';
+    const s = writeState({ checkedAt: new Date().toISOString(), latest, notes: String(j.body || '').slice(0, 6000),
+      url: j.html_url || '', archive: asset(assetName(latest)), signature: asset(assetName(latest) + '.sig'), published: j.published_at || '',
+      checkError: asset(assetName(latest)) && asset(assetName(latest) + '.sig') ? '' : 'The latest release has no signed archive yet' });
+    return { ...s, current, available: !s.checkError && newer(s.latest, current) };
   } catch (e) {
-    return { ...writeState({ checkError: 'Couldn\'t reach GitHub: ' + e.message }), current, available: newer(st.latest, current) };
+    return { ...writeState({ checkError: 'Couldn\'t reach GitHub: ' + e.message }), current, available: false };
   }
 }
 
 // Downloads and unpacks the release; returns the folder that holds the new kit (the one with app/package.json).
+// Downloads are only accepted from GitHub release asset links of the configured repository (or the test server).
+function assetUrlOk(u) {
+  try {
+    const x = new URL(u);
+    if (process.env.KIT_UPDATE_API && u.startsWith(process.env.KIT_UPDATE_API)) return true;
+    return x.protocol === 'https:' && x.hostname === 'github.com' && x.pathname.toLowerCase().startsWith('/' + repo().toLowerCase() + '/releases/download/');
+  } catch { return false; }
+}
+async function download(u, max) {
+  if (!assetUrlOk(u)) throw new Error('Unexpected download address');
+  const r = await fetch(u, { headers: { 'user-agent': 'job-hunt-kit-updater' }, redirect: 'follow', signal: AbortSignal.timeout(300000) });
+  if (!r.ok) throw new Error('Download failed (' + r.status + ')');
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (buf.length > max) throw new Error('The download is larger than expected');
+  return buf;
+}
+// Every entry must be a plain file or folder inside one top folder: no links, absolute paths or "..".
+function checkArchiveListing(file) {
+  const l = spawnSync('tar', ['-tvzf', file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (l.status !== 0) throw new Error('Couldn\'t read the update archive');
+  for (const line of l.stdout.split('\n').filter(Boolean)) {
+    if (!/^[-d]/.test(line) || / link to | -> /.test(line)) throw new Error('The update archive contains a link or special file');
+  }
+  const n = spawnSync('tar', ['-tzf', file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  for (const name of n.stdout.split('\n').filter(Boolean)) {
+    if (isAbsolute(name) || /^[a-zA-Z]:/.test(name) || name.split(/[\\/]/).includes('..')) throw new Error('The update archive contains an unsafe path');
+  }
+}
 export async function stage(info) {
   rmSync(UPD, { recursive: true, force: true });
   mkdirSync(join(UPD, 'new'), { recursive: true });
+  if (!info.archive || !info.signature) throw new Error('The latest release has no signed archive');
+  const [data, sig] = [await download(info.archive, 200 * 1024 * 1024), await download(info.signature, 4096)];
+  if (!verifyRelease(data, sig.toString('utf8'))) throw new Error('The update\'s signature is not valid, so it was not installed');
   const file = join(UPD, 'release.tar.gz');
-  const r = await fetch(info.tarball, { headers: { 'user-agent': 'job-hunt-kit-updater' }, redirect: 'follow', signal: AbortSignal.timeout(300000) });
-  if (!r.ok) throw new Error('Download failed (' + r.status + ')');
-  await pipeline(Readable.fromWeb(r.body), createWriteStream(file));
+  writeFileSync(file, data);
+  checkArchiveListing(file);
   const t = spawnSync('tar', ['-xzf', file, '-C', join(UPD, 'new')], { encoding: 'utf8' });
   if (t.status !== 0) throw new Error('Couldn\'t unpack the update (tar: ' + (t.stderr || t.error && t.error.message || '').trim().slice(0, 200) + ')');
   const top = readdirSync(join(UPD, 'new')).map(n => join(UPD, 'new', n)).find(p => existsSync(join(p, 'app', 'package.json')));
   if (!top) throw new Error('The download doesn\'t look like this kit');
   const pkg = JSON.parse(readFileSync(join(top, 'app', 'package.json'), 'utf8'));
   if (pkg.name !== 'job-hunt-kit') throw new Error('The download isn\'t the Job Hunt Kit');
+  if (pkg.version !== info.latest) throw new Error('The archive\'s version doesn\'t match the release');
   return top;
 }
 
@@ -92,7 +135,9 @@ export function listFiles(root) {
     for (const n of readdirSync(d)) {
       const p = join(d, n), rel = relative(root, p);
       if (isKept(rel)) continue;
-      if (statSync(p).isDirectory()) walk(p); else out.push(rel);
+      const st = lstatSync(p);
+      if (st.isSymbolicLink()) continue; // never follow or copy links
+      if (st.isDirectory()) walk(p); else if (st.isFile()) out.push(rel);
     }
   };
   walk(root);
@@ -119,15 +164,15 @@ export function install({ source, kit, say = console.log }) {
     say('Update failed: ' + why + '. Putting the previous version back...');
     for (const f of newFiles) if (!touched.includes(f)) rmSync(join(kit, f), { force: true });
     for (const f of touched) copy(join(backup, f), join(kit, f));
-    spawnSync(npm(), ['install', '--no-fund', '--no-audit'], { cwd: join(kit, 'app'), stdio: 'ignore', shell: process.platform === 'win32' });
+    spawnSync(npm(), ['ci', '--no-fund', '--no-audit', '--ignore-scripts'], { cwd: join(kit, 'app'), stdio: 'ignore', shell: process.platform === 'win32' });
     say('Restored ' + oldVersion + '. Your data was not changed.');
   };
   try {
     for (const f of newFiles) copy(join(source, f), join(kit, f));
     for (const f of oldFiles) if (!newFiles.includes(f) && !isKept(f)) rmSync(join(kit, f), { force: true });
     say('Installing packages...');
-    const n = spawnSync(npm(), ['install', '--no-fund', '--no-audit'], { cwd: join(kit, 'app'), stdio: 'inherit', shell: process.platform === 'win32' });
-    if (n.status !== 0) throw new Error('npm install failed');
+    const n = spawnSync(npm(), ['ci', '--no-fund', '--no-audit', '--ignore-scripts'], { cwd: join(kit, 'app'), stdio: 'inherit', shell: process.platform === 'win32' });
+    if (n.status !== 0) throw new Error('npm ci failed');
     writeFileSync(join(kit, 'app', '.kit-files.json'), JSON.stringify(newFiles, null, 1));
   } catch (e) { restore(e.message); return { ok: false, from: oldVersion, to: newVersion, error: e.message }; }
   return { ok: true, from: oldVersion, to: newVersion, oldFiles };

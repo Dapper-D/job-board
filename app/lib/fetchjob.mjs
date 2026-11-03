@@ -1,3 +1,4 @@
+import { safeFetch } from './safefetch.mjs';
 // Fetch a job posting page and pull out what we can without AI.
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
@@ -102,13 +103,11 @@ function ldSalary(jp) {
 export async function fetchPosting(url, { timeoutMs = 20000 } = {}) {
   let u; try { u = new URL(url); } catch { return { ok: false, reason: 'not a valid link' }; }
   if (u.protocol !== 'https:' && !(process.env.KIT_ALLOW_HTTP === '1' && u.hostname === '127.0.0.1')) return { ok: false, reason: 'not an https link' };
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
   let r, html = '';
   try {
-    r = await fetch(u.href, { redirect: 'follow', signal: ctl.signal, headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8', 'accept-language': 'en-CA,en;q=0.9' } });
-    html = (await r.text()).slice(0, 3_000_000);
+    r = await safeFetch(u.href, { timeoutMs, headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8', 'accept-language': 'en-CA,en;q=0.9' } });
+    html = r.body;
   } catch (e) { return { ok: false, reason: 'could not open the page (' + (e.name === 'AbortError' ? 'timed out' : e.message) + ')' }; }
-  finally { clearTimeout(t); }
   const finalUrl = r.url || u.href;
   if (r.status === 404 || r.status === 410) return { ok: true, closed: true, closedReason: 'page removed (' + r.status + ')', finalUrl, status: r.status };
   if (r.status >= 400) return { ok: false, reason: 'site returned ' + r.status + (r.status === 403 ? ' (blocks automated checks)' : ''), finalUrl, status: r.status };

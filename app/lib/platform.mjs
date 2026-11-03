@@ -57,6 +57,8 @@ Register-ScheduledTask -TaskName ${psq(TASK)} -Action $a -Trigger $t -Settings $
     const r = spawnSync('launchctl', ['bootstrap', `gui/${uid}`, plist], { encoding: 'utf8' });
     return { ok: r.status === 0, how: 'macOS launchd (' + plist + '). If the Mac was asleep at that time, it runs when it wakes.', err: r.stderr };
   }
+  // cron treats % specially and the line is run by a shell, so refuse paths that could break out of the quotes.
+  if ([node, script, APP, LOGS].some(p => /["$`%\\\n]/.test(p))) return { ok: false, err: 'the kit folder path contains a character cron can\'t use (" $ ` % or \\). Move the kit to a simpler folder path' };
   const cur = spawnSync('crontab', ['-l'], { encoding: 'utf8' });
   const keep = (cur.status === 0 ? cur.stdout : '').split('\n').filter(l => l.trim() && !l.includes(CRON_TAG));
   const pathDirs = [join(node, '..'), '/usr/local/bin', '/usr/bin', '/bin'].join(':');
@@ -106,6 +108,7 @@ export function shortcut() {
 $s.TargetPath = ${psq(node)}; $s.Arguments = ${psq('"' + start + '"')}; $s.WorkingDirectory = ${psq(APP)}; $s.WindowStyle = 7; $s.IconLocation = 'shell32.dll,13'; $s.Save(); $l`);
     return { ok: r.status === 0, file: (r.stdout || '').trim() || f };
   }
+  if ([node, start, APP].some(p => /["$`\\\n]/.test(p))) return { ok: false, file: f };
   mkdirSync(join(f, '..'), { recursive: true });
   if (OS === 'mac') {
     writeFileSync(f, `#!/bin/bash\ncd "${APP}" && "${node}" start.mjs\n`);

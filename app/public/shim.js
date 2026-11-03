@@ -1,10 +1,12 @@
 // Gives the board the same small API it uses on claude.ai, backed by the local server.
 (() => {
   const K = window.__KIT || {};
-  const H = { 'content-type': 'application/json', 'x-kit-token': K.token };
+  // The session cookie (set when the shortcut opened the board) authenticates; this header proves the call comes from this page.
+  const H = { 'content-type': 'application/json', 'x-kit-csrf': '1' };
   const api = async (path, body) => {
     const r = await fetch(path, body === undefined ? { headers: H } : { method: 'POST', headers: H, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
+    if (r.status === 401 || r.status === 403) { document.body.replaceChildren(Object.assign(document.createElement('p'), { textContent: 'Your board session ended. Open the board again with the Job Board shortcut.' })); }
     if (!r.ok) { const e = new Error(j.error || ('HTTP ' + r.status)); e.code = j.code || 'http_' + r.status; throw e; }
     return j;
   };

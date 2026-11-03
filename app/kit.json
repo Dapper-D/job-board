@@ -1,1 +1,8 @@
-{ "repo": "Dapper-D/job-board" }
+{
+  "repo": "Dapper-D/job-board",
+  "careerOps": {
+    "repo": "https://github.com/career-ops-hq/career-ops.git",
+    "commit": "559b58e9e6302e87fae984b92a23df297e28809e"
+  },
+  "releaseKey": "MCowBQYDK2VwAyEAkpRtru0g0ON/RzjOmTK1W1jyYTdaB3YZUDfO7x/XLmg="
+}
