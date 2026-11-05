@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SOURCES } from './sources/index.mjs';
+import { companyKey, titleKey, urlKey } from './job.mjs';
 
 export async function scanEmployers(employers, { concurrency = 6, log = () => {} } = {}) {
   const jobs = new Map();
@@ -31,18 +32,32 @@ export async function scanEmployers(employers, { concurrency = 6, log = () => {}
   return { jobs: [...jobs.values()], report };
 }
 
-// Same job posted twice (two boards, or once per city) -> keep one, remember the other links.
+// The same job listed more than once (two boards, a job site and the employer, once per city, two links to one
+// posting) -> one job. Two listings are the same job when they share a link, or the same company and job title.
+// We keep the best copy (on the employer's own system, with a description, newest), add the other cities to its
+// location and keep the other links in alsoAt, so nothing is shown or counted twice.
+const rank = j => (j.employerVerified ? 4 : 0) + (j.description ? 2 : 0) + (j.via ? 0 : 1);
 export function dedupe(jobs) {
-  const key = j => `${j.company.toLowerCase().replace(/[^a-z0-9]/g, '')}|${j.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-  const out = new Map();
+  const groups = [];
+  const byKey = new Map();
   for (const j of jobs) {
-    const k = key(j);
-    const have = out.get(k);
-    if (!have) { out.set(k, { ...j, alsoAt: [] }); continue; }
-    if (j.url !== have.url) have.alsoAt.push(j.url);
-    if (j.location && !have.location.includes(j.location)) have.location += ' / ' + j.location;
+    const keys = [`u:${urlKey(j.url)}`, `t:${companyKey(j.company)}|${titleKey(j.title)}`];
+    const hits = [...new Set(keys.map(k => byKey.get(k)).filter(Boolean))];
+    let g = hits[0];
+    if (!g) { g = { items: [] }; groups.push(g); }
+    for (const other of hits.slice(1)) { g.items.push(...other.items); other.items = []; other.merged = g; }
+    g.items.push(j);
+    for (const k of keys) byKey.set(k, g);
+    if (hits.length > 1) for (const [k, v] of byKey) if (v.merged) byKey.set(k, v.merged);
   }
-  return [...out.values()];
+  return groups.filter(g => g.items.length).map(({ items }) => {
+    const best = [...items].sort((a, b) => rank(b) - rank(a) || String(b.postedAt || '').localeCompare(String(a.postedAt || '')))[0];
+    const places = [...new Set(items.flatMap(i => String(i.location || '').split(' / ')).map(s => s.trim()).filter(Boolean))];
+    const links = [...new Set(items.map(i => i.url).filter(u => urlKey(u) !== urlKey(best.url)).map(urlKey))];
+    const alsoAt = links.map(k => items.find(i => urlKey(i.url) === k).url);
+    const via = items.find(i => i.via)?.via;
+    return { ...best, location: places.join(' / '), alsoAt, duplicates: items.length - 1, ...(via && !best.via ? { alsoOn: via } : {}), canada: items.some(i => i.canada) };
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
@@ -58,5 +73,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'pool.json'), JSON.stringify({ generatedAt: stamp, count: pool.length, jobs: pool }));
   writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt: stamp, employers: report }, null, 2));
   const failed = report.filter(r => !r.ok).length;
-  console.log(`\n${pool.length} jobs in Canada from ${report.length - failed} employers (${failed} failed). Written to ${out}/`);
+  console.log(`\n${pool.length} unique jobs in Canada (${jobs.length - pool.length} duplicates merged) from ${report.length - failed} employers (${failed} failed). Written to ${out}/`);
 }

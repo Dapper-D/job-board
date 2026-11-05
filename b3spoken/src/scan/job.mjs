@@ -78,3 +78,22 @@ export function isCanada(location, remote = false) {
   if (remote && /\b(north america|americas|anywhere|worldwide|global)\b/i.test(loc)) return true;
   return false;
 }
+
+// ---- Keys for spotting the same job twice ----
+export const companyKey = c => String(c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/\b(inc|ltd|llc|corp|corporation|co|gmbh|limited|plc)\b\.?/g, '').replace(/[^a-z0-9]/g, '');
+
+// "Senior Data Analyst - Toronto, ON (Hybrid)" and "Senior Data Analyst" are the same job title.
+export function titleKey(t) {
+  let s = String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const parts = s.split(/\s+[-–—|]\s+/);
+  if (parts.length > 1 && parts.slice(1).every(p => isCanada(p, true) || /\b(remote|hybrid|on[- ]?site|in[- ]office|full[- ]?time|part[- ]?time|contract|temporary|permanent)\b/i.test(p))) s = parts[0];
+  return s.toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ')
+    .replace(/\b(remote|hybrid|on[- ]?site|contract|full[- ]?time|part[- ]?time|canada|usa|us|north america)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// The same posting reached by two links (tracking parameters, trailing slashes, upper/lower case).
+export function urlKey(u) {
+  try { const x = new URL(u); return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); } catch { return String(u || ''); }
+}

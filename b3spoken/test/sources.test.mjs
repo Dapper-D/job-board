@@ -101,14 +101,41 @@ test('detect: careers links map to the right hiring system', () => {
   assert.equal(detect('not a url'), null);
 });
 
-test('dedupe: same company and title -> one job with the other links kept', () => {
-  const base = { company: 'Acme', title: 'Developer', location: 'Toronto, ON', url: 'https://a.example/1' };
-  const out = dedupe([base, { ...base, location: 'Vancouver, BC', url: 'https://a.example/2' }, { ...base, title: 'Designer' }]);
+test('dedupe: one job per posting, however many times it is listed', () => {
+  const base = { company: 'Acme', title: 'Developer', location: 'Toronto, ON', url: 'https://a.example/1', employerVerified: true, description: 'x' };
+  const out = dedupe([
+    base,
+    { ...base, location: 'Vancouver, BC', url: 'https://a.example/2' },                       // same job, another city
+    { ...base, company: 'Acme, Inc.', title: 'Developer - Remote', url: 'https://A.example/1/?utm=x', location: '' }, // same posting, other link form
+    { company: 'ACME', title: 'Developer (Hybrid)', url: 'https://remoteok.com/x', location: 'Remote', via: { name: 'Remote OK' }, employerVerified: true, description: '' },
+    { ...base, title: 'Designer', url: 'https://a.example/3' },                               // a different job
+  ]);
   assert.equal(out.length, 2);
-  assert.deepEqual(out[0].alsoAt, ['https://a.example/2']);
-  assert.equal(out[0].location, 'Toronto, ON / Vancouver, BC');
+  const dev = out.find(j => j.title === 'Developer');
+  assert.equal(dev.url, 'https://a.example/1');
+  assert.equal(dev.duplicates, 3);
+  assert.equal(dev.location, 'Toronto, ON / Vancouver, BC / Remote');
+  assert.deepEqual(dev.alsoAt, ['https://a.example/2', 'https://remoteok.com/x']);
+  assert.equal(dev.alsoOn.name, 'Remote OK');
 });
 
+test('dedupe: two links that each match a different earlier group join them into one', () => {
+  const out = dedupe([
+    { company: 'A', title: 'Analyst', url: 'https://x.example/1' },
+    { company: 'A', title: 'Data Analyst', url: 'https://x.example/2' },
+    { company: 'A', title: 'Analyst', url: 'https://x.example/2' },
+  ]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].duplicates, 2);
+});
+
+test('title keys ignore locations and work-type tags but not real differences', async () => {
+  const { titleKey } = await import('../src/scan/job.mjs');
+  assert.equal(titleKey('Senior Data Analyst - Toronto, ON (Hybrid)'), titleKey('Senior Data Analyst'));
+  assert.equal(titleKey('Software Engineer – Remote, Canada'), titleKey('Software Engineer'));
+  assert.notEqual(titleKey('Software Engineer - Payments'), titleKey('Software Engineer'));
+  assert.notEqual(titleKey('Software Engineer II'), titleKey('Software Engineer'));
+});
 test('job bank runs on each computer, newest-first, keeping only the last 3 days', async () => {
   assert.equal(SOURCES.jobbank.runsOn, 'helper');
   const http = await import('../src/scan/http.mjs');

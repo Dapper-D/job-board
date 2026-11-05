@@ -24,7 +24,9 @@ export async function buildPool(employers, { log = () => {} } = {}) {
   const { verified, dropped, newBoards } = await verifyFeedJobs(fromSites, own, { log });
   const pool = dedupe([...own, ...verified]).map(j => ({ ...j, description: j.description.length > DESCRIPTION_MAX ? j.description.slice(0, DESCRIPTION_MAX) + '…' : j.description }));
   pool.sort((a, b) => String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
-  return { pool, report, dropped, newBoards, counts: { employerJobs: own.length, siteJobs: fromSites.length, siteVerified: verified.length, siteDropped: dropped.length } };
+  const listings = own.length + verified.length;
+  const bySource = pool.reduce((m, j) => (m[j.source] = (m[j.source] || 0) + 1, m), {});
+  return { pool, report, dropped, newBoards, counts: { uniqueJobs: pool.length, listingsSeen: listings, duplicatesMerged: listings - pool.length, siteJobs: fromSites.length, siteVerified: verified.length, siteDropped: dropped.length, bySource } };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
@@ -45,9 +47,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'pool-meta.json'), JSON.stringify(meta, null, 2));
   writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards }, null, 2));
   const failed = report.filter(r => !r.ok);
-  const md = [`## Daily job pool: ${pool.length} jobs in Canada`, '',
-    `- From employers' own hiring systems: ${counts.employerJobs}`,
-    `- From job sites: ${counts.siteJobs}; confirmed on the employer's own board: ${counts.siteVerified}; dropped: ${counts.siteDropped}`,
+  const md = [`## Daily job pool: ${pool.length} unique jobs in Canada`, '',
+    `- Unique jobs: ${counts.uniqueJobs} (from ${counts.listingsSeen} listings; ${counts.duplicatesMerged} duplicates merged, so each job is shown and counted once)`,
+    `- Job-site jobs: ${counts.siteJobs}; confirmed on the employer's own board: ${counts.siteVerified}; dropped: ${counts.siteDropped}`,
+    `- Unique jobs by source: ${Object.entries(counts.bySource).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + v).join(', ')}`,
     `- Employers that failed today: ${failed.length}${failed.length ? ' (' + failed.slice(0, 10).map(f => f.name).join(', ') + ')' : ''}`,
     `- New employer boards found through job sites: ${newBoards.length}`,
     `- pool.json.gz: ${(gz.length / 1e6).toFixed(1)} MB, sha256 ${meta.sha256.slice(0, 16)}…`, ''].join('\n');

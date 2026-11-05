@@ -5,11 +5,8 @@
 import { request } from './http.mjs';
 import { SOURCES } from './sources/index.mjs';
 import { sameCompany, slugGuesses } from './discover.mjs';
-
-export const titleKey = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/\b(remote|hybrid|contract|full[- ]?time|part[- ]?time|canada|usa|us|north america)\b/g, ' ')
-  .replace(/[^a-z0-9]+/g, ' ').trim();
-export const companyKey = c => String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\b(inc|ltd|llc|corp|corporation|co|gmbh|limited)\b\.?/g, '').replace(/[^a-z0-9]/g, '');
+import { titleKey, companyKey } from './job.mjs';
+export { titleKey, companyKey };
 
 export function sameTitle(a, b) {
   const x = titleKey(a), y = titleKey(b);
