@@ -16,7 +16,7 @@ export default {
     let u; try { u = new URL(url); } catch { return null; }
     if (u.hostname !== 'ats.rippling.com') return null;
     const parts = u.pathname.split('/').filter(Boolean);
-    const slug = parts[0] === 'api' ? parts[3] : parts[0];
+    const slug = parts[0] === 'api' ? parts[3] : parts[0] === 'embed' ? null : parts[0]; // embed links don't name the board
     return slug && /^[A-Za-z0-9_-]+$/.test(slug) ? { slug } : null;
   },
   parse(data, t) {

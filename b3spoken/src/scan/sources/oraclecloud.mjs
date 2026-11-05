@@ -25,7 +25,8 @@ export default {
     const segs = u.pathname.split('/').filter(Boolean);
     const ce = segs.indexOf('CandidateExperience'), si = segs.indexOf('sites');
     if (ce === -1 && si === -1) return null;
-    return { host: u.hostname.toLowerCase(), lang: (ce > -1 && segs[ce + 1]) || 'en', site: (si > -1 && segs[si + 1]) || 'CX_1' };
+    const lang = ce > -1 && /^[a-z]{2}(-[A-Z]{2})?$/.test(segs[ce + 1] || '') ? segs[ce + 1] : 'en';
+    return { host: u.hostname.toLowerCase(), lang, site: (si > -1 && segs[si + 1]) || 'CX_1' };
   },
   parse(data, t) {
     const list = data?.items?.[0]?.requisitionList || [];

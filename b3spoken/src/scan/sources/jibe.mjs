@@ -9,7 +9,12 @@ const MAX_PAGES = 60;
 
 // Recognise a Jibe site from its page (Jibe's static host is jibecdn.com).
 export function jibeFromPage(html, pageUrl) {
-  return /jibecdn\.com/i.test(html) ? { host: new URL(pageUrl).hostname.toLowerCase() } : null;
+  if (!/jibecdn\.com/i.test(html)) return null;
+  const u = new URL(pageUrl), base = u.hostname.split('.').slice(-2).join('.');
+  // A www page that only links to the careers site: use the careers host it links to.
+  const m = String(html).match(/https:\/\/((?:careers|jobs)\.[a-z0-9.-]+)\//i);
+  const host = (m && m[1].toLowerCase().endsWith(base) ? m[1] : u.hostname).toLowerCase();
+  return host.startsWith('www.') ? null : { host };
 }
 
 export default {

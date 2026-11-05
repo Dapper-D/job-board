@@ -1849,6 +1849,319 @@
     "country": "CAN"
    },
    "found": "company site (robots.txt checked each run)"
+  },
+  {
+   "name": "OpenText",
+   "source": "phenom",
+   "target": {
+    "host": "careers.opentext.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://careers.opentext.com/"
+  },
+  {
+   "name": "D-Wave",
+   "source": "rippling",
+   "target": {
+    "slug": "d-wave-quantum"
+   },
+   "found": "link on https://www.dwavequantum.com/careers"
+  },
+  {
+   "name": "Fortinet",
+   "source": "oraclecloud",
+   "target": {
+    "host": "edel.fa.us2.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_2001"
+   },
+   "found": "link on https://jobs.fortinet.com/"
+  },
+  {
+   "name": "Rivian",
+   "source": "jibe",
+   "target": {
+    "host": "careers.rivian.com"
+   },
+   "found": "iCIMS (Jibe) site at https://www.rivian.com/careers"
+  },
+  {
+   "name": "Autodesk",
+   "source": "eightfold",
+   "target": {
+    "host": "jobs.autodesk.com"
+   },
+   "found": "link on https://jobs.autodesk.com/"
+  },
+  {
+   "name": "Adobe",
+   "source": "phenom",
+   "target": {
+    "host": "careers.adobe.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://careers.adobe.com/"
+  },
+  {
+   "name": "Nokia",
+   "source": "oraclecloud",
+   "target": {
+    "host": "fa-evmr-saasfaprod1.fa.ocs.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_1"
+   },
+   "found": "link on https://careers.nokia.com/"
+  },
+  {
+   "name": "Qualcomm",
+   "source": "eightfold",
+   "target": {
+    "host": "app.eightfold.ai",
+    "domain": "qualcomm.com"
+   },
+   "found": "link on https://careers.qualcomm.com/"
+  },
+  {
+   "name": "Ericsson",
+   "source": "eightfold",
+   "target": {
+    "host": "jobs.ericsson.com"
+   },
+   "found": "Eightfold site at https://jobs.ericsson.com/"
+  },
+  {
+   "name": "Cisco",
+   "source": "phenom",
+   "target": {
+    "host": "careers.cisco.com",
+    "prefix": "global/en"
+   },
+   "found": "Phenom site at https://careers.cisco.com/"
+  },
+  {
+   "name": "Bell",
+   "source": "phenom",
+   "target": {
+    "host": "jobs.bell.ca",
+    "prefix": "ca/en"
+   },
+   "found": "Phenom site at https://www.bell.ca/careers"
+  },
+  {
+   "name": "Nesto",
+   "source": "rippling",
+   "target": {
+    "slug": "nesto"
+   },
+   "found": "link on https://www.nesto.ca/careers"
+  },
+  {
+   "name": "Uber",
+   "source": "oraclecloud",
+   "target": {
+    "host": "iaziqy.fa.ocs.oraclecloud.com",
+    "lang": "en",
+    "site": "UberCareers"
+   },
+   "found": "link on https://www.uber.com/careers"
+  },
+  {
+   "name": "RBC",
+   "source": "phenom",
+   "target": {
+    "host": "jobs.rbc.com",
+    "prefix": "ca/en"
+   },
+   "found": "Phenom site at https://www.rbc.com/careers"
+  },
+  {
+   "name": "ATB Financial",
+   "source": "eightfold",
+   "target": {
+    "host": "atb.eightfold.ai"
+   },
+   "found": "link on https://careers.atb.com/"
+  },
+  {
+   "name": "OMERS",
+   "source": "phenom",
+   "target": {
+    "host": "careers.omers.com",
+    "prefix": "ca/en"
+   },
+   "found": "Phenom site at https://careers.omers.com/"
+  },
+  {
+   "name": "AMD",
+   "source": "jibe",
+   "target": {
+    "host": "careers.amd.com"
+   },
+   "found": "iCIMS (Jibe) site at https://careers.amd.com/"
+  },
+  {
+   "name": "American Express",
+   "source": "oraclecloud",
+   "target": {
+    "host": "egug.fa.us2.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_1"
+   },
+   "found": "link on https://careers.americanexpress.com/"
+  },
+  {
+   "name": "Starbucks",
+   "source": "eightfold",
+   "target": {
+    "host": "starbucks.eightfold.ai"
+   },
+   "found": "link on https://www.starbucks.ca/careers"
+  },
+  {
+   "name": "Restaurant Brands International",
+   "source": "phenom",
+   "target": {
+    "host": "careers.rbi.com",
+    "prefix": "global/en"
+   },
+   "found": "Phenom site at https://careers.rbi.com/"
+  },
+  {
+   "name": "BMO",
+   "source": "phenom",
+   "target": {
+    "host": "jobs.bmo.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://jobs.bmo.com/"
+  },
+  {
+   "name": "Waste Connections",
+   "source": "phenom",
+   "target": {
+    "host": "careers.wasteconnections.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://careers.wasteconnections.com/"
+  },
+  {
+   "name": "Air Canada",
+   "source": "phenom",
+   "target": {
+    "host": "careers.aircanada.com",
+    "prefix": "ca/en"
+   },
+   "found": "Phenom site at https://careers.aircanada.com/"
+  },
+  {
+   "name": "Porter Airlines",
+   "source": "jibe",
+   "target": {
+    "host": "careers.flyporter.com"
+   },
+   "found": "iCIMS (Jibe) site at https://careers.flyporter.com/"
+  },
+  {
+   "name": "BC Ferries",
+   "source": "oraclecloud",
+   "target": {
+    "host": "bcferries-iacdzv.fa.ocs.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_1"
+   },
+   "found": "link on https://www.bcferries.com/careers"
+  },
+  {
+   "name": "Metrolinx",
+   "source": "oraclecloud",
+   "target": {
+    "host": "ehtc.fa.ca2.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_1"
+   },
+   "found": "link on https://www.metrolinx.com/careers"
+  },
+  {
+   "name": "McCain Foods",
+   "source": "phenom",
+   "target": {
+    "host": "careers.mccain.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://www.mccain.com/careers"
+  },
+  {
+   "name": "ATCO",
+   "source": "phenom",
+   "target": {
+    "host": "careers.atco.com",
+    "prefix": "global/en"
+   },
+   "found": "Phenom site at https://careers.atco.com/"
+  },
+  {
+   "name": "Molson Coors",
+   "source": "phenom",
+   "target": {
+    "host": "careers.molsoncoors.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://careers.molsoncoors.com/"
+  },
+  {
+   "name": "Fraser Health",
+   "source": "jibe",
+   "target": {
+    "host": "jobs.fraserhealth.ca"
+   },
+   "found": "iCIMS (Jibe) site at https://jobs.fraserhealth.ca/"
+  },
+  {
+   "name": "Zymeworks",
+   "source": "rippling",
+   "target": {
+    "slug": "zymeworks-careers"
+   },
+   "found": "link on https://www.zymeworks.com/careers"
+  },
+  {
+   "name": "GSK",
+   "source": "phenom",
+   "target": {
+    "host": "jobs.gsk.com",
+    "prefix": "us/en"
+   },
+   "found": "Phenom site at https://jobs.gsk.com/"
+  },
+  {
+   "name": "Ontario Public Service",
+   "source": "oraclecloud",
+   "target": {
+    "host": "iabqzv.fa.ocs.oraclecloud.com",
+    "lang": "en",
+    "site": "OPSCAREERS"
+   },
+   "found": "link on https://jobs.ontario.ca/"
+  },
+  {
+   "name": "Marriott",
+   "source": "oraclecloud",
+   "target": {
+    "host": "ejwl.fa.us2.oraclecloud.com",
+    "lang": "en",
+    "site": "CX"
+   },
+   "found": "link on https://careers.marriott.com/"
+  },
+  {
+   "name": "Hilton",
+   "source": "oraclecloud",
+   "target": {
+    "host": "efet.fa.us2.oraclecloud.com",
+    "lang": "en",
+    "site": "CX_1"
+   },
+   "found": "link on https://jobs.hilton.com/"
   }
  ]
 }

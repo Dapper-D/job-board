@@ -20,7 +20,7 @@ export default {
   hosts: ['*.eightfold.ai'],
   fromUrl(url) {
     let u; try { u = new URL(url); } catch { return null; }
-    return /^[a-z0-9-]+\.eightfold\.ai$/i.test(u.hostname) && u.hostname !== 'www.eightfold.ai' ? { host: u.hostname.toLowerCase(), ...(u.searchParams.get('domain') ? { domain: u.searchParams.get('domain') } : {}) } : null;
+    return /^[a-z0-9-]+\.eightfold\.ai$/i.test(u.hostname) && !['www.eightfold.ai', 'vs-errors.eightfold.ai'].includes(u.hostname) ? { host: u.hostname.toLowerCase(), ...(u.searchParams.get('domain') ? { domain: u.searchParams.get('domain') } : {}) } : null;
   },
   parse(data, t) {
     const list = data?.positions || data?.data?.positions || [];
