@@ -51,17 +51,25 @@ export default {
   fromUrl() { return null; }, // branded hosts: found from page contents in discovery
   async fetchJobs(t) {
     const base = `https://${t.host}${t.path || ''}`;
-    const allow = [t.host];
+    // The site may redirect to another host of the same employer (jobs.alberta.ca -> www.alberta.ca).
+    const labels = t.host.split('.');
+    const site = labels.slice(/^(gc|co|com|gov)$/.test(labels.at(-2)) ? -3 : -2).join('.');
+    const allow = [t.host, site, `*.${site}`];
     const make = (j, extra = {}) => makeJob({ source: 'successfactors', company: t.name || t.host, nativeId: j.id, title: j.title, url: j.url, location: j.location, ...extra });
-    const out = [];
+    let out = [];
+    const tileIds = new Set();
     for (let p = 0, row = 0; p < MAX_TILE_PAGES; p++) {
-      const r = await request(`${base}/tile-search-results/?startrow=${row}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 });
-      const tiles = parseTiles(r.text, base);
-      if (!tiles.length) break;
-      out.push(...tiles.map(j => make(j)).filter(Boolean));
-      row += tiles.length;
+      const r = await request(`${base}/tile-search-results/?q=&sortColumn=referencedate&sortDirection=desc&startrow=${row}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 });
+      // Some sites ignore startrow and send the same page again: stop as soon as a page adds nothing new.
+      const fresh = parseTiles(r.text, base).filter(j => !tileIds.has(j.id));
+      if (!fresh.length) break;
+      fresh.forEach(j => tileIds.add(j.id));
+      out.push(...fresh.map(j => make(j)).filter(Boolean));
+      row += fresh.length;
     }
-    if (out.length) return out;
+    // Tiles without any location can't be placed; the newer search below gives locations, so try it too.
+    if (out.length && out.some(j => j.location)) return out;
+    const tilesOnly = out; out = [];
     // Newer sites: one search per locale the site offers (Canadian sites usually en_US/en_GB and fr_CA).
     let locales = ['en_US', 'en_GB', 'fr_CA'];
     try {
@@ -72,7 +80,9 @@ export default {
     const seen = new Set();
     for (const locale of locales) {
       for (let p = 0; p < MAX_CSB_PAGES; p++) {
-        const r = await request(`${base}/services/recruiting/v1/jobs`, { allow, parse: 'json', method: 'POST', gapMs: 300, json: { keywords: '', locale, location: '', pageNumber: p, sortBy: 'date' } });
+        let r;
+        try { r = await request(`${base}/services/recruiting/v1/jobs`, { allow, parse: 'json', method: 'POST', gapMs: 300, json: { keywords: '', locale, location: '', pageNumber: p, sortBy: 'date' } }); }
+        catch (e) { if (tilesOnly.length) return tilesOnly; throw e; }
         const list = r.json?.jobSearchResult || [];
         for (const item of list) {
           const x = item?.response; if (!x || x.id == null || seen.has(String(x.id))) continue;
@@ -85,6 +95,6 @@ export default {
         if (list.length < 10 || out.length >= (r.json?.totalJobs ?? 0)) break;
       }
     }
-    return out;
+    return out.length ? out : tilesOnly;
   },
 };
