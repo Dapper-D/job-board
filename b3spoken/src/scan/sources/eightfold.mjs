@@ -1,6 +1,6 @@
 // Eightfold career sites (no key needed), on <tenant>.eightfold.ai or the employer's own careers host.
 // Their robots.txt allows /api/apply and /api/pcsx. Classic tenants: GET /api/apply/v2/jobs?start=N&num=100;
-// newer tenants answer 403 there and serve GET /api/pcsx/search?start=N instead.
+// newer tenants answer 403 or 422 there and serve GET /api/pcsx/search?start=N instead. Many need ?domain=<employer domain>.
 // Adapted from career-ops (https://github.com/career-ops-hq/career-ops, commit 559b58e), MIT licence,
 // Copyright (c) 2026 Santiago Fernández de Valderrama. See NOTICES.md. Rewritten for B3spoken's http client and job shape.
 import { request } from '../http.mjs';
@@ -46,7 +46,7 @@ export default {
       let r;
       try { r = await request(api === 'v2' ? `https://${t.host}/api/apply/v2/jobs?${q(p * NUM)}` : `https://${t.host}/api/pcsx/search?${q(p * NUM)}`, { allow, parse: 'json', gapMs: 400 }); }
       catch (e) {
-        if (p === 0 && api === 'v2' && e.status === 403) { api = 'pcsx'; p--; continue; }
+        if (p === 0 && api === 'v2' && (e.status === 403 || e.status === 422)) { api = 'pcsx'; p--; continue; }
         throw e;
       }
       const got = this.parse(r.json, t);
