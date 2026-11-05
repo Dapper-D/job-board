@@ -105,7 +105,7 @@ export async function request(url, o = {}) {
     }
     if ((r.status === 429 || r.status >= 500) && attempt < retries) {
       const ra = Number(r.headers['retry-after']);
-      attempt++; await sleep(Number.isFinite(ra) && ra > 0 ? Math.min(ra, 60) * 1000 : 2000 * attempt); continue;
+      attempt++; await sleep(Number.isFinite(ra) && ra > 0 ? Math.min(ra, 60) * 1000 : Math.min((r.status === 429 ? 4000 : 2000) * 2 ** (attempt - 1), 30000)); continue;
     }
     if (r.status < 200 || r.status >= 300) throw Object.assign(new Error(`HTTP ${r.status} from ${u.hostname}`), { status: r.status });
     if (o.parse !== 'text') { try { r.json = JSON.parse(r.text); } catch { if (o.parse === 'json') throw new Error(`bad JSON from ${u.hostname}`); } }

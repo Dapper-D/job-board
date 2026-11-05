@@ -44,7 +44,7 @@ export default {
     const out = [];
     for (let p = 0; p < MAX_PAGES; p++) {
       let r;
-      try { r = await request(api === 'v2' ? `https://${t.host}/api/apply/v2/jobs?${q(p * NUM)}` : `https://${t.host}/api/pcsx/search?${q(p * NUM)}`, { allow, parse: 'json', gapMs: 400 }); }
+      try { r = await request(api === 'v2' ? `https://${t.host}/api/apply/v2/jobs?${q(p * NUM)}` : `https://${t.host}/api/pcsx/search?${q(p * NUM)}`, { allow, parse: 'json', gapMs: api === 'pcsx' ? 1500 : 400, retries: 5 }); }
       catch (e) {
         if (p === 0 && api === 'v2' && (e.status === 403 || e.status === 422)) { api = 'pcsx'; p--; continue; }
         throw e;
