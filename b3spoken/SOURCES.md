@@ -18,6 +18,12 @@ These are the public job feeds employers publish through their hiring software, 
 | Breezy HR | `<tenant>.breezy.hr/json` | Public job list. Adapted from career-ops (MIT) |
 | Pinpoint | `<company>.pinpointhq.com/postings.json` | Public postings. Adapted from career-ops (MIT) |
 | Teamtailor | `<company>.teamtailor.com/jobs.rss` | Public job feed. Adapted from career-ops (MIT) |
+| Oracle Recruiting Cloud | `<tenant>.fa.<region>.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions` | The public job search behind the careers site. Adapted from career-ops (MIT) |
+| Phenom | `POST <employer careers host>/widgets` | The public job search behind Phenom careers sites; found from the page, only on the employer's own domain. Adapted from career-ops (MIT) |
+| Eightfold | `<host>/api/apply/v2/jobs` or `/api/pcsx/search` | Their robots.txt allows both. Adapted from career-ops (MIT) |
+| iCIMS (Jibe) | `<careers host>/api/jobs` | The public job search behind Jibe careers sites. Adapted from career-ops (MIT) |
+| Rippling | `ats.rippling.com/api/v2/board/<slug>/jobs` | Public job board. Adapted from career-ops (MIT) |
+| Amazon Jobs | `www.amazon.jobs/en/search.json` (Canada) | A company's own site, so robots.txt is checked before every run. Adapted from career-ops (MIT) |
 
 ## Government
 

@@ -13,8 +13,12 @@ const slug = t => String(t).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').re
 export function phenomFromPage(html, pageUrl) {
   if (!/phenompeople|phenom\.com\/|"phApp"|phApp\./i.test(html)) return null;
   const u = new URL(pageUrl);
-  const m = String(html).match(/["'](?:https?:\/\/[^"'/]+)?\/([a-z]{2,6}\/[a-z]{2}(?:[-_][a-z]{2})?)\/(?:job|search-results)\b/i);
-  return { host: u.hostname.toLowerCase(), prefix: m ? m[1] : 'global/en' };
+  // The careers site may be on another host than this page (www.example.com/careers -> careers.example.com/us/en).
+  const m = String(html).match(/["'](?:https?:\/\/([a-z0-9.-]+))?\/([a-z]{2,6}\/[a-z]{2}(?:[-_][a-z]{2})?)\/(?:job|search-results)\b/i);
+  const host = (m && m[1] ? m[1] : u.hostname).toLowerCase();
+  const base = u.hostname.split('.').slice(-2).join('.');
+  if (!host.endsWith(base)) return null; // only the employer's own domain
+  return { host, prefix: m ? m[2] : 'global/en' };
 }
 
 export default {

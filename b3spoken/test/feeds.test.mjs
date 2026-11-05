@@ -113,3 +113,25 @@ test('oracle cloud and phenom: targets and parsing', async () => {
   assert.equal(p[0].url, 'https://jobs.rbc.com/ca/en/job/R-1/Data-AI-Analyst');
   assert.equal(p[0].canada, true);
 });
+
+test('rippling, eightfold and jibe: targets and parsing', async () => {
+  const { eightfoldFromPage } = await import('../src/scan/sources/eightfold.mjs');
+  const { jibeFromPage } = await import('../src/scan/sources/jibe.mjs');
+  assert.deepEqual(detect('https://ats.rippling.com/freshbooks/jobs'), { source: 'rippling', target: { slug: 'freshbooks' } });
+  const r = SOURCES.rippling.parse({ items: [{ id: 'a', name: 'Dev', url: 'https://ats.rippling.com/freshbooks/jobs/a', locations: [{ name: 'Toronto, ON' }], department: { name: 'Eng' } }], totalPages: 1 }, { slug: 'freshbooks' });
+  assert.equal(r[0].canada, true);
+  assert.deepEqual(eightfoldFromPage('<script src="https://static.vscdn.net/x.js">', 'https://jobs.autodesk.com/careers'), { host: 'jobs.autodesk.com' });
+  const e = SOURCES.eightfold.parse({ positions: [{ id: 7, name: 'Engineer', location: 'Vancouver, BC, Canada', t_create: 1762300000, canonicalPositionUrl: 'https://jobs.autodesk.com/careers/job/7' }], count: 1 }, { host: 'jobs.autodesk.com' });
+  assert.equal(e[0].url, 'https://jobs.autodesk.com/careers/job/7');
+  assert.equal(e[0].canada, true);
+  assert.deepEqual(jibeFromPage('<link href="https://app.jibecdn.com/x.css">', 'https://careers.rivian.com/'), { host: 'careers.rivian.com' });
+  const j = SOURCES.jibe.parse({ totalCount: 1, jobs: [{ data: { slug: '123', req_id: '123', title: 'Technician', city: 'Vancouver', state: 'BC', country: 'Canada', posted_date: '2026-11-01T00:00:00Z' } }] }, { host: 'careers.rivian.com', name: 'Rivian' });
+  assert.equal(j[0].url, 'https://careers.rivian.com/jobs/123');
+  assert.equal(j[0].canada, true);
+});
+
+test('phenom: careers site on another host of the same employer', async () => {
+  const { phenomFromPage } = await import('../src/scan/sources/phenom.mjs');
+  assert.deepEqual(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://careers.opentext.com/us/en/search-results">Jobs</a>', 'https://www.opentext.com/careers'), { host: 'careers.opentext.com', prefix: 'us/en' });
+  assert.equal(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://evil.example/us/en/job/1">', 'https://www.opentext.com/careers'), null);
+});
