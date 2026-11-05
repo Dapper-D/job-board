@@ -25,8 +25,12 @@ export function parseTiles(html, base) {
     const url = (block.match(/data-url="([^"]+)"/) || [])[1];
     const title = clean((block.match(/class="jobTitle-link[^"]*"[^>]*>([\s\S]*?)<\/a>/) || [])[1] || '');
     if (!url || !title) continue;
-    const city = clean((block.match(/-section-(?:city|location)-value">([\s\S]*?)<\/div>/) || [])[1] || '');
-    out.push({ id: t[1], title, url: new URL(decodeEntities(url), base).href, location: city });
+    // Tiles show location in one or more fields (city, state, country, location), each with extra attributes.
+    const parts = [];
+    for (const f of block.matchAll(/-section-(city|state|country|location|multilocation)-value"[^>]*>([\s\S]*?)<\/(?:div|span)>/g)) {
+      const v = clean(f[2]); if (v && !parts.includes(v)) parts.push(v);
+    }
+    out.push({ id: t[1], title, url: new URL(decodeEntities(url), base).href, location: parts.join(', ') });
   }
   return out;
 }

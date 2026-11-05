@@ -2325,15 +2325,6 @@
       "found": "job-site job confirmed on this board"
     },
     {
-      "name": "Alida",
-      "source": "lever",
-      "target": {
-        "site": "alida",
-        "eu": false
-      },
-      "found": "careers page read in a browser"
-    },
-    {
       "name": "Apotex",
       "source": "successfactors",
       "target": {
@@ -2349,7 +2340,8 @@
         "host": "careers.bclc.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Bank of Canada",
@@ -2358,7 +2350,8 @@
         "host": "careers.bankofcanada.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Barrick",
@@ -2409,22 +2402,14 @@
       "found": "careers page read in a browser"
     },
     {
-      "name": "Canada Life",
-      "source": "successfactors",
-      "target": {
-        "host": "www.careers.canadalife.com",
-        "path": ""
-      },
-      "found": "careers page read in a browser"
-    },
-    {
       "name": "Canada Mortgage and Housing Corporation",
       "source": "successfactors",
       "target": {
         "host": "careers.cmhc-schl.gc.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Canadian Blood Services",
@@ -2433,7 +2418,8 @@
         "host": "careers.blood.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Cascades",
@@ -2461,7 +2447,8 @@
         "section": "2",
         "lang": "en"
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "City of Toronto",
@@ -2470,7 +2457,8 @@
         "host": "jobs.toronto.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "City of Vancouver",
@@ -2479,7 +2467,8 @@
         "host": "jobs.vancouver.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Coast Capital Savings",
@@ -2488,16 +2477,8 @@
         "host": "careers.coastcapitalsavings.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
-    },
-    {
-      "name": "Compass Group Canada",
-      "source": "successfactors",
-      "target": {
-        "host": "careers.compass-canada.com",
-        "path": ""
-      },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Deloitte",
@@ -2525,7 +2506,8 @@
         "tenant": "desjardins",
         "site": "Desjardins"
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Dollarama",
@@ -2560,17 +2542,8 @@
         "host": "careers.fortisbc.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
-    },
-    {
-      "name": "Hamilton Health Sciences",
-      "source": "taleo",
-      "target": {
-        "host": "hhsc.taleo.net",
-        "section": "2",
-        "lang": "en"
-      },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Hatch",
@@ -2588,7 +2561,8 @@
         "host": "jobs.hydroone.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Hydro-Québec",
@@ -2597,7 +2571,8 @@
         "host": "emploi.hydroquebec.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Kira Systems",
@@ -2640,15 +2615,6 @@
       "found": "careers page read in a browser"
     },
     {
-      "name": "Metro",
-      "source": "successfactors",
-      "target": {
-        "host": "talent.metro.ca",
-        "path": ""
-      },
-      "found": "careers page read in a browser"
-    },
-    {
       "name": "NAV CANADA",
       "source": "workday",
       "target": {
@@ -2656,7 +2622,8 @@
         "tenant": "navcanada",
         "site": "NAV_Careers"
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Ontario Power Generation",
@@ -2665,7 +2632,8 @@
         "host": "jobs.opg.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "PCL Construction",
@@ -2692,7 +2660,8 @@
         "host": "careers.purolator.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "PwC",
@@ -2710,7 +2679,8 @@
         "host": "jobs.sasktel.com",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Scotiabank",
@@ -2747,7 +2717,8 @@
         "host": "jobs.utoronto.ca",
         "path": ""
       },
-      "found": "careers page read in a browser"
+      "found": "careers page read in a browser",
+      "canadaOnly": true
     },
     {
       "name": "Absolute Software",
@@ -2808,7 +2779,8 @@
         "host": "jobs.alberta.ca",
         "path": ""
       },
-      "found": "careers page link"
+      "found": "careers page link",
+      "canadaOnly": true
     },
     {
       "name": "ICBC",
@@ -2817,7 +2789,8 @@
         "host": "careers.icbc.com",
         "path": ""
       },
-      "found": "careers page link"
+      "found": "careers page link",
+      "canadaOnly": true
     },
     {
       "name": "SAP",

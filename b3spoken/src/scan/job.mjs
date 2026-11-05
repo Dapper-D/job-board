@@ -65,7 +65,7 @@ const PROVINCES = ['british columbia', 'alberta', 'saskatchewan', 'manitoba', 'o
 const CODES = ['BC', 'AB', 'MB', 'ON', 'QC', 'NB', 'NS', 'PEI', 'YT', 'NT', 'NU'];
 // Only cities whose names aren't shared with big places elsewhere (no Victoria, Richmond, Cambridge, London...).
 const CITIES = ['vancouver', 'burnaby', 'coquitlam', 'new westminster', 'north vancouver', 'abbotsford', 'kelowna', 'nanaimo', 'kamloops', 'prince george', 'calgary', 'edmonton', 'red deer', 'lethbridge', 'regina', 'saskatoon', 'winnipeg', 'toronto', 'mississauga', 'brampton', 'markham', 'vaughan', 'oakville', 'kitchener', 'guelph', 'ottawa', 'kanata', 'barrie', 'oshawa', 'sudbury', 'thunder bay', 'montreal', 'montréal', 'laval', 'gatineau', 'quebec city', 'québec city', 'sherbrooke', 'halifax', 'moncton', 'fredericton', "st. john's", 'charlottetown', 'whitehorse', 'yellowknife', 'iqaluit'];
-const NOT_CANADA = /\b(uk|united kingdom|england|usa|united states|u\.s\.|india|germany|europe|emea|apac|latam|wa|washington)\b/i;
+export const NOT_CANADA = /\b(uk|united kingdom|england|usa|united states|u\.s\.|india|germany|europe|emea|apac|latam|wa|washington)\b/i;
 
 export function isCanada(location, remote = false) {
   const loc = String(location || '');

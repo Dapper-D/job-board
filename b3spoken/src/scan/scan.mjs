@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SOURCES } from './sources/index.mjs';
-import { companyKey, titleKey, urlKey } from './job.mjs';
+import { companyKey, titleKey, urlKey, NOT_CANADA } from './job.mjs';
 
 export async function scanEmployers(employers, { concurrency = 6, log = () => {} } = {}) {
   const jobs = new Map();
@@ -18,7 +18,9 @@ export async function scanEmployers(employers, { concurrency = 6, log = () => {}
       if (!src) { report.push({ name: e.name, source: e.source, ok: false, error: 'unknown source' }); continue; }
       try {
         const got = await src.fetchJobs({ name: e.name, ...e.target });
-        const kept = got.filter(j => j.canada);
+        // canadaOnly: the employer only hires in Canada (a city, a Crown corporation, a provincial utility),
+        // so a job with just a building or a city name is still in Canada unless it names another country.
+        const kept = got.map(j => !j.canada && e.canadaOnly && !NOT_CANADA.test(j.location || '') ? { ...j, canada: true } : j).filter(j => j.canada);
         for (const j of kept) if (!jobs.has(j.id)) jobs.set(j.id, j);
         report.push({ name: e.name, source: e.source, ok: true, found: got.length, canada: kept.length, ms: Date.now() - started });
         log(`ok   ${e.source.padEnd(15)} ${e.name}: ${kept.length} in Canada of ${got.length}`);

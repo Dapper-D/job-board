@@ -163,3 +163,14 @@ test('google and apple pages', async () => {
   assert.equal(jobs[0].url, 'https://jobs.apple.com/en-ca/details/200-1/specialist');
   assert.equal(jobs[0].canada, true);
 });
+
+test('successfactors tiles with several location fields; canadaOnly employers', async () => {
+  const { parseTiles } = await import('../src/scan/sources/successfactors.mjs');
+  const html = '<li class="job-tile job-id-9 a" data-url="/job/x/9/"><a class="jobTitle-link fontcolor" href="#">Clerk</a><div id="job-9-desktop-section-city-value" class="section-value">Kamloops</div><div id="job-9-desktop-section-country-value" class="section-value">CA</div></li>';
+  assert.equal(parseTiles(html, 'https://careers.bclc.com')[0].location, 'Kamloops, CA');
+  const { scanEmployers } = await import('../src/scan/scan.mjs');
+  SOURCES.__fake = { fetchJobs: async () => [{ id: 'f1', title: 'Clerk', location: 'Head Office', canada: false }, { id: 'f2', title: 'Analyst', location: 'Seattle, WA', canada: false }] };
+  const { jobs } = await scanEmployers([{ name: 'X', source: '__fake', target: {}, canadaOnly: true }]);
+  delete SOURCES.__fake;
+  assert.deepEqual([...jobs.values?.() ?? jobs].map(j => j.id), ['f1']);
+});
