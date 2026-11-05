@@ -1,6 +1,6 @@
 // The daily scan: read the employer list, ask each employer's hiring system for its jobs,
 // keep the ones in Canada (or remote and open to Canada), drop duplicates, write the job pool.
-//   node src/scan/scan.mjs --employers data/employers.json --out out [--only greenhouse] [--limit 5]
+//   node src/scan/scan.mjs --employers catalog/employers.json --out out [--only greenhouse] [--limit 5]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -47,7 +47,7 @@ export function dedupe(jobs) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
-  const employers = JSON.parse(readFileSync(arg('--employers', 'data/employers.json'), 'utf8')).employers
+  const employers = JSON.parse(readFileSync(arg('--employers', 'catalog/employers.json'), 'utf8')).employers
     .filter(e => !arg('--only') || e.source === arg('--only'))
     .slice(0, Number(arg('--limit', 1e9)));
   const out = arg('--out', 'out');

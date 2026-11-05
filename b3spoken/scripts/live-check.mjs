@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Calls every source for real, using the starter employer list, and reports what came back.
 // Fails if any source returns nothing at all, so a changed or blocked feed is noticed right away.
+// Reads catalog/employers.json (kept out of data/, which git ignores for private user files).
 // Writes a Markdown summary to $GITHUB_STEP_SUMMARY when run in GitHub Actions.
 import { readFileSync, appendFileSync } from 'node:fs';
 import { scanEmployers, dedupe } from '../src/scan/scan.mjs';
 import { SOURCES } from '../src/scan/sources/index.mjs';
 
-const { employers } = JSON.parse(readFileSync(new URL('../data/employers.json', import.meta.url), 'utf8'));
+const { employers } = JSON.parse(readFileSync(new URL('../catalog/employers.json', import.meta.url), 'utf8'));
 const { jobs, report } = await scanEmployers(employers, { log: console.log });
 const bySource = Object.keys(SOURCES).map(id => {
   const rows = report.filter(r => r.source === id);

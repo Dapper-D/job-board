@@ -8,7 +8,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "scan": "node src/scan/scan.mjs --employers data/employers.json --out out",
+    "scan": "node src/scan/scan.mjs --employers catalog/employers.json --out out",
     "live-check": "node scripts/live-check.mjs"
   }
 }
