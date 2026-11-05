@@ -1841,6 +1841,14 @@
     "board": "bloomerang"
    },
    "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Amazon",
+   "source": "amazon",
+   "target": {
+    "country": "CAN"
+   },
+   "found": "company site (robots.txt checked each run)"
   }
  ]
 }

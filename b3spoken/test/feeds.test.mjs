@@ -98,3 +98,18 @@ test('cross-check: titles and companies match loosely but not wrongly', async ()
   assert.equal(verified[0].via.name, 'Remote OK');
   assert.deepEqual(dropped.map(d => d.why), ["title not on the employer's board"]);
 });
+
+test('oracle cloud and phenom: targets and parsing', async () => {
+  const { phenomFromPage } = await import('../src/scan/sources/phenom.mjs');
+  assert.deepEqual(detect('https://ecqd.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs'), { source: 'oraclecloud', target: { host: 'ecqd.fa.ca2.oraclecloud.com', lang: 'en', site: 'CX_1' } });
+  assert.equal(detect('https://evil.oraclecloud.com.example/x'), null);
+  const o = SOURCES.oraclecloud.parse({ items: [{ requisitionList: [{ Id: '123', Title: 'Analyst', PrimaryLocation: 'Toronto, ON, Canada', WorkplaceTypeCode: 'ORA_HYBRID', PostedDate: '2026-11-03' }] }] }, { host: 'x.fa.ca2.oraclecloud.com', lang: 'en', site: 'CX_1', name: 'Bank' });
+  assert.equal(o[0].url, 'https://x.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/123');
+  assert.equal(o[0].canada, true);
+  const ph = phenomFromPage('<script src="https://cdn.phenompeople.com/x.js"></script><a href="/ca/en/job/R-1/Analyst">', 'https://jobs.rbc.com/ca/en/');
+  assert.deepEqual(ph, { host: 'jobs.rbc.com', prefix: 'ca/en' });
+  const p = SOURCES.phenom.parse({ refineSearch: { totalHits: 1, data: { jobs: [{ jobId: 'R-1', title: 'Data &amp; AI Analyst', city: 'Toronto', state: 'Ontario', country: 'Canada', postedDate: '2026-11-02T00:00:00Z' }] } } }, { host: 'jobs.rbc.com', prefix: 'ca/en' });
+  assert.equal(p[0].title, 'Data & AI Analyst');
+  assert.equal(p[0].url, 'https://jobs.rbc.com/ca/en/job/R-1/Data-AI-Analyst');
+  assert.equal(p[0].canada, true);
+});
