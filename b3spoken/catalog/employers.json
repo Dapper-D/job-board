@@ -1268,6 +1268,11 @@
    },
    "found": "link on https://www.zendesk.com/careers",
    "sector": "tech"
+  },
+  {
+   "name": "Himalayas (remote jobs)",
+   "source": "himalayas",
+   "target": {}
   }
  ]
 }

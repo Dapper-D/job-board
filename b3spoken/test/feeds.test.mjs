@@ -69,3 +69,32 @@ test('company names: "Air Canada" is not "Air", but "Hootsuite Inc." is "Hootsui
   assert.equal(sameCompany('Coveo', 'Coveo Solutions'), false);
   assert.equal(sameCompany('Wattpad Corp', 'wattpad'), true);
 });
+
+test('himalayas: apply link from the API, expired jobs dropped, Canada or worldwide', () => {
+  const now = Date.parse('2026-11-05T00:00:00Z');
+  const jobs = SOURCES.himalayas.parse({ jobs: [
+    { title: 'Dev', companyName: 'A', guid: 'https://himalayas.app/companies/a/jobs/dev', applicationLink: 'https://himalayas.app/companies/a/jobs/dev/apply', locationRestrictions: ['Canada', 'United States'], pubDate: 1762300000, expiryDate: 1800000000 },
+    { title: 'Old', companyName: 'B', guid: 'https://himalayas.app/x', applicationLink: 'https://himalayas.app/x', expiryDate: 1700000000 },
+    { title: 'EU', companyName: 'C', guid: 'https://himalayas.app/y', applicationLink: 'https://himalayas.app/y', locationRestrictions: ['Germany'] }] }, now);
+  assert.deepEqual(jobs.map(j => [j.title, j.canada]), [['Dev', true], ['EU', false]]);
+  assert.equal(jobs[0].applyUrl, 'https://himalayas.app/companies/a/jobs/dev/apply');
+  assert.equal(jobs[0].via.name, 'Himalayas');
+});
+
+test('cross-check: titles and companies match loosely but not wrongly', async () => {
+  const { sameTitle, companyKey, verifyFeedJobs } = await import('../src/scan/verify.mjs');
+  assert.equal(sameTitle('Senior Backend Engineer (Remote, Canada)', 'Senior Backend Engineer'), true);
+  assert.equal(sameTitle('Senior Backend Engineer', 'Senior Backend Engineer, Payments'), true);
+  assert.equal(sameTitle('Engineer', 'Engineering Manager'), false);
+  assert.equal(companyKey('Acme, Inc.'), companyKey('ACME'));
+  const own = [{ company: 'Acme', title: 'Data Analyst', url: 'https://jobs.lever.co/acme/1', applyUrl: 'https://jobs.lever.co/acme/1/apply', employerVerified: true }];
+  const site = [
+    { company: 'Acme Inc', title: 'Data Analyst - Remote', url: 'https://remoteok.com/x', applyUrl: 'https://remoteok.com/x', via: { name: 'Remote OK' }, employerVerified: false, description: '' },
+    { company: 'Acme Inc', title: 'Designer', url: 'https://remoteok.com/y', via: { name: 'Remote OK' }, employerVerified: false, description: '' }];
+  const { verified, dropped } = await verifyFeedJobs(site, own, { maxLookups: 0 });
+  assert.equal(verified.length, 1);
+  assert.equal(verified[0].employerUrl, 'https://jobs.lever.co/acme/1');
+  assert.equal(verified[0].applyUrl, 'https://remoteok.com/x'); // the site's own link, as its terms ask
+  assert.equal(verified[0].via.name, 'Remote OK');
+  assert.deepEqual(dropped.map(d => d.why), ["title not on the employer's board"]);
+});

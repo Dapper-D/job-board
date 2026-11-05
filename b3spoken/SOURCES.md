@@ -27,12 +27,13 @@ These are the public job feeds employers publish through their hiring software, 
 
 ## Job sites (remote jobs)
 
-Jobs from these sites name the site and link back to it, as their terms require. They are marked `employerVerified: false` until the helper matches them to the employer's own posting.
+Jobs from these sites name the site and link back to it, as their terms require; the Apply link stays the site's own. The daily scan looks for the same job on the employer's own hiring system: if found, the job keeps `employerUrl` (the employer's posting) and `employerVerified: true`; if not, it is dropped from the pool.
 
 | Source | Terms we follow | Notes |
 | --- | --- | --- |
 | [Remotive](https://github.com/remotive-com/remote-jobs-api) | Link back to the Remotive job URL and name Remotive as the source; at most 4 requests a day; don't submit their jobs to other job sites; don't use them to collect sign-ups | Jobs arrive 24 hours late. Commercial use goes through their paid API: revisit before any subscription |
 | [Remote OK](https://remoteok.com/api) | Link back to the job's Remote OK URL as a normal (followed) link and name Remote OK as the source; don't use their logo | The feed has the newest ~100 jobs |
+| [Himalayas](https://himalayas.app/terms) | Clauses 30A and 113 of their terms, and their [API docs](https://github.com/Himalayas-App/remote-jobs-api): use in our own apps is allowed without asking; credit Himalayas with a visible link; every Apply uses the API's `applicationLink`; never pass their jobs on to other job boards or aggregators; cache and drop expired jobs; stay within rate limits | Data refreshes daily, so we read it once a day. Clause 93 forbids selling their data without consent: revisit before any subscription |
 | [Jobicy](https://github.com/Jobicy/remote-jobs-api) | Keep Jobicy as the named source and keep the Jobicy job URL; never present listings as our own; poll at most once an hour | We ask only for jobs open to Canada and "anywhere" |
 
 ## Checked and not used
@@ -41,8 +42,11 @@ Jobs from these sites name the site and link back to it, as their terms require.
 | --- | --- |
 | LinkedIn, Indeed, Glassdoor | Their terms forbid automated collection. A pasted link from them is matched to the employer's own posting instead |
 | We Work Remotely | Its [API terms](https://weworkremotely.com/api-terms-and-guidelines) forbid copying, saving or storing their data, and building anything that competes with them |
-| Himalayas | Has a public API, but we couldn't read its official terms from here. Will add once checked |
 | Working Nomads | No official terms or API documentation found |
+
+## The job pool
+
+The daily scan publishes `pool.json.gz` for B3spoken helpers only. Job-site listings in it stay under their sites' terms and may not be passed on to other job boards or aggregators.
 
 ## Finding employers
 
