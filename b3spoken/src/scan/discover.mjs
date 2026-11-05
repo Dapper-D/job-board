@@ -42,7 +42,7 @@ export function findBoardLinks(html, base) {
   return [...found.values()];
 }
 
-async function fromCareersPages(seed, log) {
+async function fromCareersPages(seed, log, seen = new Set()) {
   if (!seed.domain && !seed.careers) return null;
   const domain = seed.domain ? seed.domain.replace(/^www\./, '') : new URL(seed.careers).hostname.replace(/^www\./, '');
   const allow = [domain, `*.${domain}`];
@@ -55,8 +55,9 @@ async function fromCareersPages(seed, log) {
       const r = await request(url, { allow, parse: 'text', retries: 0, accept: 'text/html', gapMs: 1500 });
       const hits = findBoardLinks(r.text, url);
       if (hits.length) return { ...hits[0], how: `link on ${url}`, others: hits.slice(1) };
+      for (const h of jobHosts(r.text, url, domain)) seen.add(h);
     } catch (e) {
-      if (e.code === 'EHOST' && e.url) { const hit = detect(e.url); if (hit && !SOURCES[hit.source].feed) return { ...hit, how: `redirect from ${url}` }; }
+      if (e.code === 'EHOST' && e.url) { const hit = detect(e.url); if (hit && !SOURCES[hit.source].feed) return { ...hit, how: `redirect from ${url}` }; seen.add('redirect:' + new URL(e.url).hostname + new URL(e.url).pathname.slice(0, 40)); }
     }
   }
   return null;
@@ -85,13 +86,28 @@ async function fromNameGuesses(seed) {
   return null;
 }
 
+// For employers we couldn't place: hosts their careers pages link to for jobs, so we know which systems to add next.
+export function jobHosts(html, base, domain) {
+  const out = new Set();
+  for (const m of String(html).matchAll(/(?:href|src)\s*=\s*["']([^"'#]+)["']/gi)) {
+    let u; try { u = new URL(m[1].replace(/&amp;/g, '&'), base); } catch { continue; }
+    if (!/^https?:$/.test(u.protocol)) continue;
+    const jobby = /job|career|opening|position|requisition|vacanc|search|apply|emploi|recrut/i.test(u.hostname + u.pathname);
+    const offsite = !u.hostname.endsWith(domain) || /^(careers?|jobs?|emplois?)\./.test(u.hostname);
+    if (jobby && offsite && !/linkedin|facebook|twitter|x\.com|instagram|youtube|glassdoor|indeed|google\.com\/maps/i.test(u.hostname)) out.add(u.hostname + u.pathname.split('/').slice(0, 3).join('/'));
+  }
+  return out;
+}
+
 export async function discover(seeds, { concurrency = 6, log = () => {} } = {}) {
   const queue = [...seeds], found = [], missing = [];
   async function worker() {
     for (let s; (s = queue.shift());) {
-      const hit = (await fromCareersPages(s, log)) || (await fromNameGuesses(s));
+      const seen = new Set();
+      const hit = (await fromCareersPages(s, log, seen)) || (await fromNameGuesses(s));
+      if (!hit) s.seenHosts = [...seen].slice(0, 12);
       if (hit) { found.push({ name: s.name, source: hit.source, target: hit.target, how: hit.how, ...(s.sector ? { sector: s.sector } : {}) }); log(`found ${s.name}: ${hit.source} ${JSON.stringify(hit.target)} (${hit.how})`); }
-      else { missing.push(s); log(`none  ${s.name}`); }
+      else { missing.push(s); log(`none  ${s.name}: ${(s.seenHosts || []).join(' ')}`); }
     }
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
@@ -101,11 +117,13 @@ export async function discover(seeds, { concurrency = 6, log = () => {} } = {}) 
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
-  const seeds = JSON.parse(readFileSync(arg('--in', 'catalog/seeds.json'), 'utf8')).seeds.slice(0, Number(arg('--limit', 1e9)));
+  const have = arg('--skip') ? new Set(JSON.parse(readFileSync(arg('--skip'), 'utf8')).employers.map(e => e.name)) : new Set();
+  const seeds = JSON.parse(readFileSync(arg('--in', 'catalog/seeds.json'), 'utf8')).seeds.filter(s => !have.has(s.name)).slice(0, Number(arg('--limit', 1e9)));
   const { found, missing } = await discover(seeds, { log: console.log });
   const out = arg('--out', 'out/discovered.json');
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), found, missing: missing.map(m => m.name) }, null, 2));
+  writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), found, missing: missing.map(m => ({ name: m.name, domain: m.domain, seen: m.seenHosts || [] })) }, null, 2));
+  console.log('MISSING ' + JSON.stringify(missing.map(m => ({ name: m.name, domain: m.domain, seen: m.seenHosts || [] }))));
   console.log('\nRESULT ' + JSON.stringify(found));
   console.log(`\nFound a hiring system for ${found.length} of ${seeds.length} employers. Written to ${out}`);
   if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, `## Discovery\n\n${found.length} of ${seeds.length} employers found.\n\n| Source | Employers |\n| --- | --- |\n${Object.entries(found.reduce((m, f) => (m[f.source] = (m[f.source] || 0) + 1, m), {})).map(([k, v]) => `| ${k} | ${v} |`).join('\n')}\n`, { flag: 'a' });
