@@ -57,9 +57,9 @@ async function polite(host, gapMs) {
 }
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function once(url, { method, headers, body }) {
+function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS }) {
   return new Promise((resolve, reject) => {
-    const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: TIMEOUT_MS }, res => {
+    const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs }, res => {
       const chunks = []; let size = 0;
       res.on('data', c => {
         size += c.length;
@@ -94,7 +94,7 @@ export async function request(url, o = {}) {
     if (!hostAllowed(u.hostname, allow)) throw Object.assign(new Error(`refused host not allowed for this source: ${u.hostname}`), { code: 'EHOST', url: u.href });
     await polite(u.hostname, o.gapMs ?? 500);
     let r;
-    try { r = await once(u, { method, headers, body }); }
+    try { r = await once(u, { method, headers, body, timeoutMs: o.timeoutMs }); }
     catch (e) {
       if (e.code === 'EBLOCKED' || attempt >= retries) throw e;
       attempt++; await sleep(1500 * attempt); continue;

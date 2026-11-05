@@ -24,5 +24,8 @@ const md = [
 ].join('\n');
 console.log('\n' + md);
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+// Employer hiring systems must work. A job site being slow for a day is a warning, not a failure.
 const dead = bySource.filter(s => s.tried && !s.worked);
-if (dead.length) { console.error('No working employer for: ' + dead.map(s => s.id).join(', ')); process.exit(1); }
+const hard = dead.filter(s => !SOURCES[s.id].feed);
+if (dead.length) console.error('No working employer for: ' + dead.map(s => s.id).join(', '));
+if (hard.length) process.exit(1);

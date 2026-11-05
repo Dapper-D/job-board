@@ -29,7 +29,7 @@ export default {
   async fetchJobs() {
     const out = new Map();
     for (const geo of ['canada', 'anywhere']) {
-      const r = await request(`https://jobicy.com/api/v2/remote-jobs?count=200&geo=${geo}`, { allow: HOSTS, parse: 'json', gapMs: 2000 });
+      const r = await request(`https://jobicy.com/api/v2/remote-jobs?count=200&geo=${geo}`, { allow: HOSTS, parse: 'json', gapMs: 2000, timeoutMs: 90_000 });
       for (const j of this.parse(r.json)) out.set(j.id, j);
     }
     return [...out.values()];
