@@ -1,4 +1,8 @@
 // Job Bank (Government of Canada) public search feed, Atom XML, no key needed.
+// Runs on each person's own computer (runsOn: 'helper'), with their own search keywords:
+// Job Bank refuses connections from cloud servers such as GitHub's, and we don't disguise the scanner to get around that.
+// Results come newest first; we stop at the first page whose postings are all older than maxAgeDays (default 3),
+// so a daily run is usually one or two pages per keyword.
 // robots.txt asks for 5 seconds between requests, so we wait 5 s before every request.
 // A search returns 100 postings per page; a short page means the end.
 import { request } from '../http.mjs';
@@ -21,6 +25,7 @@ const altLink = block => {
 export default {
   id: 'jobbank',
   label: 'Job Bank (Canada)',
+  runsOn: 'helper',
   hosts: HOSTS,
   fromUrl(url) {
     let u; try { u = new URL(url); } catch { return null; }
@@ -47,7 +52,7 @@ export default {
   async fetchJobs(target, { now = Date.now() } = {}) {
     const keywords = target.keywords?.length ? target.keywords : [''];
     const maxPages = Math.min(target.maxPages || 5, 200);
-    const cutoff = target.maxAgeDays ? now - target.maxAgeDays * 864e5 : 0;
+    const cutoff = now - (target.maxAgeDays ?? 3) * 864e5;
     const seen = new Map();
     for (const kw of keywords) {
       for (let p = 1; p <= maxPages; p++) {
@@ -55,10 +60,11 @@ export default {
         const r = await request(`${FEED}?${qs}`, { allow: HOSTS, parse: 'text', gapMs: 5000, accept: 'application/atom+xml, application/xml' });
         const got = this.parse(r.text);
         for (const j of got) seen.set(j.url, j);
-        const allOld = cutoff && got.length && got.every(j => j.postedAt && Date.parse(j.postedAt) < cutoff);
+        const allOld = got.length && got.every(j => j.postedAt && Date.parse(j.postedAt) < cutoff);
         if (got.length < PAGE || allOld) break;
       }
     }
-    return [...seen.values()];
+    // Keep only postings inside the window (undated ones are kept and checked later).
+    return [...seen.values()].filter(j => !j.postedAt || Date.parse(j.postedAt) >= cutoff);
   },
 };

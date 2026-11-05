@@ -9,7 +9,7 @@ import { SOURCES } from '../src/scan/sources/index.mjs';
 
 const { employers } = JSON.parse(readFileSync(new URL('../catalog/employers.json', import.meta.url), 'utf8'));
 const { jobs, report } = await scanEmployers(employers, { log: console.log });
-const bySource = Object.keys(SOURCES).map(id => {
+const bySource = Object.keys(SOURCES).filter(id => SOURCES[id].runsOn !== 'helper').map(id => {
   const rows = report.filter(r => r.source === id);
   return { id, tried: rows.length, worked: rows.filter(r => r.ok).length, found: rows.reduce((n, r) => n + (r.found || 0), 0), canada: rows.reduce((n, r) => n + (r.canada || 0), 0) };
 });

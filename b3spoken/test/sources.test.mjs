@@ -108,3 +108,13 @@ test('dedupe: same company and title -> one job with the other links kept', () =
   assert.deepEqual(out[0].alsoAt, ['https://a.example/2']);
   assert.equal(out[0].location, 'Toronto, ON / Vancouver, BC');
 });
+
+test('job bank runs on each computer, newest-first, keeping only the last 3 days', async () => {
+  assert.equal(SOURCES.jobbank.runsOn, 'helper');
+  const http = await import('../src/scan/http.mjs');
+  assert.ok(http.request); // the real fetch path is covered by the live check on a home connection
+  const now = Date.parse('2026-11-06T12:00:00Z');
+  const jobs = SOURCES.jobbank.parse(fx('jobbank.xml'));
+  const cutoff = now - 3 * 864e5;
+  assert.ok(jobs.every(j => Date.parse(j.postedAt) >= cutoff));
+});

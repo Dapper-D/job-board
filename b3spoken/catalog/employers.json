@@ -1,15 +1,72 @@
 {
-  "note": "Starter list for testing. Each entry is checked by the scan; failures show in out/report.json. The large Canadian list and automatic discovery come next.",
+  "note": "Starter list for the shared daily scan. Job Bank is not here: it runs on each person's own computer (see src/scan/sources/jobbank.mjs).",
   "employers": [
-    { "name": "Hootsuite", "source": "greenhouse", "target": { "board": "hootsuite" } },
-    { "name": "Later", "source": "greenhouse", "target": { "board": "later" } },
-    { "name": "Coalfire", "source": "lever", "target": { "site": "coalfire" } },
-    { "name": "Cohere", "source": "ashby", "target": { "board": "cohere" } },
-    { "name": "1Password", "source": "ashby", "target": { "board": "1password" } },
-    { "name": "University of British Columbia", "source": "workday", "target": { "host": "ubc.wd10.myworkdayjobs.com", "tenant": "ubc", "site": "ubcstaffjobs" } },
-    { "name": "CrowdStrike", "source": "workday", "target": { "host": "crowdstrike.wd5.myworkdayjobs.com", "tenant": "crowdstrike", "site": "crowdstrikecareers" } },
-    { "name": "SGS", "source": "smartrecruiters", "target": { "company": "sgs" } },
-    { "name": "Semios", "source": "workable", "target": { "account": "semios" } },
-    { "name": "Job Bank: newest postings", "source": "jobbank", "target": { "keywords": [""], "maxPages": 10, "maxAgeDays": 3 } }
+    {
+      "name": "Hootsuite",
+      "source": "greenhouse",
+      "target": {
+        "board": "hootsuite"
+      }
+    },
+    {
+      "name": "Later",
+      "source": "greenhouse",
+      "target": {
+        "board": "later"
+      }
+    },
+    {
+      "name": "Coalfire",
+      "source": "lever",
+      "target": {
+        "site": "coalfire"
+      }
+    },
+    {
+      "name": "Cohere",
+      "source": "ashby",
+      "target": {
+        "board": "cohere"
+      }
+    },
+    {
+      "name": "1Password",
+      "source": "ashby",
+      "target": {
+        "board": "1password"
+      }
+    },
+    {
+      "name": "University of British Columbia",
+      "source": "workday",
+      "target": {
+        "host": "ubc.wd10.myworkdayjobs.com",
+        "tenant": "ubc",
+        "site": "ubcstaffjobs"
+      }
+    },
+    {
+      "name": "CrowdStrike",
+      "source": "workday",
+      "target": {
+        "host": "crowdstrike.wd5.myworkdayjobs.com",
+        "tenant": "crowdstrike",
+        "site": "crowdstrikecareers"
+      }
+    },
+    {
+      "name": "SGS",
+      "source": "smartrecruiters",
+      "target": {
+        "company": "sgs"
+      }
+    },
+    {
+      "name": "Semios",
+      "source": "workable",
+      "target": {
+        "account": "semios"
+      }
+    }
   ]
 }
