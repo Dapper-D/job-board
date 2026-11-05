@@ -2166,6 +2166,163 @@
     "site": "CX_1"
    },
    "found": "link on https://jobs.hilton.com/"
+  },
+  {
+   "name": "Google",
+   "source": "google",
+   "target": {},
+   "found": "company site, first results page only (robots.txt)"
+  },
+  {
+   "name": "Apple",
+   "source": "apple",
+   "target": {},
+   "found": "company site (robots.txt checked each run)"
+  },
+  {
+   "name": "Microsoft",
+   "source": "eightfold",
+   "target": {
+    "host": "apply.careers.microsoft.com",
+    "domain": "microsoft.com"
+   },
+   "found": "Microsoft's careers site runs on Eightfold"
+  },
+  {
+   "name": "Paid",
+   "source": "ashby",
+   "target": {
+    "board": "paid"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "CaptivateIQ",
+   "source": "ashby",
+   "target": {
+    "board": "captivateiq"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "SOCi",
+   "source": "greenhouse",
+   "target": {
+    "board": "soci"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Bobtail",
+   "source": "greenhouse",
+   "target": {
+    "board": "bobtail"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Mercury",
+   "source": "greenhouse",
+   "target": {
+    "board": "mercury"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Mark43",
+   "source": "greenhouse",
+   "target": {
+    "board": "mark43"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "TrustArc",
+   "source": "lever",
+   "target": {
+    "site": "trustarc"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Salesforce",
+   "source": "workable",
+   "target": {
+    "account": "salesforce"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Naples Jet Center",
+   "source": "workable",
+   "target": {
+    "account": "naples-jet-center"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "American Income Life Insurance Company",
+   "source": "workable",
+   "target": {
+    "account": "american-income-life-insurance-company"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "CoVet",
+   "source": "workable",
+   "target": {
+    "account": "covet"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "The Travel Corporation",
+   "source": "workable",
+   "target": {
+    "account": "travel"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Athletics Canada",
+   "source": "workable",
+   "target": {
+    "account": "athletics"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "STACK IT Recruitment",
+   "source": "workable",
+   "target": {
+    "account": "stack-it-recruitment"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Sedgwick",
+   "source": "workable",
+   "target": {
+    "account": "sedgwick"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Aliaxis",
+   "source": "workable",
+   "target": {
+    "account": "aliaxis"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Alternative Payments",
+   "source": "ashby",
+   "target": {
+    "board": "alternativepayments"
+   },
+   "found": "job-site job confirmed on this board"
   }
  ]
 }

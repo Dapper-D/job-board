@@ -1,0 +1,27 @@
+# B3spoken: second discovery pass that renders careers pages in a headless browser (robots.txt respected).
+name: B3spoken discover (rendered pages)
+on:
+  workflow_dispatch:
+  push:
+    branches: [b3spoken]
+    paths: ['b3spoken/src/scan/discover-render.mjs', '.github/workflows/b3spoken-discover-render.yml']
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: b3spoken
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - name: Install a pinned Playwright and its Chromium (only for this pass)
+        run: npm install --no-save --no-fund --no-audit playwright@1.48.2 && npx playwright install --with-deps chromium
+      - run: node src/scan/discover-render.mjs --in catalog/seeds.json --skip catalog/employers.json

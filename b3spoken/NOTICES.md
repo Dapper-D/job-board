@@ -3,7 +3,7 @@
 ## career-ops
 
 Parts of these files are adapted from [career-ops](https://github.com/career-ops-hq/career-ops) (commit 559b58e):
-`src/scan/sources/bamboohr.mjs`, `src/scan/sources/breezy.mjs`, `src/scan/sources/pinpoint.mjs`, `src/scan/sources/teamtailor.mjs`, `src/scan/sources/oraclecloud.mjs`, `src/scan/sources/phenom.mjs`, `src/scan/sources/amazon.mjs`, `src/scan/sources/rippling.mjs`, `src/scan/sources/eightfold.mjs`, `src/scan/sources/jibe.mjs`.
+`src/scan/sources/bamboohr.mjs`, `src/scan/sources/breezy.mjs`, `src/scan/sources/pinpoint.mjs`, `src/scan/sources/teamtailor.mjs`, `src/scan/sources/oraclecloud.mjs`, `src/scan/sources/phenom.mjs`, `src/scan/sources/amazon.mjs`, `src/scan/sources/rippling.mjs`, `src/scan/sources/eightfold.mjs`, `src/scan/sources/jibe.mjs`, `src/scan/sources/successfactors.mjs`, `src/scan/sources/taleo.mjs`, `src/scan/sources/jobvite.mjs`, `src/scan/sources/google.mjs`, `src/scan/sources/apple.mjs`.
 
 ```
 MIT License

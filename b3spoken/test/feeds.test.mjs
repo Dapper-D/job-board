@@ -135,3 +135,31 @@ test('phenom: careers site on another host of the same employer', async () => {
   assert.deepEqual(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://careers.opentext.com/us/en/search-results">Jobs</a>', 'https://www.opentext.com/careers'), { host: 'careers.opentext.com', prefix: 'us/en' });
   assert.equal(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://evil.example/us/en/job/1">', 'https://www.opentext.com/careers'), null);
 });
+
+test('successfactors, taleo, jobvite: targets and parsing', async () => {
+  const { parseTiles, sfFromPage } = await import('../src/scan/sources/successfactors.mjs');
+  const tiles = parseTiles('<li class="job-tile job-id-55 x" data-url="/job/Montreal-Analyst/55/"><a class="jobTitle-link" href="#">Analyst &amp; Planner</a><div id="j-section-city-value">Montréal, QC</div></li>', 'https://jobs.metro.ca');
+  assert.deepEqual(tiles, [{ id: '55', title: 'Analyst & Planner', url: 'https://jobs.metro.ca/job/Montreal-Analyst/55/', location: 'Montréal, QC' }]);
+  assert.deepEqual(sfFromPage('<script src="https://rmkcdn.successfactors.com/x.js">', 'https://jobs.metro.ca/'), { host: 'jobs.metro.ca', path: '' });
+  assert.deepEqual(detect('https://agnicoeagle.taleo.net/careersection/ext/jobsearch.ftl?lang=en'), { source: 'taleo', target: { host: 'agnicoeagle.taleo.net', section: 'ext', lang: 'en' } });
+  assert.equal(detect('https://chj.tbe.taleo.net/chj04/ats/careers'), null);
+  const t = SOURCES.taleo.parse({ requisitionList: [{ contestNo: '2600123', column: ['Mine Engineer', '["Canada-Nunavut-Baker Lake"]', 'Nov 2, 2026'] }] }, { host: 'agnicoeagle.taleo.net', section: 'ext', lang: 'en' }, ['Job Title', 'Location', 'Posting Date']);
+  assert.equal(t[0].url, 'https://agnicoeagle.taleo.net/careersection/ext/jobdetail.ftl?job=2600123&lang=en');
+  assert.equal(t[0].canada, true);
+  assert.deepEqual(detect('https://jobs.jobvite.com/absolute/jobs'), { source: 'jobvite', target: { slug: 'absolute' } });
+  const v = SOURCES.jobvite.parse('<result><job><id>o1</id><title>Support Analyst</title><location>Vancouver, BC</location><date>11/3/2026</date><detail-url><![CDATA[https://jobs.jobvite.com/absolute/job/o1]]></detail-url></job></result>', { slug: 'absolute' });
+  assert.equal(v[0].postedAt, '2026-11-03T00:00:00.000Z');
+  assert.equal(v[0].canada, true);
+});
+
+test('google and apple pages', async () => {
+  const { parseGoogle } = await import('../src/scan/sources/google.mjs');
+  const { parseApple } = await import('../src/scan/sources/apple.mjs');
+  const g = parseGoogle('<h3 class="x">Software Engineer, Maps</h3><p class="l103df">Google | Toronto, ON, Canada; Montreal, QC, Canada; +2 more</p><a href="jobs/results/1234-software-engineer-maps" aria-label="Learn more about Software Engineer, Maps">');
+  assert.deepEqual(g, [{ id: '1234', slug: 'software-engineer-maps', title: 'Software Engineer, Maps', employer: 'Google', places: ['Toronto, ON, Canada', 'Montreal, QC, Canada'] }]);
+  const blob = JSON.stringify(JSON.stringify({ loaderData: { search: { totalRecords: 1, searchResults: [{ id: '200-1', postingTitle: 'Specialist', transformedPostingTitle: 'specialist', postDateInGMT: '2026-11-01T00:00:00Z', locations: [{ name: 'Toronto' }] }] } } }));
+  const search = parseApple(`<script>window.__staticRouterHydrationData = JSON.parse(${blob});</script>`);
+  const jobs = SOURCES.apple.toJobs(search);
+  assert.equal(jobs[0].url, 'https://jobs.apple.com/en-ca/details/200-1/specialist');
+  assert.equal(jobs[0].canada, true);
+});

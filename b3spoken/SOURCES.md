@@ -23,6 +23,12 @@ These are the public job feeds employers publish through their hiring software, 
 | Eightfold | `<host>/api/apply/v2/jobs` or `/api/pcsx/search` | Their robots.txt allows both. Adapted from career-ops (MIT) |
 | iCIMS (Jibe) | `<careers host>/api/jobs` | The public job search behind Jibe careers sites. Adapted from career-ops (MIT) |
 | Rippling | `ats.rippling.com/api/v2/board/<slug>/jobs` | Public job board. Adapted from career-ops (MIT) |
+| SAP SuccessFactors | `<careers host>/tile-search-results/` or `POST /services/recruiting/v1/jobs` | The public job lists behind SuccessFactors careers sites; found from the page. Adapted from career-ops (MIT) |
+| Taleo (Enterprise) | `<tenant>.taleo.net/careersection/rest/jobboard/searchjobs` | The same public search the career section page uses. Adapted from career-ops (MIT) |
+| Jobvite | `app.jobvite.com/CompanyJobs/Xml.aspx?c=<id>` | Public job feed. Adapted from career-ops (MIT) |
+| Google Careers | `www.google.com/about/careers/applications/jobs/results/?location=Canada` | robots.txt forbids the paged results, so we read only the first page of each search, checking robots.txt every time. Adapted from career-ops (MIT) |
+| Apple Jobs | `jobs.apple.com/en-ca/search?location=canada-CANC` | A company's own site: robots.txt checked before every request. Adapted from career-ops (MIT) |
+| Microsoft | Eightfold (`apply.careers.microsoft.com`) | Microsoft's careers site runs on Eightfold |
 | Amazon Jobs | `www.amazon.jobs/en/search.json` (Canada) | A company's own site, so robots.txt is checked before every run. Adapted from career-ops (MIT) |
 
 ## Government
@@ -49,6 +55,10 @@ Jobs from these sites name the site and link back to it, as their terms require;
 | LinkedIn, Indeed, Glassdoor | Their terms forbid automated collection. A pasted link from them is matched to the employer's own posting instead |
 | We Work Remotely | Its [API terms](https://weworkremotely.com/api-terms-and-guidelines) forbid copying, saving or storing their data, and building anything that competes with them |
 | Working Nomads | No official terms or API documentation found |
+| Dayforce | Its job sites sit behind a bot check (Cloudflare challenge). We don't get around bot checks |
+| Meta | Its careers site has no public job feed, only a private API for its own pages |
+| Taleo Business Edition | A different product from Taleo Enterprise; not added yet |
+| Careers pages showing a bot check | The rendered discovery pass leaves them alone |
 
 ## The job pool
 

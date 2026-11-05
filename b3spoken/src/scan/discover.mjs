@@ -14,6 +14,7 @@ import { detect, SOURCES } from './sources/index.mjs';
 import { phenomFromPage } from './sources/phenom.mjs';
 import { eightfoldFromPage } from './sources/eightfold.mjs';
 import { jibeFromPage } from './sources/jibe.mjs';
+import { sfFromPage } from './sources/successfactors.mjs';
 
 const PATHS = ['/careers', '/en/careers', '/careers/', '/jobs', '/en/jobs', '/about/careers', '/company/careers', '/join-us', '/work-with-us', '/'];
 const SUBDOMAINS = ['careers', 'jobs'];
@@ -64,6 +65,8 @@ async function fromCareersPages(seed, log, seen = new Set()) {
       if (ef) return { source: 'eightfold', target: ef, how: `Eightfold site at ${url}` };
       const jb = jibeFromPage(r.text, url);
       if (jb) return { source: 'jibe', target: jb, how: `iCIMS (Jibe) site at ${url}` };
+      const sf = sfFromPage(r.text, url);
+      if (sf) return { source: 'successfactors', target: sf, how: `SuccessFactors site at ${url}` };
       for (const h of jobHosts(r.text, url, domain)) seen.add(h);
     } catch (e) {
       if (e.code === 'EHOST' && e.url) { const hit = detect(e.url); if (hit && !SOURCES[hit.source].feed) return { ...hit, how: `redirect from ${url}` }; seen.add('redirect:' + new URL(e.url).hostname + new URL(e.url).pathname.slice(0, 40)); }
