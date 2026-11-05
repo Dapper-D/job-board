@@ -1273,6 +1273,574 @@
    "name": "Himalayas (remote jobs)",
    "source": "himalayas",
    "target": {}
+  },
+  {
+   "name": "iMerit Technology",
+   "source": "workable",
+   "target": {
+    "account": "imerit"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Askable",
+   "source": "workable",
+   "target": {
+    "account": "askable"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Calabrio",
+   "source": "workable",
+   "target": {
+    "account": "calabrio"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "StaffRight",
+   "source": "workable",
+   "target": {
+    "account": "staffright"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Burkland Associates",
+   "source": "ashby",
+   "target": {
+    "board": "burklandassociates"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Docusketch",
+   "source": "workable",
+   "target": {
+    "account": "docusketch"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Capmo",
+   "source": "workable",
+   "target": {
+    "account": "capmo"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Polaroid",
+   "source": "ashby",
+   "target": {
+    "board": "polaroid"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Wagmo",
+   "source": "ashby",
+   "target": {
+    "board": "wagmo"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Onebrief",
+   "source": "ashby",
+   "target": {
+    "board": "onebrief"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Plaid",
+   "source": "ashby",
+   "target": {
+    "board": "plaid"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "DuckDuckGo",
+   "source": "workable",
+   "target": {
+    "account": "duckduckgo"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Rain",
+   "source": "ashby",
+   "target": {
+    "board": "rain"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Kodland",
+   "source": "workable",
+   "target": {
+    "account": "kodland"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Wrapbook",
+   "source": "ashby",
+   "target": {
+    "board": "wrapbook"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Ultimate Marketing",
+   "source": "workable",
+   "target": {
+    "account": "ultimate-marketing"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "QuickMail",
+   "source": "workable",
+   "target": {
+    "account": "quickmail"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Miaplaza",
+   "source": "workable",
+   "target": {
+    "account": "miaplaza"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Spiralyze",
+   "source": "workable",
+   "target": {
+    "account": "spiralyze"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Ashby",
+   "source": "ashby",
+   "target": {
+    "board": "ashby"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Mirantis",
+   "source": "workable",
+   "target": {
+    "account": "mirantis"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "MultiplyMii",
+   "source": "ashby",
+   "target": {
+    "board": "multiplymii"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Welo Global",
+   "source": "lever",
+   "target": {
+    "site": "weloglobal"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "RevenueCat",
+   "source": "ashby",
+   "target": {
+    "board": "revenuecat"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Supabase",
+   "source": "ashby",
+   "target": {
+    "board": "supabase"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Emplifi",
+   "source": "greenhouse",
+   "target": {
+    "board": "emplifi"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Udacity",
+   "source": "greenhouse",
+   "target": {
+    "board": "udacity"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "StackAdapt",
+   "source": "greenhouse",
+   "target": {
+    "board": "stackadapt"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Testlio",
+   "source": "greenhouse",
+   "target": {
+    "board": "testlio"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Canonical",
+   "source": "greenhouse",
+   "target": {
+    "board": "canonical"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Precision Medicine Group",
+   "source": "greenhouse",
+   "target": {
+    "board": "precisionmedicinegroup"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Customer.io",
+   "source": "greenhouse",
+   "target": {
+    "board": "customerio"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Caylent",
+   "source": "greenhouse",
+   "target": {
+    "board": "caylent"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Tremendous",
+   "source": "ashby",
+   "target": {
+    "board": "tremendous"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Superside",
+   "source": "lever",
+   "target": {
+    "site": "superside"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Dandy",
+   "source": "ashby",
+   "target": {
+    "board": "dandy"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Toptal",
+   "source": "lever",
+   "target": {
+    "site": "toptal"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Liftoff",
+   "source": "greenhouse",
+   "target": {
+    "board": "liftoff"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Roofr",
+   "source": "greenhouse",
+   "target": {
+    "board": "roofr"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Chainguard",
+   "source": "greenhouse",
+   "target": {
+    "board": "chainguard"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "OpenAI",
+   "source": "ashby",
+   "target": {
+    "board": "openai"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Paddle",
+   "source": "ashby",
+   "target": {
+    "board": "paddle"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "LastPass",
+   "source": "greenhouse",
+   "target": {
+    "board": "lastpass"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Workleap",
+   "source": "greenhouse",
+   "target": {
+    "board": "workleap"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Valtech",
+   "source": "greenhouse",
+   "target": {
+    "board": "valtech"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "ICON",
+   "source": "ashby",
+   "target": {
+    "board": "icon"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Featherless AI",
+   "source": "ashby",
+   "target": {
+    "board": "featherlessai"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Kong",
+   "source": "ashby",
+   "target": {
+    "board": "kong"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Clera",
+   "source": "ashby",
+   "target": {
+    "board": "clera"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Basis",
+   "source": "lever",
+   "target": {
+    "site": "basis"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Hashgraph",
+   "source": "greenhouse",
+   "target": {
+    "board": "hashgraph"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "G2i Inc.",
+   "source": "ashby",
+   "target": {
+    "board": "g2i"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "mercor",
+   "source": "ashby",
+   "target": {
+    "board": "mercor"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Alpaca",
+   "source": "greenhouse",
+   "target": {
+    "board": "alpaca"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "GiveWell",
+   "source": "greenhouse",
+   "target": {
+    "board": "givewell"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Pairs",
+   "source": "ashby",
+   "target": {
+    "board": "pairs"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "vCluster Labs",
+   "source": "ashby",
+   "target": {
+    "board": "vclusterlabs"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Envoy",
+   "source": "ashby",
+   "target": {
+    "board": "envoy"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "iSpeedtoLead",
+   "source": "ashby",
+   "target": {
+    "board": "ispeedtolead"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "CrowdRiff",
+   "source": "lever",
+   "target": {
+    "site": "crowdriff"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Samsara",
+   "source": "greenhouse",
+   "target": {
+    "board": "samsara"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Granum",
+   "source": "greenhouse",
+   "target": {
+    "board": "granum"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Make",
+   "source": "greenhouse",
+   "target": {
+    "board": "make"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "RapidSOS",
+   "source": "greenhouse",
+   "target": {
+    "board": "rapidsos"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "OPSWAT",
+   "source": "greenhouse",
+   "target": {
+    "board": "opswat"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Aduna Global",
+   "source": "lever",
+   "target": {
+    "site": "adunaglobal"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "J.D. Power",
+   "source": "greenhouse",
+   "target": {
+    "board": "jdpower"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "InfluxData",
+   "source": "ashby",
+   "target": {
+    "board": "influxdata"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "AltScore",
+   "source": "greenhouse",
+   "target": {
+    "board": "altscore"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Sellfire",
+   "source": "ashby",
+   "target": {
+    "board": "sellfire"
+   },
+   "found": "job-site job confirmed on this board"
+  },
+  {
+   "name": "Bloomerang",
+   "source": "greenhouse",
+   "target": {
+    "board": "bloomerang"
+   },
+   "found": "job-site job confirmed on this board"
   }
  ]
 }
