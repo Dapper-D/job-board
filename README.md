@@ -174,12 +174,13 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Piece | Status |
 | --- | --- |
 | Safe HTTP client (HTTPS only, per-source host list, private addresses blocked, polite delays, retries) | Done, tested |
-| Scanners for 10 hiring systems: Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, BambooHR, Breezy, Pinpoint, Teamtailor | Done, tested; live check in GitHub Actions |
-| Job sites: Remotive, Remote OK, Jobicy (terms in [`b3spoken/SOURCES.md`](b3spoken/SOURCES.md)) | Done, tested |
+| Scanners for 16 hiring systems: Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, BambooHR, Breezy, Pinpoint, Teamtailor, Oracle Recruiting Cloud, Phenom, Eightfold, iCIMS (Jibe), Rippling, Amazon Jobs | Done, tested; live check in GitHub Actions |
+| Job sites: Remotive, Remote OK, Jobicy, Himalayas (terms in [`b3spoken/SOURCES.md`](b3spoken/SOURCES.md)) | Done; their jobs are kept only when found on the employer's own board |
 | Job Bank Canada (runs on each person's computer, last 3 days) | Done; to be tested on a home connection |
-| Canada filter and duplicate removal | Done, tested |
-| Employer discovery (careers-page links, robots.txt respected, confirmed name guesses) | Done: 130 employers found from 440; about 4,300 jobs in Canada in one scan |
-| Daily shared scan that publishes the job pool | Next |
+| Canada filter; duplicates merged so each job is shown and counted once | Done, tested |
+| Employer discovery (careers-page links and page markers, robots.txt respected, confirmed name guesses) | Done: about 240 employers and job sites in the scan |
+| Daily shared scan publishing the job pool ([job-pool release](https://github.com/Dapper-D/job-board/releases/tag/job-pool)) | Done; runs on pushes and by hand until it's on `main`, where it runs daily |
+| SAP SuccessFactors, Taleo, Dayforce, Jobvite, older iCIMS sites | Not yet: their job lists need a browser session or page parsing |
 | Helper, localhost board, onboarding, AI, tailoring | After that |
 
 Run it yourself (Node 22 or newer):
