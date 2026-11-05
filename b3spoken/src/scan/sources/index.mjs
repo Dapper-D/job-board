@@ -6,8 +6,16 @@ import workday from './workday.mjs';
 import smartrecruiters from './smartrecruiters.mjs';
 import workable from './workable.mjs';
 import jobbank from './jobbank.mjs';
+import bamboohr from './bamboohr.mjs';
+import breezy from './breezy.mjs';
+import pinpoint from './pinpoint.mjs';
+import teamtailor from './teamtailor.mjs';
+import remotive from './remotive.mjs';
+import remoteok from './remoteok.mjs';
+import jobicy from './jobicy.mjs';
 
-export const SOURCES = { greenhouse, lever, ashby, workday, smartrecruiters, workable, jobbank };
+// Employer hiring systems first (they are the employer's own postings), then job sites (feed: true), then Job Bank (runs on each computer).
+export const SOURCES = { greenhouse, lever, ashby, workday, smartrecruiters, workable, bamboohr, breezy, pinpoint, teamtailor, remotive, remoteok, jobicy, jobbank };
 
 // Which hiring system does this careers link belong to? -> { source, target } or null
 export function detect(url) {

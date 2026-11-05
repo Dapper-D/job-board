@@ -30,7 +30,7 @@ const iso = v => {
 };
 
 /** Build a normalized job. Returns null when the essentials (title, a real https link) are missing. */
-export function makeJob({ source, company, nativeId, title, url, applyUrl, location, remote, postedAt, description, salary, department, employment }) {
+export function makeJob({ source, company, nativeId, title, url, applyUrl, location, remote, postedAt, description, salary, department, employment, via, canada }) {
   title = decodeEntities(String(title ?? '')).replace(/\s+/g, ' ').trim();
   if (!title) return null;
   let link;
@@ -47,12 +47,15 @@ export function makeJob({ source, company, nativeId, title, url, applyUrl, locat
     applyUrl: applyUrl || link.href,
     location: loc,
     remote: isRemote,
-    canada: isCanada(loc, isRemote),
+    canada: canada ?? isCanada(loc, isRemote),
     postedAt: iso(postedAt),
     department: department ? String(department).trim() : '',
     employment: employment ? String(employment).trim() : '',
     salary: salary ? String(salary).replace(/\s+/g, ' ').trim() : '',
     description: clip(description || '', 20000),
+    // Jobs from job sites (not the employer's own hiring system) name the site and must link back to it,
+    // and still need matching to the employer's own posting before they reach anyone's board.
+    ...(via ? { via, employerVerified: false } : { employerVerified: true }),
   };
 }
 

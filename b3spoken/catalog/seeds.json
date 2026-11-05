@@ -1,0 +1,2205 @@
+{
+ "note": "Canadian employers (and global employers with Canadian offices) to look up. Discovery finds each one's hiring system; see src/scan/discover.mjs. Add more any time: name, domain, sector.",
+ "seeds": [
+  {
+   "name": "Shopify",
+   "domain": "shopify.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Hootsuite",
+   "domain": "hootsuite.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Later",
+   "domain": "later.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Cohere",
+   "domain": "cohere.com",
+   "sector": "tech"
+  },
+  {
+   "name": "1Password",
+   "domain": "1password.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Wealthsimple",
+   "domain": "wealthsimple.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Clio",
+   "domain": "clio.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Benevity",
+   "domain": "benevity.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Jobber",
+   "domain": "getjobber.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Wattpad",
+   "domain": "wattpad.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Coveo",
+   "domain": "coveo.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Lightspeed Commerce",
+   "domain": "lightspeedhq.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Nuvei",
+   "domain": "nuvei.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Dye & Durham",
+   "domain": "dyedurham.com",
+   "sector": "tech"
+  },
+  {
+   "name": "OpenText",
+   "domain": "opentext.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Kinaxis",
+   "domain": "kinaxis.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Descartes Systems Group",
+   "domain": "descartes.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Constellation Software",
+   "domain": "csisoftware.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Docebo",
+   "domain": "docebo.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Thinkific",
+   "domain": "thinkific.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Dapper Labs",
+   "domain": "dapperlabs.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Klue",
+   "domain": "klue.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Unbounce",
+   "domain": "unbounce.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Visier",
+   "domain": "visier.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Bench Accounting",
+   "domain": "bench.co",
+   "sector": "tech"
+  },
+  {
+   "name": "Trulioo",
+   "domain": "trulioo.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Absolute Software",
+   "domain": "absolute.com",
+   "sector": "tech"
+  },
+  {
+   "name": "D-Wave",
+   "domain": "dwavequantum.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Sanctuary AI",
+   "domain": "sanctuary.ai",
+   "sector": "tech"
+  },
+  {
+   "name": "Faire",
+   "domain": "faire.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ada",
+   "domain": "ada.cx",
+   "sector": "tech"
+  },
+  {
+   "name": "Wave Financial",
+   "domain": "waveapps.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Koho",
+   "domain": "koho.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Neo Financial",
+   "domain": "neofinancial.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Questrade",
+   "domain": "questrade.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Borrowell",
+   "domain": "borrowell.com",
+   "sector": "tech"
+  },
+  {
+   "name": "PolicyMe",
+   "domain": "policyme.com",
+   "sector": "tech"
+  },
+  {
+   "name": "League",
+   "domain": "league.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Maple",
+   "domain": "getmaple.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Dialogue",
+   "domain": "dialogue.co",
+   "sector": "tech"
+  },
+  {
+   "name": "Hopper",
+   "domain": "hopper.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Element AI",
+   "domain": "elementai.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Mila",
+   "domain": "mila.quebec",
+   "sector": "tech"
+  },
+  {
+   "name": "Vector Institute",
+   "domain": "vectorinstitute.ai",
+   "sector": "tech"
+  },
+  {
+   "name": "Amii",
+   "domain": "amii.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "ApplyBoard",
+   "domain": "applyboard.com",
+   "sector": "tech"
+  },
+  {
+   "name": "FreshBooks",
+   "domain": "freshbooks.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Top Hat",
+   "domain": "tophat.com",
+   "sector": "tech"
+  },
+  {
+   "name": "D2L",
+   "domain": "d2l.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Vidyard",
+   "domain": "vidyard.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Miovision",
+   "domain": "miovision.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Arctic Wolf",
+   "domain": "arcticwolf.com",
+   "sector": "tech"
+  },
+  {
+   "name": "eSentire",
+   "domain": "esentire.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Magnet Forensics",
+   "domain": "magnetforensics.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Sonrai Security",
+   "domain": "sonraisecurity.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Field Effect",
+   "domain": "fieldeffect.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Bitdefender Canada",
+   "domain": "bitdefender.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Fortinet",
+   "domain": "fortinet.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Electronic Arts",
+   "domain": "ea.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ubisoft",
+   "domain": "ubisoft.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Relic Entertainment",
+   "domain": "relic.com",
+   "sector": "tech"
+  },
+  {
+   "name": "The Coalition",
+   "domain": "thecoalitionstudio.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Kabam",
+   "domain": "kabam.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Hothead Games",
+   "domain": "hotheadgames.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Phoenix Labs",
+   "domain": "phxlabs.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Behaviour Interactive",
+   "domain": "bhvr.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Eidos-Montreal",
+   "domain": "eidosmontreal.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Amazon",
+   "domain": "amazon.jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Microsoft",
+   "domain": "microsoft.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Google",
+   "domain": "google.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Meta",
+   "domain": "metacareers.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Apple",
+   "domain": "apple.com",
+   "sector": "tech"
+  },
+  {
+   "name": "SAP",
+   "domain": "sap.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Salesforce",
+   "domain": "salesforce.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Slack",
+   "domain": "slack.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Stripe",
+   "domain": "stripe.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Affirm",
+   "domain": "affirm.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Remitly",
+   "domain": "remitly.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Rivian",
+   "domain": "rivian.com",
+   "sector": "tech"
+  },
+  {
+   "name": "GitLab",
+   "domain": "gitlab.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Asana",
+   "domain": "asana.com",
+   "sector": "tech"
+  },
+  {
+   "name": "DraftKings",
+   "domain": "draftkings.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Okta",
+   "domain": "okta.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Twilio",
+   "domain": "twilio.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Datadog",
+   "domain": "datadoghq.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Cloudflare",
+   "domain": "cloudflare.com",
+   "sector": "tech"
+  },
+  {
+   "name": "MongoDB",
+   "domain": "mongodb.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Databricks",
+   "domain": "databricks.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Snowflake",
+   "domain": "snowflake.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Zendesk",
+   "domain": "zendesk.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Atlassian",
+   "domain": "atlassian.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Autodesk",
+   "domain": "autodesk.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Adobe",
+   "domain": "adobe.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Intuit",
+   "domain": "intuit.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Workday",
+   "domain": "workday.com",
+   "sector": "tech"
+  },
+  {
+   "name": "ServiceNow",
+   "domain": "servicenow.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Nvidia",
+   "domain": "nvidia.com",
+   "sector": "tech"
+  },
+  {
+   "name": "AMD",
+   "domain": "amd.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Intel",
+   "domain": "intel.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Qualcomm",
+   "domain": "qualcomm.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ciena",
+   "domain": "ciena.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Nokia",
+   "domain": "nokia.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ericsson",
+   "domain": "ericsson.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Cisco",
+   "domain": "cisco.com",
+   "sector": "tech"
+  },
+  {
+   "name": "IBM",
+   "domain": "ibm.com",
+   "sector": "tech"
+  },
+  {
+   "name": "CGI",
+   "domain": "cgi.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Accenture",
+   "domain": "accenture.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Deloitte",
+   "domain": "deloitte.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "KPMG",
+   "domain": "kpmg.com",
+   "sector": "tech"
+  },
+  {
+   "name": "PwC",
+   "domain": "pwc.com",
+   "sector": "tech"
+  },
+  {
+   "name": "EY",
+   "domain": "ey.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Telus",
+   "domain": "telus.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Telus Digital",
+   "domain": "telusdigital.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Bell",
+   "domain": "bell.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Rogers",
+   "domain": "rogers.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Shaw",
+   "domain": "shaw.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Videotron",
+   "domain": "videotron.com",
+   "sector": "tech"
+  },
+  {
+   "name": "SaskTel",
+   "domain": "sasktel.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Cogeco",
+   "domain": "cogeco.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Blackberry",
+   "domain": "blackberry.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Mitel",
+   "domain": "mitel.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Sierra Wireless",
+   "domain": "sierrawireless.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Celestica",
+   "domain": "celestica.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ritual",
+   "domain": "ritual.co",
+   "sector": "tech"
+  },
+  {
+   "name": "SkipTheDishes",
+   "domain": "skipthedishes.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Hudl",
+   "domain": "hudl.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Procurify",
+   "domain": "procurify.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Galvanize",
+   "domain": "wegalvanize.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Teck Digital",
+   "domain": "teck.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Two Hat",
+   "domain": "twohat.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Mogo",
+   "domain": "mogo.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Paymentus",
+   "domain": "paymentus.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Zafin",
+   "domain": "zafin.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Points",
+   "domain": "points.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Vendasta",
+   "domain": "vendasta.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Coconut Software",
+   "domain": "coconutsoftware.com",
+   "sector": "tech"
+  },
+  {
+   "name": "7shifts",
+   "domain": "7shifts.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Fresh Prep",
+   "domain": "freshprep.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Copperleaf",
+   "domain": "copperleaf.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Fispan",
+   "domain": "fispan.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Certn",
+   "domain": "certn.co",
+   "sector": "tech"
+  },
+  {
+   "name": "Plusgrade",
+   "domain": "plusgrade.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Alida",
+   "domain": "alida.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Q4 Inc",
+   "domain": "q4inc.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Rubikloud",
+   "domain": "rubikloud.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Tulip Retail",
+   "domain": "tulip.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Uken Games",
+   "domain": "uken.com",
+   "sector": "tech"
+  },
+  {
+   "name": "PointClickCare",
+   "domain": "pointclickcare.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Achievers",
+   "domain": "achievers.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Ceridian Dayforce",
+   "domain": "dayforce.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Kira Systems",
+   "domain": "kirasystems.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Loopio",
+   "domain": "loopio.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Hockeystack",
+   "domain": "hockeystack.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Rewind",
+   "domain": "rewind.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Float",
+   "domain": "floatfinancial.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Clearco",
+   "domain": "clear.co",
+   "sector": "tech"
+  },
+  {
+   "name": "Properly",
+   "domain": "properly.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Nesto",
+   "domain": "nesto.ca",
+   "sector": "tech"
+  },
+  {
+   "name": "Tailscale",
+   "domain": "tailscale.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Instacart",
+   "domain": "instacart.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Uber",
+   "domain": "uber.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Lyft",
+   "domain": "lyft.com",
+   "sector": "tech"
+  },
+  {
+   "name": "DoorDash",
+   "domain": "doordash.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Pinterest",
+   "domain": "pinterest.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Reddit",
+   "domain": "reddit.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Spotify",
+   "domain": "spotify.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Airbnb",
+   "domain": "airbnb.com",
+   "sector": "tech"
+  },
+  {
+   "name": "Dropbox",
+   "domain": "dropbox.com",
+   "sector": "tech"
+  },
+  {
+   "name": "RBC",
+   "domain": "rbc.com",
+   "sector": "finance"
+  },
+  {
+   "name": "TD Bank",
+   "domain": "td.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Scotiabank",
+   "domain": "scotiabank.com",
+   "sector": "finance"
+  },
+  {
+   "name": "BMO",
+   "domain": "bmo.com",
+   "sector": "finance"
+  },
+  {
+   "name": "CIBC",
+   "domain": "cibc.com",
+   "sector": "finance"
+  },
+  {
+   "name": "National Bank of Canada",
+   "domain": "nbc.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Desjardins",
+   "domain": "desjardins.com",
+   "sector": "finance"
+  },
+  {
+   "name": "ATB Financial",
+   "domain": "atb.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Vancity",
+   "domain": "vancity.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Coast Capital Savings",
+   "domain": "coastcapitalsavings.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Servus Credit Union",
+   "domain": "servus.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Meridian Credit Union",
+   "domain": "meridiancu.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "EQ Bank",
+   "domain": "eqbank.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Tangerine",
+   "domain": "tangerine.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Manulife",
+   "domain": "manulife.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Sun Life",
+   "domain": "sunlife.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Great-West Lifeco",
+   "domain": "greatwestlifeco.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Canada Life",
+   "domain": "canadalife.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Intact Financial",
+   "domain": "intactfc.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Aviva Canada",
+   "domain": "aviva.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Definity",
+   "domain": "definityfinancial.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Co-operators",
+   "domain": "cooperators.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "ICBC",
+   "domain": "icbc.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Brookfield",
+   "domain": "brookfield.com",
+   "sector": "finance"
+  },
+  {
+   "name": "CPP Investments",
+   "domain": "cppinvestments.com",
+   "sector": "finance"
+  },
+  {
+   "name": "OMERS",
+   "domain": "omers.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Ontario Teachers' Pension Plan",
+   "domain": "otpp.com",
+   "sector": "finance"
+  },
+  {
+   "name": "BCI",
+   "domain": "bci.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "PSP Investments",
+   "domain": "investpsp.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Caisse de dépôt et placement",
+   "domain": "cdpq.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Fairfax Financial",
+   "domain": "fairfax.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Moneris",
+   "domain": "moneris.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Interac",
+   "domain": "interac.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Payments Canada",
+   "domain": "payments.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "TMX Group",
+   "domain": "tmx.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Mastercard",
+   "domain": "mastercard.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Visa",
+   "domain": "visa.com",
+   "sector": "finance"
+  },
+  {
+   "name": "American Express",
+   "domain": "americanexpress.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Fidelity Canada",
+   "domain": "fidelity.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Mackenzie Investments",
+   "domain": "mackenzieinvestments.com",
+   "sector": "finance"
+  },
+  {
+   "name": "CI Financial",
+   "domain": "cifinancial.com",
+   "sector": "finance"
+  },
+  {
+   "name": "IGM Financial",
+   "domain": "igmfinancial.com",
+   "sector": "finance"
+  },
+  {
+   "name": "Equifax Canada",
+   "domain": "equifax.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "TransUnion",
+   "domain": "transunion.ca",
+   "sector": "finance"
+  },
+  {
+   "name": "Canadian Tire",
+   "domain": "corp.canadiantire.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Loblaw",
+   "domain": "loblaw.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Sobeys",
+   "domain": "sobeys.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Metro",
+   "domain": "metro.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Save-On-Foods",
+   "domain": "saveonfoods.com",
+   "sector": "retail"
+  },
+  {
+   "name": "London Drugs",
+   "domain": "londondrugs.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Shoppers Drug Mart",
+   "domain": "shoppersdrugmart.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Hudson's Bay",
+   "domain": "thebay.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Lululemon",
+   "domain": "lululemon.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Aritzia",
+   "domain": "aritzia.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Arc'teryx",
+   "domain": "arcteryx.com",
+   "sector": "retail"
+  },
+  {
+   "name": "MEC",
+   "domain": "mec.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Roots",
+   "domain": "roots.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Indigo",
+   "domain": "indigo.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Best Buy Canada",
+   "domain": "bestbuy.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Costco",
+   "domain": "costco.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Walmart Canada",
+   "domain": "walmart.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "IKEA",
+   "domain": "ikea.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Dollarama",
+   "domain": "dollarama.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Couche-Tard",
+   "domain": "couche-tard.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Tim Hortons",
+   "domain": "timhortons.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Restaurant Brands International",
+   "domain": "rbi.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Starbucks",
+   "domain": "starbucks.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Recipe Unlimited",
+   "domain": "recipeunlimited.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Earls",
+   "domain": "earls.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Cactus Club",
+   "domain": "cactusclubcafe.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Sephora",
+   "domain": "sephora.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Nike",
+   "domain": "nike.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Adidas",
+   "domain": "adidas.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Herschel Supply",
+   "domain": "herschel.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Kit and Ace",
+   "domain": "kitandace.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Canada Goose",
+   "domain": "canadagoose.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Simons",
+   "domain": "simons.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Staples Canada",
+   "domain": "staples.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Home Depot Canada",
+   "domain": "homedepot.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Rona",
+   "domain": "rona.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Princess Auto",
+   "domain": "princessauto.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Pet Valu",
+   "domain": "petvalu.ca",
+   "sector": "retail"
+  },
+  {
+   "name": "Spin Master",
+   "domain": "spinmaster.com",
+   "sector": "retail"
+  },
+  {
+   "name": "Bombardier",
+   "domain": "bombardier.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "CAE",
+   "domain": "cae.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Magna International",
+   "domain": "magna.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Linamar",
+   "domain": "linamar.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Stantec",
+   "domain": "stantec.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "WSP",
+   "domain": "wsp.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "AtkinsRéalis",
+   "domain": "atkinsrealis.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Hatch",
+   "domain": "hatch.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Aecon",
+   "domain": "aecon.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "EllisDon",
+   "domain": "ellisdon.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "PCL Construction",
+   "domain": "pcl.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Ledcor",
+   "domain": "ledcor.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Graham Construction",
+   "domain": "graham.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "Finning",
+   "domain": "finning.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Toromont",
+   "domain": "toromont.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "MDA Space",
+   "domain": "mda.space",
+   "sector": "industrial"
+  },
+  {
+   "name": "Ballard Power",
+   "domain": "ballard.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Westport Fuel Systems",
+   "domain": "wfsinc.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "New Flyer",
+   "domain": "newflyer.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "GFL Environmental",
+   "domain": "gflenv.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Waste Connections",
+   "domain": "wasteconnections.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "CN Rail",
+   "domain": "cn.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "CPKC",
+   "domain": "cpkcr.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Purolator",
+   "domain": "purolator.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Canada Post",
+   "domain": "canadapost-postescanada.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "Air Canada",
+   "domain": "aircanada.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "WestJet",
+   "domain": "westjet.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Porter Airlines",
+   "domain": "flyporter.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Harbour Air",
+   "domain": "harbourair.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "NAV CANADA",
+   "domain": "navcanada.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "BC Ferries",
+   "domain": "bcferries.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "TransLink",
+   "domain": "translink.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "Metrolinx",
+   "domain": "metrolinx.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Port of Vancouver",
+   "domain": "portvancouver.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Nutrien",
+   "domain": "nutrien.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Barrick",
+   "domain": "barrick.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Agnico Eagle",
+   "domain": "agnicoeagle.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "First Quantum",
+   "domain": "first-quantum.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Cameco",
+   "domain": "cameco.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "West Fraser",
+   "domain": "westfraser.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Canfor",
+   "domain": "canfor.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Suncor",
+   "domain": "suncor.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Cenovus",
+   "domain": "cenovus.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Imperial Oil",
+   "domain": "imperialoil.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "Enbridge",
+   "domain": "enbridge.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "TC Energy",
+   "domain": "tcenergy.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Fortis",
+   "domain": "fortisinc.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "FortisBC",
+   "domain": "fortisbc.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "BC Hydro",
+   "domain": "bchydro.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Hydro-Québec",
+   "domain": "hydroquebec.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Hydro One",
+   "domain": "hydroone.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Ontario Power Generation",
+   "domain": "opg.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "ATCO",
+   "domain": "atco.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Capital Power",
+   "domain": "capitalpower.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "TransAlta",
+   "domain": "transalta.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Emera",
+   "domain": "emera.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Saputo",
+   "domain": "saputo.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "McCain Foods",
+   "domain": "mccain.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Maple Leaf Foods",
+   "domain": "mapleleaffoods.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Molson Coors",
+   "domain": "molsoncoors.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Lassonde",
+   "domain": "lassonde.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Cascades",
+   "domain": "cascades.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "CCL Industries",
+   "domain": "cclind.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Thomson Reuters",
+   "domain": "thomsonreuters.com",
+   "sector": "industrial"
+  },
+  {
+   "name": "Rogers Sugar",
+   "domain": "lantic.ca",
+   "sector": "industrial"
+  },
+  {
+   "name": "Fraser Health",
+   "domain": "fraserhealth.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Vancouver Coastal Health",
+   "domain": "vch.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Provincial Health Services Authority",
+   "domain": "phsa.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Interior Health",
+   "domain": "interiorhealth.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Island Health",
+   "domain": "islandhealth.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Northern Health",
+   "domain": "northernhealth.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Providence Health Care",
+   "domain": "providencehealthcare.org",
+   "sector": "health"
+  },
+  {
+   "name": "Alberta Health Services",
+   "domain": "albertahealthservices.ca",
+   "sector": "health"
+  },
+  {
+   "name": "University Health Network",
+   "domain": "uhn.ca",
+   "sector": "health"
+  },
+  {
+   "name": "SickKids",
+   "domain": "sickkids.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Sunnybrook",
+   "domain": "sunnybrook.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Unity Health Toronto",
+   "domain": "unityhealth.to",
+   "sector": "health"
+  },
+  {
+   "name": "Hamilton Health Sciences",
+   "domain": "hamiltonhealthsciences.ca",
+   "sector": "health"
+  },
+  {
+   "name": "The Ottawa Hospital",
+   "domain": "ottawahospital.on.ca",
+   "sector": "health"
+  },
+  {
+   "name": "CHUM",
+   "domain": "chumontreal.qc.ca",
+   "sector": "health"
+  },
+  {
+   "name": "McGill University Health Centre",
+   "domain": "muhc.ca",
+   "sector": "health"
+  },
+  {
+   "name": "LifeLabs",
+   "domain": "lifelabs.com",
+   "sector": "health"
+  },
+  {
+   "name": "Dynacare",
+   "domain": "dynacare.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Apotex",
+   "domain": "apotex.com",
+   "sector": "health"
+  },
+  {
+   "name": "AbCellera",
+   "domain": "abcellera.com",
+   "sector": "health"
+  },
+  {
+   "name": "STEMCELL Technologies",
+   "domain": "stemcell.com",
+   "sector": "health"
+  },
+  {
+   "name": "Zymeworks",
+   "domain": "zymeworks.com",
+   "sector": "health"
+  },
+  {
+   "name": "Xenon Pharmaceuticals",
+   "domain": "xenon-pharma.com",
+   "sector": "health"
+  },
+  {
+   "name": "AbbVie Canada",
+   "domain": "abbvie.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Pfizer Canada",
+   "domain": "pfizer.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Sanofi",
+   "domain": "sanofi.com",
+   "sector": "health"
+  },
+  {
+   "name": "GSK",
+   "domain": "gsk.com",
+   "sector": "health"
+  },
+  {
+   "name": "Medtronic",
+   "domain": "medtronic.com",
+   "sector": "health"
+  },
+  {
+   "name": "Telus Health",
+   "domain": "telushealth.com",
+   "sector": "health"
+  },
+  {
+   "name": "WELL Health",
+   "domain": "well.company",
+   "sector": "health"
+  },
+  {
+   "name": "Canadian Blood Services",
+   "domain": "blood.ca",
+   "sector": "health"
+  },
+  {
+   "name": "Canadian Red Cross",
+   "domain": "redcross.ca",
+   "sector": "health"
+  },
+  {
+   "name": "University of British Columbia",
+   "domain": "ubc.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Simon Fraser University",
+   "domain": "sfu.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Victoria",
+   "domain": "uvic.ca",
+   "sector": "education"
+  },
+  {
+   "name": "BCIT",
+   "domain": "bcit.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Douglas College",
+   "domain": "douglascollege.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Langara College",
+   "domain": "langara.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Kwantlen Polytechnic University",
+   "domain": "kpu.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Capilano University",
+   "domain": "capilanou.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Emily Carr University",
+   "domain": "ecuad.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Toronto",
+   "domain": "utoronto.ca",
+   "sector": "education"
+  },
+  {
+   "name": "York University",
+   "domain": "yorku.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Toronto Metropolitan University",
+   "domain": "torontomu.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Waterloo",
+   "domain": "uwaterloo.ca",
+   "sector": "education"
+  },
+  {
+   "name": "McMaster University",
+   "domain": "mcmaster.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Western University",
+   "domain": "uwo.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Queen's University",
+   "domain": "queensu.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Ottawa",
+   "domain": "uottawa.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Carleton University",
+   "domain": "carleton.ca",
+   "sector": "education"
+  },
+  {
+   "name": "McGill University",
+   "domain": "mcgill.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Concordia University",
+   "domain": "concordia.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Université de Montréal",
+   "domain": "umontreal.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Alberta",
+   "domain": "ualberta.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Calgary",
+   "domain": "ucalgary.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Saskatchewan",
+   "domain": "usask.ca",
+   "sector": "education"
+  },
+  {
+   "name": "University of Manitoba",
+   "domain": "umanitoba.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Dalhousie University",
+   "domain": "dal.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Memorial University",
+   "domain": "mun.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Seneca Polytechnic",
+   "domain": "senecapolytechnic.ca",
+   "sector": "education"
+  },
+  {
+   "name": "Humber Polytechnic",
+   "domain": "humber.ca",
+   "sector": "education"
+  },
+  {
+   "name": "George Brown College",
+   "domain": "georgebrown.ca",
+   "sector": "education"
+  },
+  {
+   "name": "SAIT",
+   "domain": "sait.ca",
+   "sector": "education"
+  },
+  {
+   "name": "NAIT",
+   "domain": "nait.ca",
+   "sector": "education"
+  },
+  {
+   "name": "City of Vancouver",
+   "domain": "vancouver.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Burnaby",
+   "domain": "burnaby.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Surrey",
+   "domain": "surrey.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Richmond",
+   "domain": "richmond.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Toronto",
+   "domain": "toronto.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Ottawa",
+   "domain": "ottawa.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Calgary",
+   "domain": "calgary.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Edmonton",
+   "domain": "edmonton.ca",
+   "sector": "public"
+  },
+  {
+   "name": "City of Montreal",
+   "domain": "montreal.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Metro Vancouver",
+   "domain": "metrovancouver.org",
+   "sector": "public"
+  },
+  {
+   "name": "WorkSafeBC",
+   "domain": "worksafebc.com",
+   "sector": "public"
+  },
+  {
+   "name": "BC Public Service",
+   "domain": "gov.bc.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Ontario Public Service",
+   "domain": "ontario.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Government of Alberta",
+   "domain": "alberta.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Bank of Canada",
+   "domain": "bankofcanada.ca",
+   "sector": "public"
+  },
+  {
+   "name": "CBC/Radio-Canada",
+   "domain": "cbc.radio-canada.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Canada Mortgage and Housing Corporation",
+   "domain": "cmhc-schl.gc.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Export Development Canada",
+   "domain": "edc.ca",
+   "sector": "public"
+  },
+  {
+   "name": "BDC",
+   "domain": "bdc.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Farm Credit Canada",
+   "domain": "fcc-fac.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Elections Canada",
+   "domain": "elections.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Canadian Air Transport Security Authority",
+   "domain": "catsa-acsta.gc.ca",
+   "sector": "public"
+  },
+  {
+   "name": "Loto-Québec",
+   "domain": "lotoquebec.com",
+   "sector": "public"
+  },
+  {
+   "name": "BCLC",
+   "domain": "bclc.com",
+   "sector": "public"
+  },
+  {
+   "name": "OLG",
+   "domain": "olg.ca",
+   "sector": "public"
+  },
+  {
+   "name": "LCBO",
+   "domain": "lcbo.com",
+   "sector": "public"
+  },
+  {
+   "name": "BC Liquor Distribution Branch",
+   "domain": "bcldb.com",
+   "sector": "public"
+  },
+  {
+   "name": "Rogers Sports & Media",
+   "domain": "rogerssportsandmedia.com",
+   "sector": "media"
+  },
+  {
+   "name": "Corus Entertainment",
+   "domain": "corusent.com",
+   "sector": "media"
+  },
+  {
+   "name": "Bell Media",
+   "domain": "bellmedia.ca",
+   "sector": "media"
+  },
+  {
+   "name": "Postmedia",
+   "domain": "postmedia.com",
+   "sector": "media"
+  },
+  {
+   "name": "Globe and Mail",
+   "domain": "theglobeandmail.com",
+   "sector": "media"
+  },
+  {
+   "name": "Cineplex",
+   "domain": "cineplex.com",
+   "sector": "media"
+  },
+  {
+   "name": "Live Nation",
+   "domain": "livenation.com",
+   "sector": "media"
+  },
+  {
+   "name": "Ticketmaster",
+   "domain": "ticketmaster.ca",
+   "sector": "media"
+  },
+  {
+   "name": "Vancouver Canucks",
+   "domain": "canucks.com",
+   "sector": "media"
+  },
+  {
+   "name": "Maple Leaf Sports & Entertainment",
+   "domain": "mlse.com",
+   "sector": "media"
+  },
+  {
+   "name": "Cirque du Soleil",
+   "domain": "cirquedusoleil.com",
+   "sector": "media"
+  },
+  {
+   "name": "Moment Factory",
+   "domain": "momentfactory.com",
+   "sector": "media"
+  },
+  {
+   "name": "Industrial Light & Magic",
+   "domain": "ilm.com",
+   "sector": "media"
+  },
+  {
+   "name": "DNEG",
+   "domain": "dneg.com",
+   "sector": "media"
+  },
+  {
+   "name": "Sony Pictures Imageworks",
+   "domain": "imageworks.com",
+   "sector": "media"
+  },
+  {
+   "name": "Framestore",
+   "domain": "framestore.com",
+   "sector": "media"
+  },
+  {
+   "name": "Wētā FX",
+   "domain": "wetafx.co.nz",
+   "sector": "media"
+  },
+  {
+   "name": "Bardel Entertainment",
+   "domain": "bardel.com",
+   "sector": "media"
+  },
+  {
+   "name": "Fairmont Hotels",
+   "domain": "fairmont.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Marriott",
+   "domain": "marriott.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Hilton",
+   "domain": "hilton.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Great Canadian Entertainment",
+   "domain": "gcgaming.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Whistler Blackcomb",
+   "domain": "whistlerblackcomb.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Air Transat",
+   "domain": "airtransat.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Sunwing",
+   "domain": "sunwing.ca",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Compass Group Canada",
+   "domain": "compass-canada.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Aramark Canada",
+   "domain": "aramark.ca",
+   "sector": "hospitality"
+  },
+  {
+   "name": "Sodexo",
+   "domain": "sodexo.com",
+   "sector": "hospitality"
+  },
+  {
+   "name": "United Way",
+   "domain": "unitedway.ca",
+   "sector": "nonprofit"
+  },
+  {
+   "name": "YMCA BC",
+   "domain": "gv.ymca.ca",
+   "sector": "nonprofit"
+  },
+  {
+   "name": "SPCA BC",
+   "domain": "spca.bc.ca",
+   "sector": "nonprofit"
+  },
+  {
+   "name": "Mitacs",
+   "domain": "mitacs.ca",
+   "sector": "nonprofit"
+  },
+  {
+   "name": "Genome BC",
+   "domain": "genomebc.ca",
+   "sector": "nonprofit"
+  }
+ ]
+}

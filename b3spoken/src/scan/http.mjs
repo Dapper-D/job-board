@@ -91,7 +91,7 @@ export async function request(url, o = {}) {
   const retries = o.retries ?? 2;
   for (let redirects = 0, attempt = 0; ;) {
     if (u.protocol !== 'https:') throw new Error(`refused non-HTTPS URL: ${u.href}`);
-    if (!hostAllowed(u.hostname, allow)) throw new Error(`refused host not allowed for this source: ${u.hostname}`);
+    if (!hostAllowed(u.hostname, allow)) throw Object.assign(new Error(`refused host not allowed for this source: ${u.hostname}`), { code: 'EHOST', url: u.href });
     await polite(u.hostname, o.gapMs ?? 500);
     let r;
     try { r = await once(u, { method, headers, body }); }

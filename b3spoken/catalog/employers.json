@@ -67,6 +67,21 @@
       "target": {
         "account": "semios"
       }
+    },
+    {
+      "name": "Remotive (remote jobs)",
+      "source": "remotive",
+      "target": {}
+    },
+    {
+      "name": "Remote OK (remote jobs)",
+      "source": "remoteok",
+      "target": {}
+    },
+    {
+      "name": "Jobicy (remote jobs)",
+      "source": "jobicy",
+      "target": {}
     }
   ]
 }
