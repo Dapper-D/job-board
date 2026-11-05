@@ -1,87 +1,1273 @@
 {
-  "note": "Starter list for the shared daily scan. Job Bank is not here: it runs on each person's own computer (see src/scan/sources/jobbank.mjs).",
-  "employers": [
-    {
-      "name": "Hootsuite",
-      "source": "greenhouse",
-      "target": {
-        "board": "hootsuite"
-      }
-    },
-    {
-      "name": "Later",
-      "source": "greenhouse",
-      "target": {
-        "board": "later"
-      }
-    },
-    {
-      "name": "Coalfire",
-      "source": "lever",
-      "target": {
-        "site": "coalfire"
-      }
-    },
-    {
-      "name": "Cohere",
-      "source": "ashby",
-      "target": {
-        "board": "cohere"
-      }
-    },
-    {
-      "name": "1Password",
-      "source": "ashby",
-      "target": {
-        "board": "1password"
-      }
-    },
-    {
-      "name": "University of British Columbia",
-      "source": "workday",
-      "target": {
-        "host": "ubc.wd10.myworkdayjobs.com",
-        "tenant": "ubc",
-        "site": "ubcstaffjobs"
-      }
-    },
-    {
-      "name": "CrowdStrike",
-      "source": "workday",
-      "target": {
-        "host": "crowdstrike.wd5.myworkdayjobs.com",
-        "tenant": "crowdstrike",
-        "site": "crowdstrikecareers"
-      }
-    },
-    {
-      "name": "SGS",
-      "source": "smartrecruiters",
-      "target": {
-        "company": "sgs"
-      }
-    },
-    {
-      "name": "Semios",
-      "source": "workable",
-      "target": {
-        "account": "semios"
-      }
-    },
-    {
-      "name": "Remotive (remote jobs)",
-      "source": "remotive",
-      "target": {}
-    },
-    {
-      "name": "Remote OK (remote jobs)",
-      "source": "remoteok",
-      "target": {}
-    },
-    {
-      "name": "Jobicy (remote jobs)",
-      "source": "jobicy",
-      "target": {}
-    }
-  ]
+ "note": "Employers for the shared daily scan, found by src/scan/discover.mjs from catalog/seeds.json (\"found\" says how) plus a few hand-added test entries and the remote job feeds. Job Bank isn't here: it runs on each person's computer.",
+ "employers": [
+  {
+   "name": "Hootsuite",
+   "source": "greenhouse",
+   "target": {
+    "board": "hootsuite"
+   }
+  },
+  {
+   "name": "Later",
+   "source": "greenhouse",
+   "target": {
+    "board": "later"
+   }
+  },
+  {
+   "name": "Coalfire",
+   "source": "lever",
+   "target": {
+    "site": "coalfire"
+   }
+  },
+  {
+   "name": "Cohere",
+   "source": "ashby",
+   "target": {
+    "board": "cohere"
+   }
+  },
+  {
+   "name": "1Password",
+   "source": "ashby",
+   "target": {
+    "board": "1password"
+   }
+  },
+  {
+   "name": "University of British Columbia",
+   "source": "workday",
+   "target": {
+    "host": "ubc.wd10.myworkdayjobs.com",
+    "tenant": "ubc",
+    "site": "ubcstaffjobs"
+   }
+  },
+  {
+   "name": "CrowdStrike",
+   "source": "workday",
+   "target": {
+    "host": "crowdstrike.wd5.myworkdayjobs.com",
+    "tenant": "crowdstrike",
+    "site": "crowdstrikecareers"
+   }
+  },
+  {
+   "name": "SGS",
+   "source": "smartrecruiters",
+   "target": {
+    "company": "sgs"
+   }
+  },
+  {
+   "name": "Semios",
+   "source": "workable",
+   "target": {
+    "account": "semios"
+   }
+  },
+  {
+   "name": "Remotive (remote jobs)",
+   "source": "remotive",
+   "target": {}
+  },
+  {
+   "name": "Remote OK (remote jobs)",
+   "source": "remoteok",
+   "target": {}
+  },
+  {
+   "name": "Jobicy (remote jobs)",
+   "source": "jobicy",
+   "target": {}
+  },
+  {
+   "name": "7shifts",
+   "source": "ashby",
+   "target": {
+    "board": "7shifts"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "AbCellera",
+   "source": "greenhouse",
+   "target": {
+    "board": "abcellera"
+   },
+   "found": "link on https://www.abcellera.com/careers",
+   "sector": "health"
+  },
+  {
+   "name": "Accenture",
+   "source": "workday",
+   "target": {
+    "host": "accenture.wd103.myworkdayjobs.com",
+    "tenant": "accenture",
+    "site": "AccentureCareers"
+   },
+   "found": "link on https://www.accenture.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Achievers",
+   "source": "lever",
+   "target": {
+    "site": "achievers",
+    "eu": false
+   },
+   "found": "link on https://www.achievers.com/company/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Affirm",
+   "source": "greenhouse",
+   "target": {
+    "board": "affirm"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Airbnb",
+   "source": "greenhouse",
+   "target": {
+    "board": "airbnb"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "ApplyBoard",
+   "source": "workday",
+   "target": {
+    "host": "applyboard.wd3.myworkdayjobs.com",
+    "tenant": "applyboard",
+    "site": "ApplyBoardNH"
+   },
+   "found": "link on https://www.applyboard.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Arctic Wolf",
+   "source": "workday",
+   "target": {
+    "host": "arcticwolf.wd1.myworkdayjobs.com",
+    "tenant": "arcticwolf",
+    "site": "External"
+   },
+   "found": "link on https://www.arcticwolf.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Asana",
+   "source": "greenhouse",
+   "target": {
+    "board": "asana"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Aviva Canada",
+   "source": "workday",
+   "target": {
+    "host": "aviva.wd1.myworkdayjobs.com",
+    "tenant": "aviva",
+    "site": "External"
+   },
+   "found": "link on https://www.aviva.ca/en/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "BCI",
+   "source": "workday",
+   "target": {
+    "host": "bci.wd10.myworkdayjobs.com",
+    "tenant": "bci",
+    "site": "BCI_Careers"
+   },
+   "found": "link on https://www.bci.ca/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Benevity",
+   "source": "ashby",
+   "target": {
+    "board": "benevity"
+   },
+   "found": "link on https://www.benevity.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Best Buy Canada",
+   "source": "workday",
+   "target": {
+    "host": "bestbuycanada.wd3.myworkdayjobs.com",
+    "tenant": "bestbuycanada",
+    "site": "BestBuyCA_Career"
+   },
+   "found": "link on https://www.bestbuy.ca/careers",
+   "sector": "retail"
+  },
+  {
+   "name": "Blackberry",
+   "source": "workday",
+   "target": {
+    "host": "bb.wd3.myworkdayjobs.com",
+    "tenant": "bb",
+    "site": "BlackBerry"
+   },
+   "found": "link on https://www.blackberry.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Borrowell",
+   "source": "workable",
+   "target": {
+    "account": "borrowell"
+   },
+   "found": "link on https://www.borrowell.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "CAE",
+   "source": "workday",
+   "target": {
+    "host": "cae.wd3.myworkdayjobs.com",
+    "tenant": "cae",
+    "site": "career"
+   },
+   "found": "link on https://www.cae.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "Capilano University",
+   "source": "workday",
+   "target": {
+    "host": "capilanou.wd10.myworkdayjobs.com",
+    "tenant": "capilanou",
+    "site": "Capilano_University_External_Career_Site"
+   },
+   "found": "link on https://www.capilanou.ca/careers",
+   "sector": "education"
+  },
+  {
+   "name": "Capital Power",
+   "source": "workday",
+   "target": {
+    "host": "capitalpower.wd10.myworkdayjobs.com",
+    "tenant": "capitalpower",
+    "site": "External"
+   },
+   "found": "link on https://www.capitalpower.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "Cineplex",
+   "source": "workday",
+   "target": {
+    "host": "cineplex.wd3.myworkdayjobs.com",
+    "tenant": "cineplex",
+    "site": "Cineplex"
+   },
+   "found": "link on https://careers.cineplex.com/",
+   "sector": "media"
+  },
+  {
+   "name": "Cirque du Soleil",
+   "source": "lever",
+   "target": {
+    "site": "cirquedusoleil"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "media"
+  },
+  {
+   "name": "Clearco",
+   "source": "ashby",
+   "target": {
+    "board": "clearco"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Cloudflare",
+   "source": "greenhouse",
+   "target": {
+    "board": "cloudflare"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Coconut Software",
+   "source": "greenhouse",
+   "target": {
+    "board": "coconutsoftware"
+   },
+   "found": "link on https://www.coconutsoftware.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Cogeco",
+   "source": "workday",
+   "target": {
+    "host": "cogeco.wd3.myworkdayjobs.com",
+    "tenant": "cogeco",
+    "site": "Cogeco_Careers"
+   },
+   "found": "link on https://careers.cogeco.ca/",
+   "sector": "tech"
+  },
+  {
+   "name": "D2L",
+   "source": "greenhouse",
+   "target": {
+    "board": "d2l"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Databricks",
+   "source": "greenhouse",
+   "target": {
+    "board": "databricks"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Datadog",
+   "source": "greenhouse",
+   "target": {
+    "board": "datadog"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Docebo",
+   "source": "ashby",
+   "target": {
+    "board": "docebo"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Dropbox",
+   "source": "greenhouse",
+   "target": {
+    "board": "dropbox"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "EllisDon",
+   "source": "workday",
+   "target": {
+    "host": "ellisdon.wd3.myworkdayjobs.com",
+    "tenant": "ellisdon",
+    "site": "Ellis-Don"
+   },
+   "found": "link on https://www.ellisdon.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "Enbridge",
+   "source": "workday",
+   "target": {
+    "host": "enbridge.wd3.myworkdayjobs.com",
+    "tenant": "enbridge",
+    "site": "enbridge_careers"
+   },
+   "found": "redirect from https://careers.enbridge.com/",
+   "sector": "industrial"
+  },
+  {
+   "name": "EQ Bank",
+   "source": "lever",
+   "target": {
+    "site": "eqbank"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "finance"
+  },
+  {
+   "name": "Export Development Canada",
+   "source": "workable",
+   "target": {
+    "account": "export-development-canada"
+   },
+   "found": "link on https://www.edc.ca/careers",
+   "sector": "public"
+  },
+  {
+   "name": "Faire",
+   "source": "greenhouse",
+   "target": {
+    "board": "faire"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Farm Credit Canada",
+   "source": "workday",
+   "target": {
+    "host": "fccfac.wd3.myworkdayjobs.com",
+    "tenant": "fccfac",
+    "site": "careers-carrieres"
+   },
+   "found": "link on https://www.fcc-fac.ca/careers",
+   "sector": "public"
+  },
+  {
+   "name": "Fidelity Canada",
+   "source": "workday",
+   "target": {
+    "host": "fil.wd3.myworkdayjobs.com",
+    "tenant": "fil",
+    "site": "fidelitycanada"
+   },
+   "found": "link on https://careers.fidelity.ca/",
+   "sector": "finance"
+  },
+  {
+   "name": "Finning",
+   "source": "workday",
+   "target": {
+    "host": "finning.wd3.myworkdayjobs.com",
+    "tenant": "finning",
+    "site": "External"
+   },
+   "found": "redirect from https://www.finning.com/jobs",
+   "sector": "industrial"
+  },
+  {
+   "name": "First Quantum",
+   "source": "workday",
+   "target": {
+    "host": "firstquantum.wd3.myworkdayjobs.com",
+    "tenant": "firstquantum",
+    "site": "First_Quantum_Careers"
+   },
+   "found": "link on https://www.first-quantum.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "Fispan",
+   "source": "bamboohr",
+   "target": {
+    "host": "fispan.bamboohr.com"
+   },
+   "found": "link on https://www.fispan.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Float",
+   "source": "ashby",
+   "target": {
+    "board": "Float"
+   },
+   "found": "link on https://www.floatfinancial.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "GitLab",
+   "source": "greenhouse",
+   "target": {
+    "board": "gitlab"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Herschel Supply",
+   "source": "greenhouse",
+   "target": {
+    "board": "herschelsupplyco"
+   },
+   "found": "link on https://www.herschel.com/careers",
+   "sector": "retail"
+  },
+  {
+   "name": "Hockeystack",
+   "source": "ashby",
+   "target": {
+    "board": "hockeystack"
+   },
+   "found": "link on https://www.hockeystack.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Home Depot Canada",
+   "source": "workday",
+   "target": {
+    "host": "homedepot.wd5.myworkdayjobs.com",
+    "tenant": "homedepot",
+    "site": "CareerDepotCanada"
+   },
+   "found": "link on https://careers.homedepot.ca/",
+   "sector": "retail"
+  },
+  {
+   "name": "Hopper",
+   "source": "ashby",
+   "target": {
+    "board": "hopper"
+   },
+   "found": "link on https://www.hopper.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Hudl",
+   "source": "greenhouse",
+   "target": {
+    "board": "hudl"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Indigo",
+   "source": "smartrecruiters",
+   "target": {
+    "company": "IndigoBooksMusic"
+   },
+   "found": "link on https://www.indigo.ca/careers",
+   "sector": "retail"
+  },
+  {
+   "name": "Instacart",
+   "source": "greenhouse",
+   "target": {
+    "board": "instacart"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Intel",
+   "source": "workday",
+   "target": {
+    "host": "intel.wd1.myworkdayjobs.com",
+    "tenant": "intel",
+    "site": "External"
+   },
+   "found": "link on https://www.intel.com/jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Interac",
+   "source": "workday",
+   "target": {
+    "host": "interac.wd3.myworkdayjobs.com",
+    "tenant": "interac",
+    "site": "Interac"
+   },
+   "found": "link on https://www.interac.ca/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Jobber",
+   "source": "ashby",
+   "target": {
+    "board": "jobber"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Kabam",
+   "source": "lever",
+   "target": {
+    "site": "kabam"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Klue",
+   "source": "ashby",
+   "target": {
+    "board": "klue"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Koho",
+   "source": "ashby",
+   "target": {
+    "board": "koho"
+   },
+   "found": "link on https://www.koho.ca/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Langara College",
+   "source": "workday",
+   "target": {
+    "host": "langara.wd10.myworkdayjobs.com",
+    "tenant": "langara",
+    "site": "External_Employment_Opportunities"
+   },
+   "found": "link on https://www.langara.ca/careers",
+   "sector": "education"
+  },
+  {
+   "name": "LCBO",
+   "source": "workday",
+   "target": {
+    "host": "lcbo.wd3.myworkdayjobs.com",
+    "tenant": "lcbo",
+    "site": "LCBOCareerSite"
+   },
+   "found": "link on https://www.lcbo.com/careers",
+   "sector": "public"
+  },
+  {
+   "name": "Loopio",
+   "source": "ashby",
+   "target": {
+    "board": "loopio"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Lyft",
+   "source": "greenhouse",
+   "target": {
+    "board": "lyft"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Magnet Forensics",
+   "source": "lever",
+   "target": {
+    "site": "magnetforensics",
+    "eu": false
+   },
+   "found": "link on https://www.magnetforensics.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Manulife",
+   "source": "workday",
+   "target": {
+    "host": "manulife.wd3.myworkdayjobs.com",
+    "tenant": "manulife",
+    "site": "MFCJH_Jobs"
+   },
+   "found": "link on https://www.manulife.com/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Maple",
+   "source": "lever",
+   "target": {
+    "site": "getmaple",
+    "eu": false
+   },
+   "found": "link on https://www.getmaple.ca/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Maple Leaf Sports & Entertainment",
+   "source": "workday",
+   "target": {
+    "host": "mlse.wd3.myworkdayjobs.com",
+    "tenant": "mlse",
+    "site": "MLSE"
+   },
+   "found": "link on https://www.mlse.com/careers",
+   "sector": "media"
+  },
+  {
+   "name": "Mastercard",
+   "source": "workday",
+   "target": {
+    "host": "mastercard.wd1.myworkdayjobs.com",
+    "tenant": "mastercard",
+    "site": "CorporateCareers"
+   },
+   "found": "link on https://careers.mastercard.com/",
+   "sector": "finance"
+  },
+  {
+   "name": "McGill University",
+   "source": "workday",
+   "target": {
+    "host": "mcgill.wd3.myworkdayjobs.com",
+    "tenant": "mcgill",
+    "site": "mcgill_careers"
+   },
+   "found": "link on https://www.mcgill.ca/careers",
+   "sector": "education"
+  },
+  {
+   "name": "Mila",
+   "source": "workable",
+   "target": {
+    "account": "mila-2"
+   },
+   "found": "link on https://www.mila.quebec/",
+   "sector": "tech"
+  },
+  {
+   "name": "Miovision",
+   "source": "ashby",
+   "target": {
+    "board": "miovision"
+   },
+   "found": "link on https://www.miovision.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Mitacs",
+   "source": "bamboohr",
+   "target": {
+    "host": "mitacs.bamboohr.com"
+   },
+   "found": "link on https://www.mitacs.ca/careers",
+   "sector": "nonprofit"
+  },
+  {
+   "name": "Mitel",
+   "source": "workday",
+   "target": {
+    "host": "mitel.wd3.myworkdayjobs.com",
+    "tenant": "mitel",
+    "site": "mitelcareers"
+   },
+   "found": "link on https://www.mitel.com/careers/",
+   "sector": "tech"
+  },
+  {
+   "name": "Moneris",
+   "source": "workday",
+   "target": {
+    "host": "moneris.wd3.myworkdayjobs.com",
+    "tenant": "moneris",
+    "site": "Moneris"
+   },
+   "found": "link on https://www.moneris.com/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "MongoDB",
+   "source": "greenhouse",
+   "target": {
+    "board": "mongodb"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "NAIT",
+   "source": "workday",
+   "target": {
+    "host": "nait.wd10.myworkdayjobs.com",
+    "tenant": "nait",
+    "site": "NAIT_Careers"
+   },
+   "found": "link on https://www.nait.ca/careers",
+   "sector": "education"
+  },
+  {
+   "name": "Neo Financial",
+   "source": "ashby",
+   "target": {
+    "board": "neofinancial"
+   },
+   "found": "redirect from https://careers.neofinancial.com/",
+   "sector": "tech"
+  },
+  {
+   "name": "New Flyer",
+   "source": "workable",
+   "target": {
+    "account": "new-flyer"
+   },
+   "found": "link on https://www.newflyer.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "Nike",
+   "source": "workday",
+   "target": {
+    "host": "nike.wd1.myworkdayjobs.com",
+    "tenant": "nike",
+    "site": "nke2"
+   },
+   "found": "link on https://www.nike.com/careers",
+   "sector": "retail"
+  },
+  {
+   "name": "Nuvei",
+   "source": "workable",
+   "target": {
+    "account": "nuvei"
+   },
+   "found": "name match with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Nvidia",
+   "source": "workday",
+   "target": {
+    "host": "nvidia.wd5.myworkdayjobs.com",
+    "tenant": "nvidia",
+    "site": "NVIDIAExternalCareerSite"
+   },
+   "found": "link on https://jobs.nvidia.com/",
+   "sector": "tech"
+  },
+  {
+   "name": "Okta",
+   "source": "greenhouse",
+   "target": {
+    "board": "okta"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "OLG",
+   "source": "workday",
+   "target": {
+    "host": "olg.wd3.myworkdayjobs.com",
+    "tenant": "olg",
+    "site": "Careers"
+   },
+   "found": "link on https://www.olg.ca/careers",
+   "sector": "public"
+  },
+  {
+   "name": "Ontario Teachers' Pension Plan",
+   "source": "workday",
+   "target": {
+    "host": "otppb.wd3.myworkdayjobs.com",
+    "tenant": "otppb",
+    "site": "OntarioTeachers_Careers"
+   },
+   "found": "link on https://www.otpp.com/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Pinterest",
+   "source": "greenhouse",
+   "target": {
+    "board": "pinterest"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Plusgrade",
+   "source": "workday",
+   "target": {
+    "host": "plusgrade.wd10.myworkdayjobs.com",
+    "tenant": "plusgrade",
+    "site": "Plusgrade_External_Site"
+   },
+   "found": "redirect from https://www.plusgrade.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "PointClickCare",
+   "source": "lever",
+   "target": {
+    "site": "pointclickcare",
+    "eu": false
+   },
+   "found": "link on https://www.pointclickcare.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "PolicyMe",
+   "source": "lever",
+   "target": {
+    "site": "policyme",
+    "eu": false
+   },
+   "found": "link on https://www.policyme.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Procurify",
+   "source": "ashby",
+   "target": {
+    "board": "procurify"
+   },
+   "found": "link on https://www.procurify.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Reddit",
+   "source": "greenhouse",
+   "target": {
+    "board": "reddit"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Relic Entertainment",
+   "source": "bamboohr",
+   "target": {
+    "host": "relicentertainment.bamboohr.com"
+   },
+   "found": "link on https://www.relic.com/",
+   "sector": "tech"
+  },
+  {
+   "name": "Rewind",
+   "source": "ashby",
+   "target": {
+    "board": "rewind"
+   },
+   "found": "link on https://www.rewind.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "VerticalScope (Ritual)",
+   "source": "bamboohr",
+   "target": {
+    "host": "verticalscope.bamboohr.com"
+   },
+   "found": "link on https://www.ritual.co/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "SAIT",
+   "source": "lever",
+   "target": {
+    "site": "sait"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "education"
+  },
+  {
+   "name": "Saputo",
+   "source": "workday",
+   "target": {
+    "host": "saputo.wd5.myworkdayjobs.com",
+    "tenant": "saputo",
+    "site": "Saputo_External_Careers"
+   },
+   "found": "link on https://www.saputo.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "ServiceNow",
+   "source": "smartrecruiters",
+   "target": {
+    "company": "servicenow"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Salesforce (incl. Slack)",
+   "source": "workday",
+   "target": {
+    "host": "salesforce.wd12.myworkdayjobs.com",
+    "tenant": "salesforce",
+    "site": "Slack"
+   },
+   "found": "link on https://www.slack.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Snowflake",
+   "source": "ashby",
+   "target": {
+    "board": "snowflake"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Sonrai Security",
+   "source": "lever",
+   "target": {
+    "site": "sonrai-security",
+    "eu": false
+   },
+   "found": "link on https://www.sonraisecurity.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Sony Pictures Imageworks",
+   "source": "greenhouse",
+   "target": {
+    "board": "sonypicturesimageworks"
+   },
+   "found": "link on https://www.imageworks.com/",
+   "sector": "media"
+  },
+  {
+   "name": "Spotify",
+   "source": "lever",
+   "target": {
+    "site": "spotify"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Stripe",
+   "source": "greenhouse",
+   "target": {
+    "board": "stripe"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Tailscale",
+   "source": "greenhouse",
+   "target": {
+    "board": "tailscale"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "TC Energy",
+   "source": "workday",
+   "target": {
+    "host": "tcenergy.wd3.myworkdayjobs.com",
+    "tenant": "tcenergy",
+    "site": "CAREER_SITE_TC"
+   },
+   "found": "link on https://www.tcenergy.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "TD Bank",
+   "source": "workday",
+   "target": {
+    "host": "td.wd3.myworkdayjobs.com",
+    "tenant": "td",
+    "site": "TD_Bank_Careers"
+   },
+   "found": "link on https://careers.td.com/",
+   "sector": "finance"
+  },
+  {
+   "name": "Telus",
+   "source": "workday",
+   "target": {
+    "host": "lifeworks.wd3.myworkdayjobs.com",
+    "tenant": "lifeworks",
+    "site": "External"
+   },
+   "found": "link on https://careers.telus.com/",
+   "sector": "tech"
+  },
+  {
+   "name": "The Coalition",
+   "source": "greenhouse",
+   "target": {
+    "board": "coalition"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Thinkific",
+   "source": "ashby",
+   "target": {
+    "board": "thinkific"
+   },
+   "found": "link on https://www.thinkific.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Thomson Reuters",
+   "source": "workday",
+   "target": {
+    "host": "thomsonreuters.wd5.myworkdayjobs.com",
+    "tenant": "thomsonreuters",
+    "site": "External_Career_Site"
+   },
+   "found": "link on https://www.thomsonreuters.com/careers",
+   "sector": "industrial"
+  },
+  {
+   "name": "TMX Group",
+   "source": "workday",
+   "target": {
+    "host": "tmx.wd3.myworkdayjobs.com",
+    "tenant": "tmx",
+    "site": "TMX_Careers"
+   },
+   "found": "link on https://www.tmx.com/en/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Top Hat",
+   "source": "ashby",
+   "target": {
+    "board": "top-hat"
+   },
+   "found": "link on https://www.tophat.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Trulioo",
+   "source": "ashby",
+   "target": {
+    "board": "trulioo"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Tulip Retail",
+   "source": "bamboohr",
+   "target": {
+    "host": "tulip.bamboohr.com"
+   },
+   "found": "link on https://www.tulip.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Twilio",
+   "source": "greenhouse",
+   "target": {
+    "board": "twilio"
+   },
+   "found": "name match",
+   "sector": "tech"
+  },
+  {
+   "name": "Unbounce",
+   "source": "greenhouse",
+   "target": {
+    "board": "unbounce"
+   },
+   "found": "link on https://www.unbounce.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "University Health Network",
+   "source": "smartrecruiters",
+   "target": {
+    "company": "universityhealthnetwork"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "health"
+  },
+  {
+   "name": "Vendasta",
+   "source": "bamboohr",
+   "target": {
+    "host": "vendasta.bamboohr.com"
+   },
+   "found": "link on https://www.vendasta.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Videotron",
+   "source": "smartrecruiters",
+   "target": {
+    "company": "videotron"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Visa",
+   "source": "workday",
+   "target": {
+    "host": "visa.wd5.myworkdayjobs.com",
+    "tenant": "visa",
+    "site": "Visa"
+   },
+   "found": "link on https://www.visa.com/careers",
+   "sector": "finance"
+  },
+  {
+   "name": "Visier",
+   "source": "ashby",
+   "target": {
+    "board": "visier"
+   },
+   "found": "link on https://www.visier.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Walmart Canada",
+   "source": "workday",
+   "target": {
+    "host": "walmart.wd504.myworkdayjobs.com",
+    "tenant": "walmart",
+    "site": "WalmartExternal"
+   },
+   "found": "link on https://careers.walmart.ca/",
+   "sector": "retail"
+  },
+  {
+   "name": "Wattpad",
+   "source": "lever",
+   "target": {
+    "site": "wattpad"
+   },
+   "found": "name guess with Canadian jobs",
+   "sector": "tech"
+  },
+  {
+   "name": "Wave Financial",
+   "source": "lever",
+   "target": {
+    "site": "waveapps",
+    "eu": false
+   },
+   "found": "link on https://www.waveapps.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Wealthsimple",
+   "source": "ashby",
+   "target": {
+    "board": "wealthsimple"
+   },
+   "found": "link on https://www.wealthsimple.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Zafin",
+   "source": "greenhouse",
+   "target": {
+    "board": "zafinlabsamericasinc"
+   },
+   "found": "link on https://www.zafin.com/careers",
+   "sector": "tech"
+  },
+  {
+   "name": "Zendesk",
+   "source": "workday",
+   "target": {
+    "host": "zendesk.wd1.myworkdayjobs.com",
+    "tenant": "zendesk",
+    "site": "zendesk"
+   },
+   "found": "link on https://www.zendesk.com/careers",
+   "sector": "tech"
+  }
+ ]
 }

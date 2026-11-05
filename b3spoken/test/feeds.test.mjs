@@ -61,3 +61,11 @@ test('discovery finds hiring-system links in a careers page and guesses board na
   assert.deepEqual(slugGuesses('Dye & Durham Inc.'), ['dyeanddurham', 'dye-and-durham', 'dyedurham']);
   assert.equal(norm('Coveo Solutions Inc.'), 'coveosolutions');
 });
+
+test('company names: "Air Canada" is not "Air", but "Hootsuite Inc." is "Hootsuite"', async () => {
+  const { sameCompany } = await import('../src/scan/discover.mjs');
+  assert.equal(sameCompany('Air', 'Air Canada'), false);
+  assert.equal(sameCompany('Hootsuite', 'Hootsuite Inc.'), true);
+  assert.equal(sameCompany('Coveo', 'Coveo Solutions'), false);
+  assert.equal(sameCompany('Wattpad Corp', 'wattpad'), true);
+});

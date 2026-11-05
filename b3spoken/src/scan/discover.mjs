@@ -18,6 +18,11 @@ const SUBDOMAINS = ['careers', 'jobs'];
 export const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/\b(inc|ltd|ltee|limited|corp|corporation|co|company|canada|technologies|technology|group|holdings|the)\b\.?/g, '').replace(/[^a-z0-9]/g, '');
 
+// Names match when they're equal with or without words like "Inc" and "Canada", as long as what's left is
+// distinctive (5+ letters): "Air Canada" must not match a company called "Air".
+const loose = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+export const sameCompany = (a, b) => loose(a) === loose(b) || (norm(a) === norm(b) && norm(a).length >= 5);
+
 export function slugGuesses(name) {
   const base = String(name).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, 'and');
   const words = base.replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
@@ -58,16 +63,15 @@ async function fromCareersPages(seed, log) {
 }
 
 async function fromNameGuesses(seed) {
-  const want = norm(seed.name);
   for (const slug of slugGuesses(seed.name)) {
     try {
       const r = await request(`https://boards-api.greenhouse.io/v1/boards/${slug}`, { allow: SOURCES.greenhouse.hosts, parse: 'json', retries: 0 });
-      if (r.json?.name && norm(r.json.name) === want) return { source: 'greenhouse', target: { board: slug }, how: 'name match' };
+      if (r.json?.name && sameCompany(r.json.name, seed.name)) return { source: 'greenhouse', target: { board: slug }, how: 'name match' };
     } catch {}
     try {
       // Workable answers for almost any name, so its name must match AND it must list jobs in Canada.
       const r = await request(`https://apply.workable.com/api/v1/widget/accounts/${slug}?details=false`, { allow: SOURCES.workable.hosts, parse: 'json', retries: 0 });
-      if (r.json?.name && norm(r.json.name) === want && SOURCES.workable.parse(r.json, { account: slug }).some(j => j.canada)) return { source: 'workable', target: { account: slug }, how: 'name match with Canadian jobs' };
+      if (r.json?.name && sameCompany(r.json.name, seed.name) && SOURCES.workable.parse(r.json, { account: slug }).some(j => j.canada)) return { source: 'workable', target: { account: slug }, how: 'name match with Canadian jobs' };
     } catch {}
   }
   // No company name to compare: keep only if the board actually has Canadian jobs.
