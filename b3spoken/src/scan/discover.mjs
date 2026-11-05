@@ -65,8 +65,9 @@ async function fromNameGuesses(seed) {
       if (r.json?.name && norm(r.json.name) === want) return { source: 'greenhouse', target: { board: slug }, how: 'name match' };
     } catch {}
     try {
-      const r = await request(`https://apply.workable.com/api/v1/widget/accounts/${slug}`, { allow: SOURCES.workable.hosts, parse: 'json', retries: 0 });
-      if (r.json?.name && norm(r.json.name) === want) return { source: 'workable', target: { account: slug }, how: 'name match' };
+      // Workable answers for almost any name, so its name must match AND it must list jobs in Canada.
+      const r = await request(`https://apply.workable.com/api/v1/widget/accounts/${slug}?details=false`, { allow: SOURCES.workable.hosts, parse: 'json', retries: 0 });
+      if (r.json?.name && norm(r.json.name) === want && SOURCES.workable.parse(r.json, { account: slug }).some(j => j.canada)) return { source: 'workable', target: { account: slug }, how: 'name match with Canadian jobs' };
     } catch {}
   }
   // No company name to compare: keep only if the board actually has Canadian jobs.
@@ -85,7 +86,7 @@ export async function discover(seeds, { concurrency = 6, log = () => {} } = {}) 
   async function worker() {
     for (let s; (s = queue.shift());) {
       const hit = (await fromCareersPages(s, log)) || (await fromNameGuesses(s));
-      if (hit) { found.push({ name: s.name, source: hit.source, target: hit.target, how: hit.how, ...(s.sector ? { sector: s.sector } : {}) }); log(`found ${s.name}: ${hit.source} (${hit.how})`); }
+      if (hit) { found.push({ name: s.name, source: hit.source, target: hit.target, how: hit.how, ...(s.sector ? { sector: s.sector } : {}) }); log(`found ${s.name}: ${hit.source} ${JSON.stringify(hit.target)} (${hit.how})`); }
       else { missing.push(s); log(`none  ${s.name}`); }
     }
   }
@@ -101,6 +102,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const out = arg('--out', 'out/discovered.json');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), found, missing: missing.map(m => m.name) }, null, 2));
+  console.log('\nRESULT ' + JSON.stringify(found));
   console.log(`\nFound a hiring system for ${found.length} of ${seeds.length} employers. Written to ${out}`);
   if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, `## Discovery\n\n${found.length} of ${seeds.length} employers found.\n\n| Source | Employers |\n| --- | --- |\n${Object.entries(found.reduce((m, f) => (m[f.source] = (m[f.source] || 0) + 1, m), {})).map(([k, v]) => `| ${k} | ${v} |`).join('\n')}\n`, { flag: 'a' });
 }
