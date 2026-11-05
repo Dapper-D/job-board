@@ -174,10 +174,12 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Piece | Status |
 | --- | --- |
 | Safe HTTP client (HTTPS only, per-source host list, private addresses blocked, polite delays, retries) | Done, tested |
-| Scanners: Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Job Bank | Done, tested offline; live check runs in GitHub Actions |
+| Scanners for 10 hiring systems: Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, BambooHR, Breezy, Pinpoint, Teamtailor | Done, tested; live check in GitHub Actions |
+| Job sites: Remotive, Remote OK, Jobicy (terms in [`b3spoken/SOURCES.md`](b3spoken/SOURCES.md)) | Done, tested |
+| Job Bank Canada (runs on each person's computer, last 3 days) | Done; to be tested on a home connection |
 | Canada filter and duplicate removal | Done, tested |
-| Large employer list and automatic discovery | Next |
-| Remote feeds and niche hiring systems | Next |
+| Employer discovery (careers-page links, robots.txt respected, confirmed name guesses) | Done: 130 employers found from 440; about 4,300 jobs in Canada in one scan |
+| Daily shared scan that publishes the job pool | Next |
 | Helper, localhost board, onboarding, AI, tailoring | After that |
 
 Run it yourself (Node 22 or newer):
