@@ -34,10 +34,13 @@ export function inProvince(job, code) {
 }
 
 // Filters for the board. Every filter is optional.
-export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = 0, source = '', offset = 0, limit = 50, now = Date.now() } = {}) {
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = 0, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '' } = {}) {
+  const LABELS = ['Stretch', 'Good', 'Strong'];
   const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
   const cutoff = maxAgeDays > 0 ? now - maxAgeDays * 864e5 : 0;
   const hits = jobs.filter(j => {
+    if (j.match && j.match.label === 'Skip' && !showSkipped) return false; // Skip jobs never appear
+    if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;
@@ -50,5 +53,6 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     const places = String(rest.location || '').split(' / ');
     return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: String(description || '').slice(0, 280) };
   };
+  if (sort === 'score') hits.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0) || String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
   return { total: hits.length, jobs: hits.slice(offset, offset + Math.min(limit, 200)).map(slim) };
 }

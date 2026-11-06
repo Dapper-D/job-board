@@ -54,7 +54,14 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/jobs') {
         const p = Object.fromEntries(url.searchParams);
         const province = PROVINCES.includes(p.province) ? p.province : '';
-        return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 0, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50) }));
+        return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 0, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' }));
+      }
+      const docs = url.pathname.match(/^\/api\/jobs\/(.+)\/documents(?:\/(resume|letter))?$/);
+      if (docs) {
+        const id = decodeURIComponent(docs[1]);
+        if (req.method === 'POST' && !docs[2]) return send(res, 200, await app.makeDocuments(id));
+        if (req.method === 'GET' && !docs[2]) return send(res, 200, app.documents(id) || {});
+        if (req.method === 'GET') { const f = app.documentFile(id, docs[2]); return send(res, 200, f.bytes, 'application/pdf', { 'content-disposition': `attachment; filename="${f.name.replace(/[^\w .,-]/g, '_')}"` }); }
       }
       if (req.method === 'GET' && url.pathname.startsWith('/api/jobs/')) {
         const job = app.job(decodeURIComponent(url.pathname.slice('/api/jobs/'.length)));

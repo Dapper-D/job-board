@@ -17,7 +17,9 @@ import { buildLibrary, checkAiLibrary, LIBRARY_PROMPT, parseAiJson } from './res
 import { suggestRoles, checkTarget } from './roles.mjs';
 import { cleanProfile, searchRoles } from './profile.mjs';
 import { ask } from './ai.mjs';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { makeContext, scoreJob } from './tailor/match.mjs';
+import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
 export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto' };
@@ -55,25 +57,74 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
         catch (e) { jobBank = readJson(join(dir, 'jobbank.json'), null); state.problems.push(`Couldn't reach Job Bank (${e.message}).`); }
       } else jobBank = readJson(join(dir, 'jobbank.json'), null);
       remerge();
+      scoredJobs(); // score everything now, so the board opens fast
       ai = await (deps.detect || detect)();
       state.lastRefresh = new Date().toISOString();
     } finally { state.refreshing = false; }
     return { started: true };
   }
 
+  const ob = onboarding(dir, { getSettings: () => settings, setSettings: s => { settings = cleanSettings(s); writeJson(settingsFile, settings); scored = null; }, ask: deps.ask || ask });
+  // Scores for every job, worked out once and again whenever the jobs, resume or answers change.
+  let scored = null, scoredKey = '';
+  function scoredJobs() {
+    const lib = ob.library(), prof = ob.profile();
+    const key = `${merged.length}|${pool?.meta.sha256}|${JSON.stringify(prof)}|${lib?.entries?.length}|${lib?.source}`;
+    if (scored && key === scoredKey) return scored;
+    if (!lib?.entries || !prof.done) { scored = merged; scoredKey = key; return scored; }
+    const ctx = makeContext(lib, existsSync(join(dir, 'resume.txt')) ? readFileSync(join(dir, 'resume.txt'), 'utf8') : '', prof, settings.keywords);
+    scored = merged.map(j => ({ ...j, match: scoreJob(j, ctx) }));
+    scoredKey = key;
+    return scored;
+  }
+
+  // One job's tailored resume and cover letter, saved under documents/ on this computer.
+  async function makeDocuments(id) {
+    const job = byId.get(id); if (!job) throw err(404, 'no such job');
+    const lib = ob.library(), prof = ob.profile();
+    if (!lib?.entries) throw err(409, 'finish setup first: upload your resume');
+    const match = scoredJobs().find(j => j.id === id)?.match || null;
+    let order = [], picker = 'rules';
+    if (['codex', 'claude'].includes(settings.ai)) {
+      try {
+        const known = new Set(lib.entries.flatMap(e => e.bullets.filter(b => !b.flagged).map(b => b.id)));
+        order = (parseAiJson(await (deps.ask || ask)(settings.ai, PICK_PROMPT(job, lib))).order || []).filter(x => known.has(x));
+        if (order.length) picker = settings.ai;
+      } catch { order = []; }
+    }
+    const plan = planResume(lib, job, { order });
+    const letter = coverLetter(plan, job, match, prof);
+    const folder = join(dir, 'documents', fileSafe(`${job.company} - ${plan.headline}`) || fileSafe(id));
+    mkdirSync(folder, { recursive: true });
+    const base = `${fileSafe(plan.name) || 'Resume'}`;
+    const files = { resume: `${base} - Resume - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf`, letter: `${base} - Cover Letter - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf` };
+    writeFileSync(join(folder, files.resume), renderResume(plan));
+    writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
+    const made = { jobId: id, folder, files, picker, createdAt: new Date().toISOString(), match, letter: letter.paragraphs };
+    const index = readJson(join(dir, 'documents', 'index.json'), {});
+    index[id] = made; writeJson(join(dir, 'documents', 'index.json'), index);
+    return made;
+  }
+  function documentFile(id, kind) {
+    const made = readJson(join(dir, 'documents', 'index.json'), {})[id];
+    if (!made || !made.files[kind]) throw err(404, 'make the documents first');
+    return { name: made.files[kind], bytes: readFileSync(join(made.folder, made.files[kind])) };
+  }
+
   return {
-    refresh,
+    refresh, makeDocuments, documentFile,
+    documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
       version: '0.1.0', ...state, settings,
       pool: pool ? { count: pool.meta.count, generatedAt: pool.meta.generatedAt, sha256: pool.meta.sha256 } : null,
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,
     }),
-    jobs: () => merged,
-    ...onboarding(dir, { getSettings: () => settings, setSettings: s => { settings = cleanSettings(s); writeJson(settingsFile, settings); }, ask: deps.ask || ask }),
-    job: id => byId.get(id) || null,
+    jobs: () => scoredJobs(),
+    ...ob,
+    job: id => { const j = byId.get(id); return j ? { ...j, match: scoredJobs().find(x => x.id === id)?.match || null } : null; },
     settings: () => settings,
-    saveSettings(s) { settings = cleanSettings(s); writeJson(settingsFile, settings); return settings; },
+    saveSettings(s) { settings = cleanSettings(s); writeJson(settingsFile, settings); scored = null; return settings; },
   };
 }
 
@@ -102,6 +153,9 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       try { ai = parseAiJson(await ask(provider, LIBRARY_PROMPT(text))); }
       catch (e) { throw err(502, `The AI couldn't read the resume: ${e.message}`); }
       const lib = checkAiLibrary(ai, text, provider);
+      const rules = buildLibrary(text); // contact lines and summary come from the resume itself
+      lib.contact = { name: lib.contact.name || rules.contact.name, lines: rules.contact.lines };
+      if (!lib.summary) lib.summary = rules.summary;
       const ruleRoles = suggestRoles(text);
       const aiRoles = (Array.isArray(ai.roles) ? ai.roles : []).slice(0, 8).map(r => ({ title: String(r?.title || '').slice(0, 80), reason: String(r?.reason || '').slice(0, 160), fromAi: true })).filter(r => r.title);
       lib.roles = [...aiRoles, ...ruleRoles.filter(r => !aiRoles.some(a => a.title.toLowerCase() === r.title.toLowerCase()))].slice(0, 10);
