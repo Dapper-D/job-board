@@ -20,6 +20,7 @@ import { ask } from './ai.mjs';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { makeContext, scoreJob } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
+import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
 
@@ -137,8 +138,22 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return { id: job.id, how, job: (scoredJobs().find(j => j.id === job.id)) || job };
   }
 
+  // Interview prep: questions for this job, answered with the person's own resume lines. AI questions are kept.
+  async function prep(id, { useAi = true } = {}) {
+    const job = byId.get(id); if (!job) throw err(404, 'no such job');
+    const lib = ob.library(); if (!lib?.entries) throw err(409, 'finish setup first: upload your resume');
+    const cacheFile = join(dir, 'prep.json');
+    const cache = readJson(cacheFile, {});
+    let extra = cache[id]?.questions || [];
+    if (!extra.length && useAi && ['codex', 'claude'].includes(settings.ai)) {
+      try { extra = cleanQuestions(parseAiJson(await (deps.ask || ask)(settings.ai, PREP_PROMPT(job, lib)))); cache[id] = { questions: extra, at: new Date().toISOString() }; writeJson(cacheFile, cache); }
+      catch { extra = []; }
+    }
+    return buildPrep(lib, job, scoredJobs().find(j => j.id === id)?.match || null, ob.profile(), { extraQuestions: extra });
+  }
+
   return {
-    refresh, makeDocuments, documentFile, paste,
+    refresh, makeDocuments, documentFile, paste, prep,
     tracker, track, dueCount: () => Object.values(tracker()).filter(e => dueToday(e)).length,
     documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,

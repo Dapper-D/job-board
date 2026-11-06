@@ -187,7 +187,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | The board (step 6): Matches, Tracked and Follow-ups views; status, notes and a follow-up date per job (applying sets a reminder a week later); jobs marked Not interested disappear; documents already made show on each job; paste a link from an employer's own hiring site and it's checked against that employer's live job list (closed or older-than-72-hours postings are refused; LinkedIn, Indeed and Glassdoor links are never fetched) | Done, tested |
 | Windows installer (step 7): one B3spoken.exe (Node single executable with the board and catalog inside), a per-user installer with no admin rights, Start menu and optional desktop shortcuts; opening it again just reopens the board | Done: built, installed, tested and uninstalled on a clean Windows machine in GitHub Actions on every push |
 | Pre-release for friends | Ready: pushing a `b3spoken-v0.1.0` tag builds and tests it, then waits for the maintainer's approval before signing and publishing |
-| Later: interview prep per job, recruiter contacts, Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
+| Interview prep per job: questions from the posting (openers, skills they asked for, skills you don't have yet with an honest way to answer, situations the posting hints at, and up to 5 role-specific questions from your AI), each with the lines from your own resume that answer it, plus questions to ask them | Done, tested; tried in a browser with a real Claude Code pass |
+| Later: recruiter contacts, Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
 
 Run it yourself (Node 22 or newer):
 

@@ -69,10 +69,19 @@ function card(j) {
     catch (e) { make.textContent = e.message; }
     finally { make.disabled = false; }
   });
-  row.append(make, files);
+  const prepBtn = el('button', 'small', 'Interview prep'); prepBtn.type = 'button';
+  const prepBox = el('div', 'prep'); prepBox.hidden = true;
+  prepBtn.addEventListener('click', async () => {
+    if (!prepBox.hidden) { prepBox.hidden = true; return; }
+    prepBtn.disabled = true; prepBtn.textContent = 'Preparing…';
+    try { drawPrep(prepBox, await api(`/api/jobs/${encodeURIComponent(j.id)}/prep`, { method: 'POST' })); prepBox.hidden = false; }
+    catch (e) { prepBox.hidden = false; prepBox.replaceChildren(el('p', 'problems', e.message)); }
+    finally { prepBtn.disabled = false; prepBtn.textContent = 'Interview prep'; }
+  });
+  row.append(make, files, prepBtn);
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
-  li.append(row, trackerControls(j));
+  li.append(row, prepBox, trackerControls(j));
   return li;
 }
 
@@ -91,6 +100,21 @@ function showFiles(box, jobId, d) {
     b.addEventListener('click', () => download(jobId, kind, d.files[kind]));
     box.append(b);
   }
+}
+
+function drawPrep(box, p) {
+  box.replaceChildren();
+  let group = null, list = null;
+  for (const it of p.items) {
+    if (it.group !== group) { group = it.group; box.append(el('h3', null, group)); list = el('ol', 'qs'); box.append(list); }
+    const li = el('li');
+    li.append(el('strong', null, it.question));
+    if (it.lines.length) { const ul = el('ul', 'lines'); for (const l of it.lines) { const x = el('li'); x.append(el('span', null, l.text), el('em', null, ` (${l.from})`)); ul.append(x); } li.append(ul); }
+    if (it.tip) li.append(el('p', 'tip', it.tip));
+    list.append(li);
+  }
+  box.append(el('h3', null, 'Questions to ask them'));
+  const ul = el('ul', 'lines'); for (const q of p.ask) ul.append(el('li', null, q)); box.append(ul);
 }
 
 async function load(reset = true) {
