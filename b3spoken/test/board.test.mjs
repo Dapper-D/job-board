@@ -15,12 +15,16 @@ test('tracker: applying sets a follow-up a week later; due dates', () => {
 
 test('board views: tracked, follow-ups due, and not-interested hidden', () => {
   const jobs = [
-    { id: 'a', title: 'A', location: 'Vancouver, BC', match: { label: 'Good', score: 60 } },
+    { id: 'a', title: 'A', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 60 } },
+    { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-20T00:00:00Z', match: { label: 'Strong', score: 90 } },
+    { id: 'nodate', title: 'No date', location: 'Vancouver, BC', match: { label: 'Strong', score: 90 } },
     { id: 'b', title: 'B', location: 'Vancouver, BC', match: { label: 'Strong', score: 80 }, track: { status: 'not-interested' } },
     { id: 'c', title: 'C', location: 'Toronto, ON', match: { label: 'Skip', score: 10 }, track: { status: 'applied', followUp: '2026-11-01' } },
   ];
   const now = Date.parse('2026-11-05T12:00:00Z');
-  assert.deepEqual(queryJobs(jobs, { now }).jobs.map(j => j.id), ['a', 'c']); // tracked Skip still shows; not-interested hidden
+  assert.deepEqual(queryJobs(jobs, { now }).jobs.map(j => j.id), ['a', 'c']); // tracked Skip still shows; not-interested, old and undated jobs hidden
+  assert.deepEqual(queryJobs(jobs, { now, maxAgeDays: 30 }).jobs.map(j => j.id), ['a', 'c']); // never more than 3 days
+  assert.deepEqual(queryJobs(jobs, { now, maxAgeDays: 1 }).jobs.map(j => j.id), ['c']); // last 24 hours
   assert.deepEqual(queryJobs(jobs, { view: 'tracked', now }).jobs.map(j => j.id).sort(), ['b', 'c']);
   assert.deepEqual(queryJobs(jobs, { view: 'due', now }).jobs.map(j => j.id), ['c']);
 });

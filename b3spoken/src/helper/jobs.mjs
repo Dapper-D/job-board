@@ -34,11 +34,15 @@ export function inProvince(job, code) {
 }
 
 // Filters for the board. Every filter is optional.
-export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = 0, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
+// Only fresh jobs: posted in the last 3 days at most (the board's choice is 1, 2 or 3 days).
+// Jobs with no posting date can't be shown to be fresh, so they're left out too.
+export const MAX_AGE_DAYS = 3;
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = MAX_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
   const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
   const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
-  const cutoff = maxAgeDays > 0 ? now - maxAgeDays * 864e5 : 0;
+  const days = Math.min(MAX_AGE_DAYS, Math.max(1, Number(maxAgeDays) || MAX_AGE_DAYS));
+  const cutoff = now - days * 864e5;
   const hits = jobs.filter(j => {
     if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
     else if (view === 'due') { if (!(j.track?.followUp && j.track.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(j.track.status))) return false; }
@@ -49,7 +53,7 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;
-    if (cutoff && !(Date.parse(j.postedAt) >= cutoff)) return false;
+    if (!j.pasted && !j.track && !(Date.parse(j.postedAt) >= cutoff)) return false; // tracked and pasted jobs stay
     if (words.length) { const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
     return true;
   });
