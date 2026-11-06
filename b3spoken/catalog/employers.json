@@ -2773,16 +2773,6 @@
       "found": "careers page link"
     },
     {
-      "name": "Government of Alberta",
-      "source": "successfactors",
-      "target": {
-        "host": "jobs.alberta.ca",
-        "path": ""
-      },
-      "found": "careers page link",
-      "canadaOnly": true
-    },
-    {
       "name": "ICBC",
       "source": "successfactors",
       "target": {

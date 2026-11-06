@@ -174,3 +174,11 @@ test('successfactors tiles with several location fields; canadaOnly employers', 
   delete SOURCES.__fake;
   assert.deepEqual([...jobs.values?.() ?? jobs].map(j => j.id), ['f1']);
 });
+
+test('successfactors search table rows', async () => {
+  const { parseSearchRows } = await import('../src/scan/sources/successfactors.mjs');
+  const html = '<tr class="data-row"> <td class="colTitle" headers="hdrTitle"> <span class="jobTitle hidden-phone"> <a href="/job/Toronto-QA-ON/605929917/" class="jobTitle-link">QA &amp; Testing</a> </span> <span class="jobLocation visible-phone"> <span class="jobLocation"> Toronto, ON, CA </span></span></td> <td class="colDate hidden-phone"><span class="jobDate">Nov 6, 2026 </span></td> <td class="colLocation hidden-phone" headers="hdrLocation"> <span class="jobLocation"> Mt. Laurel, NJ, US <small class="nobr">+1 more&hellip;</small> </span> </td> </tr>';
+  const [r] = parseSearchRows(html, 'https://jobs.scotiabank.com');
+  assert.equal(r.id, '605929917'); assert.equal(r.title, 'QA & Testing'); assert.equal(r.location, 'Mt. Laurel, NJ, US');
+  assert.equal(r.url, 'https://jobs.scotiabank.com/job/Toronto-QA-ON/605929917/'); assert.ok(r.postedAt.startsWith('2026-11-0'));
+});

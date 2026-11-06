@@ -7,7 +7,7 @@
 import { request } from '../http.mjs';
 import { makeJob, decodeEntities } from '../job.mjs';
 
-const MAX_TILE_PAGES = 60, MAX_CSB_PAGES = 100;
+const MAX_TILE_PAGES = 60, MAX_SEARCH_PAGES = 100, MAX_CSB_PAGES = 100;
 const clean = s => decodeEntities(String(s).replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 
 // Recognise a SuccessFactors career site from its page.
@@ -31,6 +31,24 @@ export function parseTiles(html, base) {
       const v = clean(f[2]); if (v && !parts.includes(v)) parts.push(v);
     }
     out.push({ id: t[1], title, url: new URL(decodeEntities(url), base).href, location: parts.join(', ') });
+  }
+  return out;
+}
+
+// The /search/ results table: one <tr class="data-row"> per job, with the location in its own column.
+export function parseSearchRows(html, base) {
+  const out = [];
+  for (const m of String(html).matchAll(/<tr class="data-row[\s\S]*?<\/tr>/g)) {
+    const row = m[0];
+    const a = row.match(/<a [^>]*href="([^"]+)"[^>]*class="jobTitle-link"[^>]*>([\s\S]*?)<\/a>|<a [^>]*class="jobTitle-link"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+    if (!a) continue;
+    const href = decodeEntities(a[1] || a[3]); const title = clean(a[2] || a[4]);
+    const id = (href.match(/\/(\d+)\/?(?:[?#].*)?$/) || [])[1];
+    if (!id || !title) continue;
+    const locCell = (row.match(/class="colLocation[^"]*"[^>]*>([\s\S]*?)<\/td>/) || row.match(/<span class="jobLocation[^"]*">([\s\S]*?)<\/span>/) || [])[1] || '';
+    const location = clean(locCell.replace(/<small[\s\S]*?<\/small>/g, ''));
+    const date = Date.parse(clean((row.match(/<span class="jobDate[^"]*">([\s\S]*?)<\/span>/) || [])[1] || ''));
+    out.push({ id, title, url: new URL(href, base).href, location, postedAt: Number.isFinite(date) ? new Date(date).toISOString() : null });
   }
   return out;
 }
@@ -67,8 +85,18 @@ export default {
       out.push(...fresh.map(j => make(j)).filter(Boolean));
       row += fresh.length;
     }
-    // Tiles without any location can't be placed; the newer search below gives locations, so try it too.
     if (out.length && out.some(j => j.location)) return out;
+    // Tiles without any location can't be placed. The site's search table shows the location in its own column.
+    const rows = [], rowIds = new Set();
+    for (let p = 0; p < MAX_SEARCH_PAGES; p++) {
+      let r;
+      try { r = await request(`${base}/search/?q=&sortColumn=referencedate&sortDirection=desc&startrow=${rows.length}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 }); }
+      catch (e) { if (p === 0) break; throw e; }
+      const fresh = parseSearchRows(r.text, base).filter(j => !rowIds.has(j.id));
+      if (!fresh.length) break;
+      fresh.forEach(j => { rowIds.add(j.id); rows.push(j); });
+    }
+    if (rows.length) return rows.map(j => make(j, { postedAt: j.postedAt })).filter(Boolean);
     const tilesOnly = out; out = [];
     // Newer sites: one search per locale the site offers (Canadian sites usually en_US/en_GB and fr_CA).
     let locales = ['en_US', 'en_GB', 'fr_CA'];
