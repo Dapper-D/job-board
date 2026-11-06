@@ -21,20 +21,63 @@ document.addEventListener('click', e => { const go = e.target.closest('[data-go]
 const msg = (box, text) => { $(box).hidden = !text; $(box).textContent = text || ''; };
 
 // ---- 1. AI ----
+const PLANS = { codex: 'Needs a ChatGPT Plus, Pro or Business plan.', claude: 'Needs a Claude Pro or Max plan.' };
+const SIGNIN_HELP = {
+  codex: 'A window opens and your browser asks you to sign in to ChatGPT. When the browser says you\u2019re signed in, close the window and click Check it works.',
+  claude: 'A window opens. Pick any colour theme with Enter, choose "Claude account with subscription", and sign in in your browser. When it says you\u2019re logged in, close the window and click Check it works.',
+};
+const aiState = {}; // provider -> message under its buttons
+
+function aiButtons(id, info) {
+  const box = el('div', 'aiact');
+  const btn = (text, fn, cls = 'small') => { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', e => { e.preventDefault(); fn(b); }); return b; };
+  const msgLine = el('p', 'note', aiState[id] || '');
+  if (!info?.installed) {
+    box.append(btn('Install it for me', async b => {
+      b.disabled = true; b.textContent = 'Installing\u2026 (1\u20133 minutes)';
+      await api('/api/ai/install', { method: 'POST', body: JSON.stringify({ provider: id }) });
+      for (;;) {
+        await new Promise(r => setTimeout(r, 2500));
+        const st = (await api('/api/ai/install'))[id];
+        if (st?.state === 'done') { aiState[id] = 'Installed. Next: sign in.'; break; }
+        if (st?.state === 'failed') { aiState[id] = `The install didn\u2019t finish: ${(st.log || '').trim().split('\n').pop() || 'unknown error'}`; break; }
+      }
+      await api('/api/ai/detect', { method: 'POST' }); drawAi();
+    }, 'small primary'));
+  } else {
+    box.append(btn('Sign in', async () => {
+      try { await api('/api/ai/signin', { method: 'POST', body: JSON.stringify({ provider: id }) }); aiState[id] = SIGNIN_HELP[id]; }
+      catch (e) { aiState[id] = e.message; }
+      drawAi();
+    }), btn('Check it works', async b => {
+      b.disabled = true; b.textContent = 'Checking\u2026';
+      const r = await api('/api/ai/test', { method: 'POST', body: JSON.stringify({ provider: id }) });
+      aiState[id] = r.ok ? 'Working and signed in.' : r.error || 'It answered, but not as expected. Try signing in again.';
+      if (r.ok) document.querySelector(`input[name="ai"][value="${id}"]`).checked = true;
+      drawAi();
+    }));
+  }
+  box.append(msgLine);
+  return box;
+}
+
 async function drawAi() {
   const s = await api('/api/status');
   const chrome = 'LanguageModel' in self;
+  const status = info => info?.working ? `Installed (${info.version}). ` : info?.installed ? 'Installed. ' : 'Not installed yet. ';
   const options = [
-    ['codex', 'ChatGPT (Codex)', s.ai?.codex?.working ? `Found: ${s.ai.codex.version}` : `Not found. To add it: ${s.ai?.codex?.install || 'install Codex'}`, s.ai?.codex?.working],
-    ['claude', 'Claude (Claude Code)', s.ai?.claude?.working ? `Found: ${s.ai.claude.version}` : `Not found. To add it: ${s.ai?.claude?.install || 'install Claude Code'}`, s.ai?.claude?.working],
+    ['codex', 'ChatGPT (Codex)', `${status(s.ai?.codex)}${PLANS.codex}`, true],
+    ['claude', 'Claude (Claude Code)', `${status(s.ai?.claude)}${PLANS.claude}`, true],
     ['chrome', 'Chrome built-in AI', chrome ? 'Available in this browser' : 'Not available in this browser (needs desktop Chrome and a strong enough computer)', chrome],
     ['none', 'No AI', 'Tailoring picks and orders your own bullets by keyword match', true],
   ];
-  const pick = settings.ai !== 'auto' ? settings.ai : (options.find(o => o[3])?.[0] || 'none');
+  const current = document.querySelector('input[name="ai"]:checked')?.value;
+  const pick = current || (settings.ai !== 'auto' ? settings.ai : (s.ai?.codex?.working ? 'codex' : s.ai?.claude?.working ? 'claude' : 'none'));
   $('aiChoices').replaceChildren(...options.map(([id, label, note, ok]) => {
     const l = el('label', `choice${ok ? '' : ' off'}`);
-    const r = el('input'); r.type = 'radio'; r.name = 'ai'; r.value = id; r.checked = id === pick;
+    const r = el('input'); r.type = 'radio'; r.name = 'ai'; r.value = id; r.checked = id === pick; r.disabled = !ok;
     l.append(r, el('strong', null, label), el('span', 'note', note));
+    if (id === 'codex' || id === 'claude') l.append(aiButtons(id, s.ai?.[id]));
     return l;
   }));
 }

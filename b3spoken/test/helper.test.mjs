@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -105,4 +105,26 @@ test('finds AI tools on PATH without a shell', () => {
   const dir = tmp(); writeFileSync(join(dir, 'codex'), '');
   assert.equal(findOnPath('codex', { PATH: dir }, 'linux'), join(dir, 'codex'));
   assert.equal(findOnPath('claude', { PATH: dir }, 'linux'), null);
+  // Found in the installer's usual folder even when PATH doesn't list it.
+  const home = tmp(); mkdirSync(join(home, '.local', 'bin'), { recursive: true }); writeFileSync(join(home, '.local', 'bin', 'claude'), '');
+  assert.equal(findOnPath('claude', { PATH: '', HOME: home }, 'linux'), join(home, '.local', 'bin', 'claude'));
+});
+
+test('one-click AI install and sign-in use each company\u2019s official installer; no user text in commands', async () => {
+  const { installCommand, signInCommand, startInstall, testAi } = await import('../src/helper/ai.mjs');
+  assert.deepEqual(installCommand('claude', 'win32').args.at(-1), 'irm https://claude.ai/install.ps1 | iex');
+  assert.deepEqual(installCommand('codex', 'darwin'), { file: '/bin/sh', args: ['-c', 'curl -fsSL https://chatgpt.com/codex/install.sh | sh'] });
+  assert.throws(() => installCommand('evil'), /unknown/);
+  assert.match(signInCommand('codex', 'C:\\Users\\a\\.local\\bin\\codex.exe', 'win32').args.join(' '), /start "B3spoken sign-in" cmd \/k "C:\\Users\\a\\.local\\bin\\codex\.exe" login/);
+  assert.match(signInCommand('claude', '/Users/a/.local/bin/claude', 'darwin').args[1], /do script "'\/Users\/a\/\.local\/bin\/claude'"/);
+  const { EventEmitter } = await import('node:events');
+  let ran;
+  const fake = (file, args) => { ran = [file, args]; const c = new EventEmitter(); c.stdout = new EventEmitter(); c.stderr = new EventEmitter(); c.kill = () => {}; setImmediate(() => { c.stdout.emit('data', 'installing'); c.emit('close', 1); }); return c; };
+  const job = startInstall('codex', { spawnFn: fake, platform: 'linux' });
+  assert.equal(job.state, 'running');
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(job.state, 'failed'); // exit code 1
+  assert.equal(ran[0], '/bin/sh');
+  assert.deepEqual(await testAi('claude', async () => 'OK'), { ok: true, answer: 'OK' });
+  assert.match((await testAi('claude', async () => { throw new Error('Please run /login'); })).error, /Not signed in/);
 });

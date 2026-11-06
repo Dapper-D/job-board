@@ -41,6 +41,8 @@ jobs:
       - name: Test the installed app
         shell: pwsh
         run: node scripts/exe-smoke.mjs "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe"
+      - name: One-click AI installers (Claude Code and Codex) install and are found
+        run: node scripts/ai-install-check.mjs
       - name: Uninstall
         shell: pwsh
         run: |

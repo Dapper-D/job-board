@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 import { dataDir, ensureDir, readJson, writeJson } from './paths.mjs';
 import { updatePool, loadPool } from './pool.mjs';
 import { refreshJobBank, mergeJobs, PROVINCES } from './jobs.mjs';
-import { detect } from './ai.mjs';
+import { detect, startInstall, installStatus, openSignIn, testAi } from './ai.mjs';
 import { createServer } from './server.mjs';
 import { extractText } from './resume/extract.mjs';
 import { buildLibrary, checkAiLibrary, LIBRARY_PROMPT, parseAiJson } from './resume/library.mjs';
@@ -154,6 +154,12 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
 
   return {
     refresh, makeDocuments, documentFile, paste, prep,
+    // One-click AI setup
+    aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
+    aiInstallStatus: () => installStatus(),
+    aiSignIn: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); try { return (deps.openSignIn || openSignIn)(provider); } catch (e) { throw err(409, e.message); } },
+    aiTest: async provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); const r = await testAi(provider, deps.ask || ask); ai = await (deps.detect || detect)(); return r; },
+    aiDetect: async () => (ai = await (deps.detect || detect)()),
     tracker, track, dueCount: () => Object.values(tracker()).filter(e => dueToday(e)).length,
     documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,

@@ -88,3 +88,5 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .prep ul.lines { margin: 4px 0; padding-left: 18px; }
 .prep ul.lines em { color: var(--muted); font-style: normal; font-size: 12px; }
 .prep p.tip { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.aiact { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.aiact p.note { flex: 1 1 100%; margin: 2px 0 0; }

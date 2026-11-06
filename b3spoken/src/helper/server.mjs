@@ -71,6 +71,12 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/settings') return send(res, 200, app.settings());
       if (route === 'PUT /api/settings') return send(res, 200, app.saveSettings(await readBody(req)));
       if (route === 'POST /api/refresh') { const r = app.refresh(); r.catch?.(() => {}); return send(res, 202, { started: true }); }
+      // One-click AI setup
+      if (route === 'POST /api/ai/install') return send(res, 202, app.aiInstall((await readBody(req)).provider));
+      if (route === 'GET /api/ai/install') return send(res, 200, app.aiInstallStatus());
+      if (route === 'POST /api/ai/signin') return send(res, 200, app.aiSignIn((await readBody(req)).provider));
+      if (route === 'POST /api/ai/test') return send(res, 200, await app.aiTest((await readBody(req)).provider));
+      if (route === 'POST /api/ai/detect') return send(res, 200, await app.aiDetect());
       // Board: tracker, pasted links, documents already made.
       if (route === 'GET /api/tracker') return send(res, 200, { entries: app.tracker(), due: app.dueCount(), documents: app.documentIndex() });
       if (req.method === 'PUT' && url.pathname.startsWith('/api/tracker/')) return send(res, 200, app.track(decodeURIComponent(url.pathname.slice('/api/tracker/'.length)), await readBody(req)));
