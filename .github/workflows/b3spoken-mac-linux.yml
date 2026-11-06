@@ -1,0 +1,41 @@
+# B3spoken (branch b3spoken): builds the Mac and Linux apps (one file each, Node inside) and tests them:
+# they start, load and verify the real job pool, and serve the board. Nothing is published here.
+name: B3spoken Mac and Linux build
+on:
+  push:
+    branches: [b3spoken]
+    paths: ['b3spoken/**', '.github/workflows/b3spoken-mac-linux.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: b3spoken-maclinux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: node scripts/build-exe.mjs
+      - name: Test the app
+        run: node scripts/exe-smoke.mjs "$PWD/dist/$([ "$RUNNER_OS" = macOS ] && echo B3spoken || echo b3spoken)"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: b3spoken-${{ runner.os }}
+          path: |
+            b3spoken/dist/B3spoken-mac-*.zip
+            b3spoken/dist/B3spoken-linux-*.tar.gz
+          retention-days: 14
