@@ -45,6 +45,10 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     if (words.length) { const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
     return true;
   });
-  const slim = ({ description, ...rest }) => ({ ...rest, snippet: String(description || '').slice(0, 280) });
+  // The list shows the first 3 places; the full job (GET /api/jobs/<id>) keeps them all.
+  const slim = ({ description, ...rest }) => {
+    const places = String(rest.location || '').split(' / ');
+    return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: String(description || '').slice(0, 280) };
+  };
   return { total: hits.length, jobs: hits.slice(offset, offset + Math.min(limit, 200)).map(slim) };
 }

@@ -181,7 +181,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Employer discovery (careers-page links, page markers, pages read in a headless browser, robots.txt respected, confirmed name guesses) | Done: about 310 employers and job sites in the scan; last live check found 10,252 unique jobs in Canada |
 | Daily shared scan publishing the job pool ([job-pool release](https://github.com/Dapper-D/job-board/releases/tag/job-pool)) | Done; runs every morning from `main` |
 | Not covered: Dayforce (behind a bot check), Meta (no public feed), Taleo Business Edition, older iCIMS sites, classic hosted sapsf.com sites | Left out on purpose or for later |
-| Helper, localhost board, onboarding, AI, tailoring | Next |
+| Helper (step 3): opens the board at http://127.0.0.1, downloads the daily pool and checks its size and SHA-256 before using it, runs Job Bank on the person's computer (last 3 days, at most every 6 hours), merges duplicates, finds ChatGPT (Codex) or Claude (Claude Code) | Done, tested on Windows, Mac and Linux, with a smoke test against the real pool; asking the AI is wired but not yet tried with real accounts |
+| Onboarding, matching and tailoring, the full board, Windows installer | Next |
 
 Run it yourself (Node 22 or newer):
 
@@ -190,6 +191,7 @@ cd b3spoken
 npm test            # offline tests
 npm run live-check  # calls every source for real
 npm run scan        # writes out/pool.json and out/report.json
+npm run helper      # starts the helper and opens the board in your browser
 ```
 
 ## Open questions

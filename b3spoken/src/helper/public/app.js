@@ -29,7 +29,7 @@ function card(j) {
   else if (j.employerVerified !== false) row.append(el('span', 'badge ok', 'On the employer’s own site'));
   else if (j.employerUrl) row.append(el('span', 'badge ok', 'Confirmed on the employer’s site'));
   if (j.via) row.append(el('span', 'badge', `via ${j.via}`));
-  if (j.alsoAt?.length) row.append(el('span', 'badge', `+${j.alsoAt.length} more locations`));
+  if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
   li.append(row);
   return li;
 }

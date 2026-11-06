@@ -18,7 +18,7 @@ const job = (o) => makeJob({ source: 'greenhouse', company: 'Acme', nativeId: o.
 const makePool = jobs => { const gz = gzipSync(JSON.stringify({ version: 1, jobs })); return { gz, meta: { version: 1, count: jobs.length, generatedAt: '2026-11-05T10:00:00Z', bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex') } }; };
 
 test('data folder per operating system', () => {
-  assert.equal(dataDir({ LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' }, 'win32', 'C:\\Users\\a'), join('C:\\Users\\a\\AppData\\Local', 'B3spoken'));
+  assert.equal(dataDir({ LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' }, 'win32', 'C:\\Users\\a'), 'C:\\Users\\a\\AppData\\Local\\B3spoken');
   assert.equal(dataDir({}, 'darwin', '/Users/a'), '/Users/a/Library/Application Support/B3spoken');
   assert.equal(dataDir({}, 'linux', '/home/a'), '/home/a/.local/share/b3spoken');
   assert.equal(dataDir({ B3SPOKEN_HOME: '/x' }, 'linux', '/home/a'), '/x');
@@ -54,6 +54,8 @@ test('pool and Job Bank are merged without duplicates; filters', async () => {
   assert.ok(inProvince({ location: 'Burnaby, British Columbia' }, 'BC'));
   assert.ok(!inProvince({ location: 'Toronto, ON' }, 'BC'));
   assert.equal('description' in queryJobs(all).jobs[0], false);
+  const many = queryJobs([{ ...a, location: 'A, BC / B, BC / C, BC / D, BC / E, BC' }]).jobs[0];
+  assert.equal(many.location, 'A, BC / B, BC / C, BC'); assert.equal(many.moreLocations, 2);
   const dir = tmp(); let calls = 0;
   const fetchJobs = async () => { calls++; return [b]; };
   await refreshJobBank(dir, { keywords: ['dev'] }, { fetchJobs, now: 1e12 });
