@@ -34,13 +34,18 @@ export function inProvince(job, code) {
 }
 
 // Filters for the board. Every filter is optional.
-export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = 0, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '' } = {}) {
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = 0, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
+  const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
   const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
   const cutoff = maxAgeDays > 0 ? now - maxAgeDays * 864e5 : 0;
   const hits = jobs.filter(j => {
-    if (j.match && j.match.label === 'Skip' && !showSkipped) return false; // Skip jobs never appear
+    if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
+    else if (view === 'due') { if (!(j.track?.followUp && j.track.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(j.track.status))) return false; }
+    else if (j.track?.status === 'not-interested') return false;
+    if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
     if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
+    if (view) return true;
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;

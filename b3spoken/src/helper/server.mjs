@@ -54,7 +54,7 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/jobs') {
         const p = Object.fromEntries(url.searchParams);
         const province = PROVINCES.includes(p.province) ? p.province : '';
-        return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 0, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' }));
+        return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 0, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: ['tracked', 'due'].includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' }));
       }
       const docs = url.pathname.match(/^\/api\/jobs\/(.+)\/documents(?:\/(resume|letter))?$/);
       if (docs) {
@@ -70,6 +70,10 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/settings') return send(res, 200, app.settings());
       if (route === 'PUT /api/settings') return send(res, 200, app.saveSettings(await readBody(req)));
       if (route === 'POST /api/refresh') { const r = app.refresh(); r.catch?.(() => {}); return send(res, 202, { started: true }); }
+      // Board: tracker, pasted links, documents already made.
+      if (route === 'GET /api/tracker') return send(res, 200, { entries: app.tracker(), due: app.dueCount(), documents: app.documentIndex() });
+      if (req.method === 'PUT' && url.pathname.startsWith('/api/tracker/')) return send(res, 200, app.track(decodeURIComponent(url.pathname.slice('/api/tracker/'.length)), await readBody(req)));
+      if (route === 'POST /api/paste') return send(res, 200, await app.paste(String((await readBody(req)).url || '').slice(0, 2000)));
       // Onboarding: resume, library, roles and answers.
       if (route === 'POST /api/resume') return send(res, 200, app.uploadResume(await readBody(req, 15e6)));
       if (route === 'POST /api/resume/ai') return send(res, 200, await app.resumeWithAi((await readBody(req)).provider));

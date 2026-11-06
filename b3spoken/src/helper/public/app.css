@@ -68,3 +68,15 @@ details { margin: 10px 0; }
 .reasons { font-size: 13px; margin: 6px 0; }
 .files { display: inline-flex; gap: 6px; }
 button.link { color: var(--accent); }
+/* board: tabs, paste, tracker */
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tabs button { font-weight: 600; }
+.tabs button.on { border-color: var(--accent); color: var(--accent); }
+.paste { display: flex; gap: 8px; margin-bottom: 8px; }
+.paste input { flex: 1; min-width: 0; }
+#pasted:not(:empty) { margin-bottom: 14px; }
+.track { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.track textarea { flex: 1 1 100%; margin: 0; font-size: 13px; }
+label.mini { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
+.track details.notes { flex: 1 1 100%; margin: 0; font-size: 13px; } .track details.notes summary { cursor: pointer; color: var(--muted); }

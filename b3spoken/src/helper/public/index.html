@@ -16,6 +16,17 @@
   <button id="refresh" type="button">Refresh</button>
 </header>
 <main>
+  <nav class="tabs" aria-label="Views">
+    <button type="button" data-view="" class="on">Matches</button>
+    <button type="button" data-view="tracked">Tracked</button>
+    <button type="button" data-view="due">Follow-ups <span id="dueCount"></span></button>
+  </nav>
+  <section class="paste" aria-label="Paste a job link">
+    <input id="pasteUrl" type="url" placeholder="Paste a job link from the employer's own site to check and tailor it" aria-label="Job link">
+    <button id="pasteGo" type="button">Check link</button>
+  </section>
+  <div id="pasteMsg" class="problems" hidden></div>
+  <ol id="pasted" class="list"></ol>
   <section class="filters" aria-label="Filters">
     <input id="q" type="search" placeholder="Search titles, companies, places" aria-label="Search">
     <select id="province" aria-label="Province">

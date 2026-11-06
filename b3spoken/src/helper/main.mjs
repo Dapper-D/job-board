@@ -19,6 +19,10 @@ import { cleanProfile, searchRoles } from './profile.mjs';
 import { ask } from './ai.mjs';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { makeContext, scoreJob } from './tailor/match.mjs';
+import { checkLink } from './paste.mjs';
+import { cleanEntry, dueToday } from './tracker.mjs';
+import { dirname as dirnameOf } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
@@ -40,7 +44,8 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   let settings = cleanSettings({ ...DEFAULT_SETTINGS, ...readJson(settingsFile, {}) });
   let pool = null, jobBank = null, merged = [], byId = new Map(), ai = null;
   const state = { refreshing: false, lastRefresh: null, problems: [] };
-  const remerge = () => { merged = mergeJobs(pool?.pool.jobs, jobBank?.jobs); byId = new Map(merged.map(j => [j.id, j])); };
+  const pastedFile = join(dir, 'pasted.json');
+  const remerge = () => { merged = mergeJobs([...(pool?.pool.jobs || []), ...readJson(pastedFile, [])], jobBank?.jobs); byId = new Map(merged.map(j => [j.id, j])); };
 
   async function refresh({ force = false } = {}) {
     if (state.refreshing) return { started: false, reason: 'already refreshing' };
@@ -111,8 +116,33 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return { name: made.files[kind], bytes: readFileSync(join(made.folder, made.files[kind])) };
   }
 
+  // Tracker
+  const trackerFile = join(dir, 'tracker.json');
+  const tracker = () => readJson(trackerFile, {});
+  function track(id, entry) {
+    if (!byId.has(id) && !tracker()[id]) throw err(404, 'no such job');
+    const all = tracker();
+    const next = cleanEntry(entry, all[id]);
+    if (!next.status && !next.notes && !next.followUp) delete all[id]; else all[id] = { ...next, title: byId.get(id)?.title || all[id]?.title, company: byId.get(id)?.company || all[id]?.company };
+    writeJson(trackerFile, all);
+    return all[id] || {};
+  }
+  // Paste a link
+  async function paste(url) {
+    const { job, how } = await (deps.checkLink || checkLink)(url, { jobs: merged, catalogFile: join(dirnameOf(fileURLToPath(import.meta.url)), '..', '..', 'catalog', 'employers.json') });
+    if (!byId.has(job.id)) {
+      const list = readJson(pastedFile, []).filter(j => j.id !== job.id);
+      list.unshift({ ...job, description: String(job.description || '').slice(0, 20000) });
+      writeJson(pastedFile, list.slice(0, 200));
+      remerge(); scored = null;
+    }
+    return { id: job.id, how, job: (scoredJobs().find(j => j.id === job.id)) || job };
+  }
+
   return {
-    refresh, makeDocuments, documentFile,
+    refresh, makeDocuments, documentFile, paste,
+    tracker, track, dueCount: () => Object.values(tracker()).filter(e => dueToday(e)).length,
+    documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
       version: '0.1.0', ...state, settings,
@@ -120,7 +150,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,
     }),
-    jobs: () => scoredJobs(),
+    jobs: () => { const t = tracker(); return scoredJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)); },
     ...ob,
     job: id => { const j = byId.get(id); return j ? { ...j, match: scoredJobs().find(x => x.id === id)?.match || null } : null; },
     settings: () => settings,
