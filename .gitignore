@@ -13,3 +13,6 @@ node_modules/
 backups/
 app/.kit-files.json
 dist/
+
+# B3spoken build output
+b3spoken/dist/

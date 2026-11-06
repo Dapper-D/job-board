@@ -21,8 +21,6 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { makeContext, scoreJob } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
-import { dirname as dirnameOf } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
@@ -129,7 +127,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   }
   // Paste a link
   async function paste(url) {
-    const { job, how } = await (deps.checkLink || checkLink)(url, { jobs: merged, catalogFile: join(dirnameOf(fileURLToPath(import.meta.url)), '..', '..', 'catalog', 'employers.json') });
+    const { job, how } = await (deps.checkLink || checkLink)(url, { jobs: merged });
     if (!byId.has(job.id)) {
       const list = readJson(pastedFile, []).filter(j => j.id !== job.id);
       list.unshift({ ...job, description: String(job.description || '').slice(0, 20000) });
@@ -221,17 +219,33 @@ function openBrowser(url) {
   try { spawn(cmd, args, { detached: true, stdio: 'ignore' }).on('error', () => {}).unref(); } catch {}
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const args = process.argv.slice(2);
-  const flag = n => args.includes(n);
-  const portArg = Number(args[args.indexOf('--port') + 1]) || 4747;
-  const dir = dataDir();
+// Starts the helper. If one is already running on this computer, just opens the board again.
+export async function start(argv = process.argv.slice(2)) {
+  const flag = n => argv.includes(n);
+  const portArg = Number(argv[argv.indexOf('--port') + 1]) || 4747;
+  const dir = ensureDir(dataDir());
+  const running = readJson(join(dir, 'helper.json'), null);
+  if (running?.port && !flag('--new')) {
+    try {
+      const r = await fetch(`http://127.0.0.1:${running.port}/health`, { signal: AbortSignal.timeout(1500) });
+      if (r.ok && (await r.json()).app === 'b3spoken') {
+        const url = `http://127.0.0.1:${running.port}/`;
+        console.log(`B3spoken is already running at ${url}`);
+        if (!flag('--no-open')) openBrowser(url);
+        return null;
+      }
+    } catch {}
+  }
   const app = createApp(dir, { offline: flag('--offline') });
   const srv = createServer(app);
   const port = await srv.listen(portArg);
+  writeJson(join(dir, 'helper.json'), { port, pid: process.pid, startedAt: new Date().toISOString() });
   const url = `http://127.0.0.1:${port}/`;
-  console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\nPress Ctrl+C to stop.`);
+  console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\nKeep this window open while you use B3spoken. Close it (or press Ctrl+C) to stop.`);
   if (!flag('--no-open')) openBrowser(url);
   app.refresh().catch(e => console.error('refresh failed:', e.message));
   process.on('SIGINT', () => srv.close().then(() => process.exit(0)));
+  return srv;
 }
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) start().catch(e => { console.error(`B3spoken couldn't start: ${e.message}`); process.exitCode = 1; });

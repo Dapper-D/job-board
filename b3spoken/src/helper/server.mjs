@@ -6,12 +6,10 @@
 // - the page is locked down with a strict Content-Security-Policy.
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { queryJobs, PROVINCES } from './jobs.mjs';
 
-const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), 'public');
+import { readAsset } from './assets.mjs';
+const page = f => readAsset(`src/helper/public/${f}`);
 const STATIC = { '/app.js': 'text/javascript; charset=utf-8', '/app.css': 'text/css; charset=utf-8', '/setup.js': 'text/javascript; charset=utf-8' };
 const PAGES = { '/': 'index.html', '/index.html': 'index.html', '/setup': 'setup.html' };
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
@@ -37,13 +35,14 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       const host = String(req.headers.host || '').toLowerCase();
       if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return send(res, 421, { error: 'wrong host' });
       const url = new URL(req.url, `http://${host}`);
+      if (url.pathname === '/health') return send(res, 200, { app: 'b3spoken' }); // lets a second start find this one
       if (!url.pathname.startsWith('/api/')) {
         if (req.method !== 'GET') return send(res, 405, { error: 'method not allowed' });
         if (PAGES[url.pathname]) {
-          const html = readFileSync(join(PUBLIC, PAGES[url.pathname]), 'utf8').replace('__TOKEN__', token);
+          const html = page(PAGES[url.pathname]).toString('utf8').replace('__TOKEN__', token);
           return send(res, 200, html, 'text/html; charset=utf-8', { 'content-security-policy': CSP, 'x-frame-options': 'DENY' });
         }
-        if (STATIC[url.pathname]) return send(res, 200, readFileSync(join(PUBLIC, url.pathname.slice(1))), STATIC[url.pathname]);
+        if (STATIC[url.pathname]) return send(res, 200, page(url.pathname.slice(1)), STATIC[url.pathname]);
         return send(res, 404, { error: 'not found' });
       }
       if (!sameToken(req.headers['x-b3spoken-token'], token)) return send(res, 403, { error: 'missing or wrong token' });

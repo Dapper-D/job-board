@@ -62,7 +62,7 @@ export function dedupe(jobs) {
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) (async () => {
   const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
   const employers = JSON.parse(readFileSync(arg('--employers', 'catalog/employers.json'), 'utf8')).employers
     .filter(e => !arg('--only') || e.source === arg('--only'))
@@ -76,4 +76,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt: stamp, employers: report }, null, 2));
   const failed = report.filter(r => !r.ok).length;
   console.log(`\n${pool.length} unique jobs in Canada (${jobs.length - pool.length} duplicates merged) from ${report.length - failed} employers (${failed} failed). Written to ${out}/`);
-}
+})();

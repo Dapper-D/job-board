@@ -6,6 +6,7 @@
 //    the employer's own link instead.
 // Postings older than 72 hours are refused, like the old kit did, so applications go to fresh postings.
 import { readFileSync, existsSync } from 'node:fs';
+import { readAsset } from './assets.mjs';
 import { SOURCES, detect } from '../scan/sources/index.mjs';
 import { urlKey } from '../scan/job.mjs';
 
@@ -14,7 +15,13 @@ const MAX_AGE_MS = 72 * 3600e3;
 
 let catalog = null;
 function catalogFor(host, file) {
-  if (!catalog) catalog = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).employers || [] : [];
+  if (!catalog || file) {
+    let text = null;
+    try { text = file ? (existsSync(file) ? readFileSync(file, 'utf8') : null) : readAsset('catalog/employers.json', 'utf8'); } catch {}
+    const list = text ? JSON.parse(text).employers || [] : [];
+    if (file) return list.find(e => e.target?.host && String(e.target.host).toLowerCase() === host);
+    catalog = list;
+  }
   return catalog.find(e => e.target?.host && String(e.target.host).toLowerCase() === host);
 }
 
