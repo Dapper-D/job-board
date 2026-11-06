@@ -192,10 +192,29 @@ $('finish').addEventListener('click', async () => {
   location.href = '/';
 });
 
+async function drawKit() {
+  const { found } = await api('/api/kit/find');
+  $('kitBox').hidden = false;
+  if (found.length) { $('kitDir').value = found[0]; $('kitMsg').textContent = `Found your kit at ${found[0]}.`; }
+  else $('kitMsg').textContent = 'Type the folder your kit is in, or skip this.';
+  $('kitGo').onclick = async () => {
+    $('kitGo').disabled = true; $('kitMsg').textContent = 'Importing…';
+    try {
+      const r = await api('/api/kit/import', { method: 'POST', body: JSON.stringify({ dir: $('kitDir').value }) });
+      $('kitMsg').textContent = `Brought over ${r.imported.join(', ')}. Check each step and click Next.`;
+      [settings, profile, lib] = await Promise.all([api('/api/settings'), api('/api/profile'), api('/api/library')]);
+      if (!lib?.entries) lib = null;
+      await drawAi(); drawLibrary(); fillQuestions();
+    } catch (e) { $('kitMsg').textContent = e.message; }
+    finally { $('kitGo').disabled = false; }
+  };
+}
+
 (async () => {
   [settings, profile, lib] = await Promise.all([api('/api/settings'), api('/api/profile'), api('/api/library')]);
   if (!lib?.entries) lib = null;
   await drawAi(); drawLibrary(); fillQuestions();
+  if (!profile.done) drawKit().catch(() => {});
   $('tidy').hidden = !['codex', 'claude'].includes(settings.ai);
   show('ai');
 })().catch(e => { document.querySelector('main').textContent = `The helper isn't answering: ${e.message}`; });

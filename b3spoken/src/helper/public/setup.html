@@ -17,6 +17,12 @@
 </header>
 <main>
   <section id="step-ai" class="step">
+    <div id="kitBox" class="kit" hidden>
+      <strong>Used the Job Hunt Kit before?</strong>
+      <p class="note small">B3spoken can bring over your resume library, answers and tracked jobs. Your kit folder is only read, never changed.</p>
+      <div class="row"><input id="kitDir" type="text" aria-label="Job Hunt Kit folder" placeholder="C:\Users\you\Desktop\job board"><button id="kitGo" type="button" class="small primary">Import my setup</button></div>
+      <p id="kitMsg" class="note small"></p>
+    </div>
     <h1>Connect an AI</h1>
     <p class="lead">B3spoken uses the AI you already pay for, on this computer. It only ever picks lines from your own resume; it never writes claims about you.</p>
     <div id="aiChoices" class="choices"></div>

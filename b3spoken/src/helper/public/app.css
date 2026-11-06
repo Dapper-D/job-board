@@ -94,3 +94,6 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .update button.primary { background: #fff; color: var(--accent); border-color: #fff; }
 .prep input:not([type]), .prep input[type=password] { width: 100%; margin: 4px 0; }
 .prep a.link { color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-size: 12px; text-decoration: none; font-weight: 600; }
+.kit { border: 1px solid var(--accent); border-radius: 10px; padding: 12px; margin: 8px 0 16px; background: var(--card); }
+.kit .row input { flex: 1; min-width: 0; }
+.kit .row { display: flex; gap: 8px; }

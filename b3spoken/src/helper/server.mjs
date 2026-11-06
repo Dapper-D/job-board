@@ -74,6 +74,9 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/settings') return send(res, 200, app.settings());
       if (route === 'PUT /api/settings') return send(res, 200, app.saveSettings(await readBody(req)));
       if (route === 'POST /api/refresh') { const r = app.refresh(); r.catch?.(() => {}); return send(res, 202, { started: true }); }
+      // Import from the old Job Hunt Kit
+      if (route === 'GET /api/kit/find') return send(res, 200, { found: app.findKits() });
+      if (route === 'POST /api/kit/import') return send(res, 200, app.importKit((await readBody(req)).dir));
       // Updates
       if (route === 'GET /api/update') return send(res, 200, await app.checkUpdate(url.searchParams.get('force') === '1'));
       if (route === 'POST /api/update/install') return send(res, 200, await app.installUpdate());

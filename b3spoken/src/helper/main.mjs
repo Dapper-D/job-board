@@ -22,6 +22,7 @@ import { makeContext, scoreJob } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
 import { VERSION } from './version.mjs';
 import { findContacts, draftEmail } from './contacts.mjs';
+import { findKits, readKit, libraryText } from './importkit.mjs';
 import { checkForUpdate, downloadUpdate, runInstaller } from './updater.mjs';
 import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
@@ -224,7 +225,35 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return { hunter: !!k };
   }
 
+  // Import from the old Job Hunt Kit: answers, resume library and tracker. The kit folder is only read.
+  function importKit(kitDir) {
+    let kit;
+    try { kit = readKit(String(kitDir || '').trim()); } catch (e) { throw err(400, e.message); }
+    const done = [];
+    if (kit.library) {
+      const text = libraryText(kit.library);
+      writeFileSync(join(dir, 'resume.txt'), text, { mode: 0o600 });
+      writeJson(join(dir, 'library.json'), { ...kit.library, roles: suggestRoles(text) });
+      done.push(`your resume library (${kit.library.entries.reduce((n, e) => n + e.bullets.length, 0)} lines)`);
+    }
+    const prof = ob.profile();
+    writeJson(join(dir, 'profile.json'), { ...kit.profile, done: prof.done });
+    done.push('your answers (roles, pay, location, work authorization)');
+    if (kit.tracker.items.length) {
+      const list = readJson(pastedFile, []), have = new Set(list.map(j => j.id));
+      writeJson(pastedFile, [...kit.tracker.items.filter(j => !have.has(j.id)), ...list].slice(0, 500));
+      const t = tracker(); for (const [id, e] of Object.entries(kit.tracker.entries)) if (!t[id]) t[id] = e;
+      writeJson(trackerFile, t);
+      remerge();
+      done.push(`${kit.tracker.items.length} tracked jobs`);
+    }
+    if (kit.ai) { settings = cleanSettings({ ...settings, ai: kit.ai }); writeJson(settingsFile, settings); }
+    scored = null;
+    return { imported: done };
+  }
+
   return {
+    findKits: () => (deps.findKits || findKits)(), importKit,
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
