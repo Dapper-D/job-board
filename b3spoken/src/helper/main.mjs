@@ -164,7 +164,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
-      version: '0.1.0', ...state, settings,
+      version: '0.1.1', ...state, settings,
       pool: pool ? { count: pool.meta.count, generatedAt: pool.meta.generatedAt, sha256: pool.meta.sha256 } : null,
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,

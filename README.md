@@ -178,7 +178,7 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Job sites: Remotive, Remote OK, Jobicy, Himalayas (terms in [`b3spoken/SOURCES.md`](b3spoken/SOURCES.md)) | Done; their jobs are kept only when found on the employer's own board |
 | Job Bank Canada (runs on each person's computer, last 3 days) | Done; to be tested on a home connection |
 | Canada filter; duplicates merged so each job is shown and counted once | Done, tested |
-| Employer discovery (careers-page links, page markers, pages read in a headless browser, robots.txt respected, confirmed name guesses) | Done: about 310 employers and job sites in the scan; last live check found 10,252 unique jobs in Canada |
+| Employer discovery (careers-page links, page markers, pages read in a headless browser, robots.txt respected, confirmed name guesses) | Done: about 310 employers and job sites in the scan; last live check found 11,503 unique jobs in Canada |
 | Daily shared scan publishing the job pool ([job-pool release](https://github.com/Dapper-D/job-board/releases/tag/job-pool)) | Done; runs every morning from `main` |
 | Not covered: Dayforce (behind a bot check), Meta (no public feed), Taleo Business Edition, older iCIMS sites, classic hosted sapsf.com sites | Left out on purpose or for later |
 | Helper (step 3): opens the board at http://127.0.0.1, downloads the daily pool and checks its size and SHA-256 before using it, runs Job Bank on the person's computer (last 3 days, at most every 6 hours), merges duplicates, finds ChatGPT (Codex) or Claude (Claude Code) | Done, tested on Windows, Mac and Linux, with a smoke test against the real pool; asking the AI is wired but not yet tried with real accounts |
@@ -188,6 +188,7 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Windows installer (step 7): one B3spoken.exe (Node single executable with the board and catalog inside), a per-user installer with no admin rights, Start menu and optional desktop shortcuts; opening it again just reopens the board | Done: built, installed, tested and uninstalled on a clean Windows machine in GitHub Actions on every push |
 | Pre-release for friends | Ready: pushing a `b3spoken-v0.1.0` tag builds and tests it, then waits for the maintainer's approval before signing and publishing |
 | Interview prep per job: questions from the posting (openers, skills they asked for, skills you don't have yet with an honest way to answer, situations the posting hints at, and up to 5 role-specific questions from your AI), each with the lines from your own resume that answer it, plus questions to ask them | Done, tested; tried in a browser with a real Claude Code pass |
+| One-click AI setup: Install it for me (each company's official installer, no admin rights), Sign in (opens the tool's own sign-in), Check it works | Done; both installers tested on a clean Windows machine in GitHub Actions; sign-in needs a person |
 | Later: recruiter contacts, Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
 
 Run it yourself (Node 22 or newer):
