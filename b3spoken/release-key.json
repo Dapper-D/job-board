@@ -1,0 +1,4 @@
+{
+  "note": "Public key that B3spoken releases are signed with (Ed25519, the same release key as the Job Hunt Kit). The private key lives only in the release environment secret and with the maintainer.",
+  "ed25519SpkiBase64": "MCowBQYDK2VwAyEAkpRtru0g0ON/RzjOmTK1W1jyYTdaB3YZUDfO7x/XLmg="
+}
