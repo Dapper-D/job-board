@@ -47,3 +47,5 @@ jobs:
         with:
           node-version: 22
       - run: npm run live-check
+      - name: Updater finds, downloads and verifies the newest real release
+        run: node scripts/update-check.mjs

@@ -20,6 +20,9 @@ import { ask } from './ai.mjs';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { makeContext, scoreJob } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
+import { VERSION } from './version.mjs';
+import { checkForUpdate, downloadUpdate, runInstaller } from './updater.mjs';
+import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
@@ -65,7 +68,52 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       ai = await (deps.detect || detect)();
       state.lastRefresh = new Date().toISOString();
     } finally { state.refreshing = false; }
+    prepareAll().catch(e => log(`preparing documents stopped: ${e.message}`));
     return { started: true };
+  }
+
+  // Makes the resume and cover letter ahead of time for every Strong and Good match from the last 3 days,
+  // so they're ready on the board. Quick rule-based versions first for all of them, then (with an AI connected)
+  // the AI picks the order for the best ones, one at a time.
+  let preparing = null;
+  const AI_PREP_LIMIT = 12;
+  async function prepareAll() {
+    if (preparing?.running || offline && !deps.allowOfflinePrep) return;
+    const lib = ob.library(), prof = ob.profile();
+    if (!lib?.entries || !prof.done) return;
+    const libStamp = `${lib.source}|${lib.entries.length}|${lib.entries.flatMap(e => e.bullets.map(b => b.text + b.flagged)).join('').length}|${JSON.stringify(prof)}`;
+    const t = tracker();
+    const list = queryList(scoredJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)), { province: settings.province, remote: settings.remote, minLabel: 'Good', limit: 200 }).jobs;
+    const index = readJson(join(dir, 'documents', 'index.json'), {});
+    const todo = list.filter(j => !index[j.id] || index[j.id].stamp !== libStamp);
+    preparing = { running: true, done: 0, total: todo.length, ai: 0 };
+    for (const j of todo) { try { await makeDocuments(j.id, { useAi: false, stamp: libStamp }); } catch {} preparing.done++; }
+    if (['codex', 'claude'].includes(settings.ai)) {
+      const best = list.slice(0, AI_PREP_LIMIT).filter(j => readJson(join(dir, 'documents', 'index.json'), {})[j.id]?.picker === 'rules');
+      for (const j of best) { try { await makeDocuments(j.id, { useAi: true, stamp: libStamp }); preparing.ai++; } catch {} }
+    }
+    preparing.running = false;
+  }
+
+  // Updates
+  let updateInfo = null, updateCheckedAt = 0;
+  async function checkUpdate(force = false) {
+    if (!force && Date.now() - updateCheckedAt < 6 * 3600e3) return updateInfo;
+    updateCheckedAt = Date.now();
+    try { const rel = await (deps.checkForUpdate || checkForUpdate)(VERSION); updateInfo = rel ? { available: true, version: rel.version, page: rel.page, rel } : { available: false }; }
+    catch (e) { updateInfo = { available: false, error: e.message }; }
+    return updateInfo;
+  }
+  async function installUpdate() {
+    const info = await checkUpdate(true);
+    if (!info?.available) throw err(409, 'You already have the newest version.');
+    let file;
+    try { file = await (deps.downloadUpdate || downloadUpdate)(info.rel, dir); }
+    catch (e) { throw err(502, `The update wasn’t installed: ${e.message}`); }
+    if (process.platform !== 'win32' && !deps.runInstaller) return { manual: true, page: info.page };
+    (deps.runInstaller || runInstaller)(file);
+    if (!deps.runInstaller) setTimeout(() => process.exit(0), 1500); // let the installer replace this app
+    return { installing: true, version: info.version };
   }
 
   const ob = onboarding(dir, { getSettings: () => settings, setSettings: s => { settings = cleanSettings(s); writeJson(settingsFile, settings); scored = null; }, ask: deps.ask || ask });
@@ -83,13 +131,13 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   }
 
   // One job's tailored resume and cover letter, saved under documents/ on this computer.
-  async function makeDocuments(id) {
+  async function makeDocuments(id, { useAi = true, stamp = '' } = {}) {
     const job = byId.get(id); if (!job) throw err(404, 'no such job');
     const lib = ob.library(), prof = ob.profile();
     if (!lib?.entries) throw err(409, 'finish setup first: upload your resume');
     const match = scoredJobs().find(j => j.id === id)?.match || null;
     let order = [], picker = 'rules';
-    if (['codex', 'claude'].includes(settings.ai)) {
+    if (useAi && ['codex', 'claude'].includes(settings.ai)) {
       try {
         const known = new Set(lib.entries.flatMap(e => e.bullets.filter(b => !b.flagged).map(b => b.id)));
         order = (parseAiJson(await (deps.ask || ask)(settings.ai, PICK_PROMPT(job, lib))).order || []).filter(x => known.has(x));
@@ -104,7 +152,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const files = { resume: `${base} - Resume - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf`, letter: `${base} - Cover Letter - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf` };
     writeFileSync(join(folder, files.resume), renderResume(plan));
     writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
-    const made = { jobId: id, folder, files, picker, createdAt: new Date().toISOString(), match, letter: letter.paragraphs };
+    const made = { jobId: id, folder, files, picker, stamp, createdAt: new Date().toISOString(), match, letter: letter.paragraphs };
     const index = readJson(join(dir, 'documents', 'index.json'), {});
     index[id] = made; writeJson(join(dir, 'documents', 'index.json'), index);
     return made;
@@ -153,7 +201,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   }
 
   return {
-    refresh, makeDocuments, documentFile, paste, prep,
+    refresh, makeDocuments, documentFile, paste, prep, prepareAll, checkUpdate, installUpdate,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
     aiInstallStatus: () => installStatus(),
@@ -164,7 +212,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
-      version: '0.1.2', ...state, settings,
+      version: VERSION, ...state, update: updateInfo, preparing, settings,
       pool: pool ? { count: pool.meta.count, generatedAt: pool.meta.generatedAt, sha256: pool.meta.sha256 } : null,
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,
@@ -265,6 +313,8 @@ export async function start(argv = process.argv.slice(2)) {
   console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\nKeep this window open while you use B3spoken. Close it (or press Ctrl+C) to stop.`);
   if (!flag('--no-open')) openBrowser(url);
   app.refresh().catch(e => console.error('refresh failed:', e.message));
+  setInterval(() => app.refresh().catch(() => {}), 6 * 3600e3).unref(); // picks up the next daily pool if left open
+  app.checkUpdate().catch(() => {});
   process.on('SIGINT', () => srv.close().then(() => process.exit(0)));
   return srv;
 }

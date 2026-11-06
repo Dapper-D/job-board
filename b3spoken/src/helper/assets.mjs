@@ -14,4 +14,4 @@ export function readAsset(name, encoding) {
 }
 
 // Every file the .exe must carry (used by the Windows build).
-export const ASSET_FILES = ['src/helper/public/index.html', 'src/helper/public/setup.html', 'src/helper/public/app.js', 'src/helper/public/setup.js', 'src/helper/public/app.css', 'catalog/employers.json'];
+export const ASSET_FILES = ['src/helper/public/index.html', 'src/helper/public/setup.html', 'src/helper/public/app.js', 'src/helper/public/setup.js', 'src/helper/public/app.css', 'catalog/employers.json', 'release-key.json'];

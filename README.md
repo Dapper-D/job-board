@@ -189,6 +189,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Pre-release for friends | Ready: pushing a `b3spoken-v0.1.0` tag builds and tests it, then waits for the maintainer's approval before signing and publishing |
 | Interview prep per job: questions from the posting (openers, skills they asked for, skills you don't have yet with an honest way to answer, situations the posting hints at, and up to 5 role-specific questions from your AI), each with the lines from your own resume that answer it, plus questions to ask them | Done, tested; tried in a browser with a real Claude Code pass |
 | One-click AI setup: Install it for me (each company's official installer, no admin rights), Sign in (opens the tool's own sign-in), Check it works | Done; both installers tested on a clean Windows machine in GitHub Actions; sign-in needs a person |
+| Documents ready in advance: after each refresh, a resume and cover letter for every Strong and Good match from the last 3 days (your AI picks the order for the best 12); the board shows progress | Done, tested |
+| Updates: the board offers newer versions; the update is downloaded, checked against the release key and its SHA-256, installed silently and B3spoken reopens; your setup, tracker and documents are kept | Done, tested; checked against the real releases on GitHub |
 | Later: recruiter contacts, Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
 
 Run it yourself (Node 22 or newer):

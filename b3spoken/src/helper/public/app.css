@@ -90,3 +90,5 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .prep p.tip { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 .aiact { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
 .aiact p.note { flex: 1 1 100%; margin: 2px 0 0; }
+.update { background: var(--accent); color: #fff; padding: 8px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.update button.primary { background: #fff; color: var(--accent); border-color: #fff; }

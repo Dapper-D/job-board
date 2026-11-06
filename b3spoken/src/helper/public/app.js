@@ -135,10 +135,25 @@ async function status() {
   const chosen = s.settings?.ai;
   const ai = chosen === 'none' ? { label: 'none (rule-based)' } : chosen === 'chrome' ? { label: 'Chrome built-in AI' } : (s.ai && (s.ai[chosen] || Object.values(s.ai).find(a => a.working)));
   parts.push(ai ? `AI: ${ai.label}` : 'AI: none found yet');
+  if (s.preparing?.running) parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
+  else if (s.preparing?.total) parts.push(`Documents ready for ${s.preparing.total} new matches`);
   $('status').textContent = s.refreshing ? 'Updating jobs…' : parts.join(' · ');
+  if (s.update?.available) { $('update').hidden = false; $('updateText').textContent = `B3spoken ${s.update.version} is available (you have ${s.version}). Your setup, tracker and documents are kept.`; }
   $('problems').hidden = !s.problems.length; $('problems').textContent = s.problems.join(' ');
   return s;
 }
+
+async function update() {
+  $('updateGo').disabled = true; $('updateGo').textContent = 'Downloading and checking…';
+  try {
+    const r = await api('/api/update/install', { method: 'POST' });
+    $('updateText').textContent = r.manual ? 'Downloaded and checked. Open the release page to install it on this computer.' : `Installing ${r.version}. B3spoken will close and open again by itself in about a minute; then refresh this page.`;
+    $('updateGo').hidden = true;
+  } catch (e) { $('updateText').textContent = e.message; $('updateGo').disabled = false; $('updateGo').textContent = 'Try again'; }
+}
+
+// Keeps the status line (and document progress) current.
+setInterval(() => status().catch(() => {}), 5000);
 
 async function poll() {
   const s = await status().catch(() => null);
@@ -155,6 +170,7 @@ async function init() {
   for (const id of ['q']) $(id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => load(), 250); });
   for (const id of ['province', 'remote', 'age', 'minLabel', 'sort']) $(id).addEventListener('change', () => load());
   $('more').addEventListener('click', () => load(false));
+  $('updateGo').addEventListener('click', update);
   for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => {
     view = b.dataset.view; for (const x of document.querySelectorAll('.tabs button')) x.classList.toggle('on', x === b);
     document.querySelector('.filters').hidden = !!view; load();

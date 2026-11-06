@@ -128,3 +128,24 @@ test('one-click AI install and sign-in use each company\u2019s official installe
   assert.deepEqual(await testAi('claude', async () => 'OK'), { ok: true, answer: 'OK' });
   assert.match((await testAi('claude', async () => { throw new Error('Please run /login'); })).error, /Not signed in/);
 });
+
+test('documents are made ahead of time for Strong and Good matches from the last 3 days', async () => {
+  const dir = tmp();
+  const fresh = new Date(Date.now() - 864e5).toISOString(), old = new Date(Date.now() - 10 * 864e5).toISOString();
+  const desc = 'Python, Flask, REST APIs, pytest, Docker, PostgreSQL and GitHub Actions.';
+  const jobs = [
+    makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 1, title: 'Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/1', location: 'Vancouver, BC', postedAt: fresh, description: desc }),
+    makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 2, title: 'Software Developer II', url: 'https://boards.greenhouse.io/acme/jobs/2', location: 'Vancouver, BC', postedAt: old, description: desc }),
+    makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 3, title: 'Store Associate', url: 'https://boards.greenhouse.io/acme/jobs/3', location: 'Vancouver, BC', postedAt: fresh, description: 'Stock shelves.' }),
+  ];
+  const { gz, meta } = makePool(jobs);
+  writeFileSync(join(dir, 'pool.json.gz'), gz); writeFileSync(join(dir, 'pool-meta.json'), JSON.stringify(meta));
+  const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), allowOfflinePrep: true } });
+  app.uploadResume({ filename: 'r.docx', dataBase64: readFileSync(new URL('./fixtures/resume/sample-resume.docx', import.meta.url)).toString('base64') });
+  app.saveProfile({ targetRoles: ['Software Developer'], province: 'BC', done: true });
+  await app.refresh();
+  for (let i = 0; i < 50 && !(await app.status()).preparing?.total; i++) await new Promise(r => setTimeout(r, 20));
+  for (let i = 0; i < 200 && (await app.status()).preparing?.running; i++) await new Promise(r => setTimeout(r, 20));
+  const made = JSON.parse(readFileSync(join(dir, 'documents', 'index.json'), 'utf8'));
+  assert.deepEqual(Object.values(made).map(d => d.files.resume), ['Jordan Lee - Resume - Acme - Software Developer.pdf']); // old and unmatched jobs skipped
+});
