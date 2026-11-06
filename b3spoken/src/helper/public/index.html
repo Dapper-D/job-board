@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="b3spoken-token" content="__TOKEN__">
+<title>B3spoken</title>
+<link rel="stylesheet" href="/app.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="brand">B3spoken <span class="tag">preview</span></div>
+  <div id="status" class="status" aria-live="polite">Starting…</div>
+  <button id="refresh" type="button">Refresh</button>
+</header>
+<main>
+  <section class="filters" aria-label="Filters">
+    <input id="q" type="search" placeholder="Search titles, companies, places" aria-label="Search">
+    <select id="province" aria-label="Province">
+      <option value="">All of Canada</option>
+      <option>BC</option><option>AB</option><option>SK</option><option>MB</option><option>ON</option><option>QC</option>
+      <option>NB</option><option>NS</option><option>PE</option><option>NL</option><option>YT</option><option>NT</option><option>NU</option>
+    </select>
+    <select id="remote" aria-label="Remote">
+      <option value="yes">Include remote</option>
+      <option value="only">Remote only</option>
+      <option value="no">No remote</option>
+    </select>
+    <select id="age" aria-label="Posted">
+      <option value="0">Any date</option>
+      <option value="3">Last 3 days</option>
+      <option value="7">Last week</option>
+      <option value="30">Last 30 days</option>
+    </select>
+  </section>
+  <section class="keywords">
+    <label for="kw">Job Bank keywords (comma separated, up to 10):</label>
+    <input id="kw" type="text" placeholder="software developer, security analyst">
+    <button id="saveKw" type="button">Save</button>
+  </section>
+  <div id="problems" class="problems" hidden></div>
+  <p id="count" class="count"></p>
+  <ol id="list" class="list"></ol>
+  <button id="more" type="button" hidden>Show more</button>
+</main>
+<footer>Jobs come from employers' own hiring systems, Job Bank and job sites that allow it. Job-site listings are shown only when the same job is on the employer's own board.</footer>
+</body>
+</html>

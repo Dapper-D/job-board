@@ -57,16 +57,16 @@ async function polite(host, gapMs) {
 }
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS }) {
+function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = MAX_BYTES }) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs }, res => {
       const chunks = []; let size = 0;
       res.on('data', c => {
         size += c.length;
-        if (size > MAX_BYTES) { req.destroy(new Error('response too large')); return; }
+        if (size > maxBytes) { req.destroy(new Error('response too large')); return; }
         chunks.push(c);
       });
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8') }));
+      res.on('end', () => { const buffer = Buffer.concat(chunks); resolve({ status: res.statusCode, headers: res.headers, buffer, text: buffer.toString('utf8') }); });
       res.on('error', reject);
     });
     req.on('timeout', () => req.destroy(new Error('timed out')));
@@ -78,7 +78,7 @@ function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS }) {
 
 /**
  * request(url, { allow: ['api.lever.co'], method, json, headers, gapMs, retries })
- * Returns { status, text, json? }. Throws on network errors, refused hosts and final non-2xx.
+ * Returns { status, buffer, text, json? }. parse: 'json' | 'text' | 'buffer'; maxBytes raises the 15 MB limit. Throws on network errors, refused hosts and final non-2xx.
  */
 export async function request(url, o = {}) {
   const allow = o.allow || [];
@@ -94,7 +94,7 @@ export async function request(url, o = {}) {
     if (!hostAllowed(u.hostname, allow)) throw Object.assign(new Error(`refused host not allowed for this source: ${u.hostname}`), { code: 'EHOST', url: u.href });
     await polite(u.hostname, o.gapMs ?? 500);
     let r;
-    try { r = await once(u, { method, headers, body, timeoutMs: o.timeoutMs }); }
+    try { r = await once(u, { method, headers, body, timeoutMs: o.timeoutMs, maxBytes: o.maxBytes }); }
     catch (e) {
       if (e.code === 'EBLOCKED' || attempt >= retries) throw e;
       attempt++; await sleep(1500 * attempt); continue;
@@ -108,6 +108,7 @@ export async function request(url, o = {}) {
       attempt++; await sleep(Number.isFinite(ra) && ra > 0 ? Math.min(ra, 60) * 1000 : Math.min((r.status === 429 ? 4000 : 2000) * 2 ** (attempt - 1), 30000)); continue;
     }
     if (r.status < 200 || r.status >= 300) throw Object.assign(new Error(`HTTP ${r.status} from ${u.hostname}`), { status: r.status });
+    if (o.parse === 'buffer') return r;
     if (o.parse !== 'text') { try { r.json = JSON.parse(r.text); } catch { if (o.parse === 'json') throw new Error(`bad JSON from ${u.hostname}`); } }
     return r;
   }

@@ -30,6 +30,8 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      - name: Helper smoke test (real job pool, local server)
+        run: node scripts/helper-smoke.mjs
   live-check:
     needs: test
     runs-on: ubuntu-latest
