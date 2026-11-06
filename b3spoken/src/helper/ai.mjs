@@ -109,7 +109,9 @@ export function startInstall(provider, { spawnFn = spawn, platform = process.pla
   if (installs[provider]?.state === 'running') return installs[provider];
   const { file, args } = installCommand(provider, platform);
   const job = installs[provider] = { state: 'running', log: '', startedAt: new Date().toISOString() };
-  const child = spawnFn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  // A PSModulePath inherited from PowerShell 7 stops Windows PowerShell finding its own commands (Get-FileHash), so let it use its default.
+  const env = { ...process.env }; delete env.PSModulePath;
+  const child = spawnFn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env });
   const add = d => { job.log = (job.log + d).slice(-4000); };
   child.stdout?.on('data', add); child.stderr?.on('data', add);
   const timer = setTimeout(() => child.kill(), 10 * 60_000);
