@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { queryJobs, PROVINCES } from './jobs.mjs';
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), 'public');
-const STATIC = { '/app.js': 'text/javascript; charset=utf-8', '/app.css': 'text/css; charset=utf-8' };
+const STATIC = { '/app.js': 'text/javascript; charset=utf-8', '/app.css': 'text/css; charset=utf-8', '/setup.js': 'text/javascript; charset=utf-8' };
+const PAGES = { '/': 'index.html', '/index.html': 'index.html', '/setup': 'setup.html' };
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 const sameToken = (a, b) => { const x = Buffer.from(String(a || '')), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
@@ -38,8 +39,8 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       const url = new URL(req.url, `http://${host}`);
       if (!url.pathname.startsWith('/api/')) {
         if (req.method !== 'GET') return send(res, 405, { error: 'method not allowed' });
-        if (url.pathname === '/' || url.pathname === '/index.html') {
-          const html = readFileSync(join(PUBLIC, 'index.html'), 'utf8').replace('__TOKEN__', token);
+        if (PAGES[url.pathname]) {
+          const html = readFileSync(join(PUBLIC, PAGES[url.pathname]), 'utf8').replace('__TOKEN__', token);
           return send(res, 200, html, 'text/html; charset=utf-8', { 'content-security-policy': CSP, 'x-frame-options': 'DENY' });
         }
         if (STATIC[url.pathname]) return send(res, 200, readFileSync(join(PUBLIC, url.pathname.slice(1))), STATIC[url.pathname]);
@@ -62,6 +63,14 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/settings') return send(res, 200, app.settings());
       if (route === 'PUT /api/settings') return send(res, 200, app.saveSettings(await readBody(req)));
       if (route === 'POST /api/refresh') { const r = app.refresh(); r.catch?.(() => {}); return send(res, 202, { started: true }); }
+      // Onboarding: resume, library, roles and answers.
+      if (route === 'POST /api/resume') return send(res, 200, app.uploadResume(await readBody(req, 15e6)));
+      if (route === 'POST /api/resume/ai') return send(res, 200, await app.resumeWithAi((await readBody(req)).provider));
+      if (route === 'GET /api/library') return send(res, 200, app.library() || {});
+      if (req.method === 'PUT' && url.pathname.startsWith('/api/library/bullets/')) return send(res, 200, app.updateBullet(decodeURIComponent(url.pathname.slice('/api/library/bullets/'.length)), await readBody(req)));
+      if (route === 'POST /api/roles/check') return send(res, 200, app.checkRole((await readBody(req)).target));
+      if (route === 'GET /api/profile') return send(res, 200, app.profile());
+      if (route === 'PUT /api/profile') return send(res, 200, app.saveProfile(await readBody(req)));
       return send(res, 404, { error: 'not found' });
     } catch (e) {
       send(res, e.status || 500, { error: e.status ? e.message : 'something went wrong in the helper' });

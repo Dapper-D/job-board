@@ -63,6 +63,8 @@ async function poll() {
 }
 
 async function init() {
+  const prof = await api('/api/profile');
+  if (!prof.done) { location.href = '/setup'; return; }
   const s = await api('/api/settings');
   $('kw').value = s.keywords.join(', ');
   $('province').value = s.province; $('remote').value = s.remote;

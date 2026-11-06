@@ -6,19 +6,21 @@
 // Safety: the prompt goes in on stdin, never on the command line; the command and its flags are fixed;
 // each run happens in an empty folder with file-changing and web tools turned off.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, delimiter } from 'node:path';
 
 export const PROVIDERS = {
   codex: {
     label: 'ChatGPT (Codex)', bin: 'codex', versionArgs: ['--version'],
-    askArgs: ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', '-'],
+    // Read-only sandbox, none of the user's own config or rules, nothing saved, answer written to a file.
+    askArgs: ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '--ignore-rules', '--color', 'never', '-o', '{OUT}', '-'],
     install: 'npm install -g @openai/codex, then run `codex` once and sign in with ChatGPT',
   },
   claude: {
     label: 'Claude (Claude Code)', bin: 'claude', versionArgs: ['--version'],
-    askArgs: ['-p', '--output-format', 'text', '--disallowedTools', 'Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch'],
+    // No tools at all, no MCP servers, no skills or slash commands, no settings from the user, nothing saved.
+    askArgs: ['-p', '--output-format', 'text', '--tools', '', '--strict-mcp-config', '--disable-slash-commands', '--setting-sources', 'project', '--no-session-persistence'],
     install: 'npm install -g @anthropic-ai/claude-code, then run `claude` once and sign in with Claude',
   },
 };
@@ -37,7 +39,8 @@ function run(file, args, { input = '', cwd, timeoutMs = 120_000 } = {}) {
   return new Promise(resolve => {
     // Windows .cmd shims can only start through the shell; the arguments are our fixed list, never user text.
     const shell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(file);
-    const child = spawn(shell ? `"${file}"` : file, args, { cwd, shell, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    // Through the shell every argument is quoted (they are fixed strings without quotes, so this is safe; it keeps '' as an empty argument).
+    const child = spawn(shell ? `"${file}"` : file, shell ? args.map(a => `"${a}"`) : args, { cwd, shell, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '', err = '';
     const timer = setTimeout(() => child.kill(), timeoutMs);
     child.stdout.on('data', d => { out += d; if (out.length > 2e6) child.kill(); });
@@ -66,8 +69,9 @@ export async function ask(provider, prompt, { timeoutMs = 180_000 } = {}) {
   if (!path) throw new Error(`${p.label} isn't installed: ${p.install}`);
   const dir = mkdtempSync(join(tmpdir(), 'b3spoken-ai-'));
   try {
-    const r = await run(path, p.askArgs, { input: prompt, cwd: dir, timeoutMs });
+    const outFile = join(dir, 'answer.txt');
+    const r = await run(path, p.askArgs.map(a => (a === '{OUT}' ? outFile : a)), { input: prompt, cwd: dir, timeoutMs });
     if (r.code !== 0) throw new Error(`${p.label} stopped with an error: ${(r.err || r.out).trim().slice(0, 300)}`);
-    return r.out.trim();
+    return (existsSync(outFile) ? readFileSync(outFile, 'utf8') : r.out).trim();
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

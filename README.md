@@ -182,7 +182,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Daily shared scan publishing the job pool ([job-pool release](https://github.com/Dapper-D/job-board/releases/tag/job-pool)) | Done; runs every morning from `main` |
 | Not covered: Dayforce (behind a bot check), Meta (no public feed), Taleo Business Edition, older iCIMS sites, classic hosted sapsf.com sites | Left out on purpose or for later |
 | Helper (step 3): opens the board at http://127.0.0.1, downloads the daily pool and checks its size and SHA-256 before using it, runs Job Bank on the person's computer (last 3 days, at most every 6 hours), merges duplicates, finds ChatGPT (Codex) or Claude (Claude Code) | Done, tested on Windows, Mac and Linux, with a smoke test against the real pool; asking the AI is wired but not yet tried with real accounts |
-| Onboarding, matching and tailoring, the full board, Windows installer | Next |
+| Onboarding (step 4): pick an AI; upload a resume (PDF, Word or pasted text, read on the person's computer with no outside libraries); resume library with an ID for every line; optional AI pass where anything not in the resume word for word is flagged until the person checks it; roles the resume supports, a warning for far targets, related and niche roles as toggles; pay floor and goal (each per hour or per year), province, cities, remote, work authorization, start date, missing skills, industries to avoid | Done, tested; tried end to end in a browser with a real Claude Code pass |
+| Matching and tailoring, the full board, Windows installer | Next |
 
 Run it yourself (Node 22 or newer):
 
