@@ -69,6 +69,8 @@ export default {
   fromUrl() { return null; }, // branded hosts: found from page contents in discovery
   async fetchJobs(t) {
     const base = `https://${t.host}${t.path || ''}`;
+    // Big global sites: ask the site for Canadian jobs only (locationsearch), so the page limit isn't spent on other countries.
+    const where = t.locationsearch ? `&locationsearch=${encodeURIComponent(t.locationsearch)}` : '';
     // The site may redirect to another host of the same employer (jobs.alberta.ca -> www.alberta.ca).
     const labels = t.host.split('.');
     const site = labels.slice(/^(gc|co|com|gov)$/.test(labels.at(-2)) ? -3 : -2).join('.');
@@ -77,7 +79,7 @@ export default {
     let out = [];
     const tileIds = new Set();
     for (let p = 0, row = 0; p < MAX_TILE_PAGES; p++) {
-      const r = await request(`${base}/tile-search-results/?q=&sortColumn=referencedate&sortDirection=desc&startrow=${row}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 });
+      const r = await request(`${base}/tile-search-results/?q=${where}&sortColumn=referencedate&sortDirection=desc&startrow=${row}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 });
       // Some sites ignore startrow and send the same page again: stop as soon as a page adds nothing new.
       const fresh = parseTiles(r.text, base).filter(j => !tileIds.has(j.id));
       if (!fresh.length) break;
@@ -90,7 +92,7 @@ export default {
     const rows = [], rowIds = new Set();
     for (let p = 0; p < MAX_SEARCH_PAGES; p++) {
       let r;
-      try { r = await request(`${base}/search/?q=&sortColumn=referencedate&sortDirection=desc&startrow=${rows.length}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 }); }
+      try { r = await request(`${base}/search/?q=${where}&sortColumn=referencedate&sortDirection=desc&startrow=${rows.length}`, { allow, parse: 'text', accept: 'text/html', gapMs: 500 }); }
       catch (e) { if (p === 0) break; throw e; }
       const fresh = parseSearchRows(r.text, base).filter(j => !rowIds.has(j.id));
       if (!fresh.length) break;

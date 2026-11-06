@@ -2329,7 +2329,8 @@
       "source": "successfactors",
       "target": {
         "host": "careers.apotex.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2435,7 +2436,8 @@
       "source": "successfactors",
       "target": {
         "host": "careers.celestica.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2531,7 +2533,8 @@
       "source": "successfactors",
       "target": {
         "host": "careers.ey.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2550,7 +2553,8 @@
       "source": "successfactors",
       "target": {
         "host": "jobs.hatch.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2668,7 +2672,8 @@
       "source": "successfactors",
       "target": {
         "host": "careers.pwc.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2687,7 +2692,8 @@
       "source": "successfactors",
       "target": {
         "host": "jobs.scotiabank.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page read in a browser"
     },
@@ -2733,7 +2739,8 @@
       "source": "successfactors",
       "target": {
         "host": "jobs.aecon.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page link"
     },
@@ -2752,7 +2759,8 @@
       "source": "successfactors",
       "target": {
         "host": "jobs.canfor.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page link"
     },
@@ -2787,7 +2795,8 @@
       "source": "successfactors",
       "target": {
         "host": "careers.sap.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page link"
     },
@@ -2796,9 +2805,29 @@
       "source": "successfactors",
       "target": {
         "host": "jobs.sephora.com",
-        "path": ""
+        "path": "",
+        "locationsearch": "Canada"
       },
       "found": "careers page link"
+    },
+    {
+      "name": "PwC Canada",
+      "source": "phenom",
+      "target": {
+        "host": "jobs-ca.pwc.com",
+        "prefix": "ca/en"
+      },
+      "found": "link on https://www.pwc.com/ca/en/careers.html"
+    },
+    {
+      "name": "Government of Alberta",
+      "source": "successfactors",
+      "target": {
+        "host": "jobpostings.alberta.ca",
+        "path": ""
+      },
+      "found": "link on https://jobs.alberta.ca/",
+      "canadaOnly": true
     }
   ]
 }
