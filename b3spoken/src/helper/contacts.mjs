@@ -13,11 +13,14 @@ import { readAsset } from './assets.mjs';
 
 const ATS = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs\.com|myworkdaysite\.com|smartrecruiters\.com|workable\.com|bamboohr\.com|breezy\.hr|pinpointhq\.com|teamtailor\.com|oraclecloud\.com|eightfold\.ai|icims\.com|successfactors\.(com|eu)|sapsf\.(com|eu)|taleo\.net|jobvite\.com|rippling\.com|rippling-ats\.com|jobbank\.gc\.ca|himalayas\.app|remotive\.com|remoteok\.com|jobicy\.com|amazon\.jobs|google\.com|apple\.com)$/i;
 const ROLE = /^(careers?|jobs?|recruit(ing|ment|er)?s?|talent(acquisition)?|hiring|hr|people|humanresources|join(us)?|work(withus)?|apply|emplois?|carrieres?)$/i;
+const HIRING = /career|recruit|talent|hiring|\bhr\b|^hr|people|jobs?\b|^jobs|emploi|carriere|humanresources|staffing/i;
 const JUNK = /^(no-?reply|donotreply|privacy|abuse|postmaster|webmaster|security|support|sales|press|media|info|hello|contact|accessibility|legal|billing|marketing|investors?)$/i;
 
 export function emailsIn(text) {
   const out = new Set();
-  for (const m of String(text || '').matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}/g)) {
+  // Pages often embed JSON with \u003e-style escapes right before an address; turn those back into characters first.
+  const clean = String(text || '').replace(/\\?u00([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  for (const m of clean.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}/g)) {
     const e = m[0].replace(/\.$/, '').toLowerCase();
     if (/\.(png|jpe?g|gif|svg|webp)$/.test(e) || /@(example|sentry|wixpress|domain)\./.test(e)) continue;
     out.add(e);
@@ -57,7 +60,8 @@ export async function findContacts(job, { hunterKey = '', get = request, robots 
       try {
         if (!(await robots(url, allow))) continue;
         const r = await get(url, { allow, parse: 'text', accept: 'text/html', retries: 0, gapMs: 1000, timeoutMs: 15_000 });
-        for (const e of emailsIn(r.text)) if (e.endsWith(`@${domain}`) || e.endsWith(`.${domain}`)) add({ email: e, source: `${domain}${path === '/' ? '' : path}` });
+        // From the website, only hiring inboxes (careers@, recruiting@, talent@, hr@…), not sales or support addresses.
+        for (const e of emailsIn(r.text)) if ((e.endsWith(`@${domain}`) || e.endsWith(`.${domain}`)) && HIRING.test(e.split('@')[0])) add({ email: e, source: `${domain}${path === '/' ? '' : path}` });
       } catch (e) { log(`contacts: ${url} ${e.message}`); }
     }
     if (hunterKey) {
@@ -67,7 +71,7 @@ export async function findContacts(job, { hunterKey = '', get = request, robots 
           if (!h.value) continue;
           const name = [h.first_name, h.last_name].filter(Boolean).join(' ');
           const hr = /recruit|talent|human|people|hr|hiring/i.test(`${h.position || ''} ${h.department || ''}`);
-          if (h.type === 'personal' && !hr) continue; // only people who hire, not everyone at the company
+          if (h.type === 'personal' ? !hr : !HIRING.test(h.value.split('@')[0])) continue; // only people who hire, and hiring inboxes
           add({ email: h.value.toLowerCase(), name, position: h.position || '', confidence: h.confidence || 0, source: 'Hunter.io' });
         }
       } catch (e) { log(`contacts: Hunter.io ${e.message}`); }

@@ -193,7 +193,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | Updates: the board offers newer versions; the update is downloaded, checked against the release key and its SHA-256, installed silently and B3spoken reopens; your setup, tracker and documents are kept | Done, tested; checked against the real releases on GitHub |
 | Recruiter contacts per job: emails published in the posting or on the employer's own pages (robots.txt respected, same domain only), plus Hunter.io with the person's own key (recruiting and HR people only); never LinkedIn, guessing or mail-server checks. A draft email from their own lines, which they copy or open in their own email app; nothing is sent | Done, tested |
 | Import from the Job Hunt Kit: setup finds the kit folder (Desktop, Documents, home) and brings over the resume library (with its check flags), answers, AI choice and tracked jobs; the kit folder is only read | Done, tested |
-| Later: Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe | Not started |
+| Mac and Linux: one-file apps (Mac zip for Apple silicon, Linux tar.gz) built and tested on every push, included and signed in each release | Done; Mac app isn't notarized yet (needs a paid Apple developer account), so Mac asks once before opening it |
+| Later: Google Drive sync and phone view, code-signing the .exe | Not started |
 
 Run it yourself (Node 22 or newer):
 

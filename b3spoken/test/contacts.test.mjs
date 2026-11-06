@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { emailsIn, employerDomain, findContacts, draftEmail } from '../src/helper/contacts.mjs';
 
 test('emails: found in text; images and placeholders ignored', () => {
-  assert.deepEqual(emailsIn('Send to Careers@Acme.ca or jane.doe@acme.ca. logo@2x.png, test@example.com'), ['careers@acme.ca', 'jane.doe@acme.ca']);
+  assert.deepEqual(emailsIn('Send to Careers@Acme.ca or jane.doe@acme.ca. logo@2x.png, test@example.com \\u003ejobs@acme.ca'), ['careers@acme.ca', 'jane.doe@acme.ca', 'jobs@acme.ca']);
 });
 
 test('employer domain: from our list, or from a posting on the employer’s own site, never from a hiring system', () => {
@@ -13,7 +13,7 @@ test('employer domain: from our list, or from a posting on the employer’s own 
 });
 
 test('contacts: posting first, then the employer’s own pages (robots.txt respected), then Hunter.io; no guessing', async () => {
-  const pages = { 'https://www.tinyco.ca/careers': 'Questions? talent@tinyco.ca or someone@gmail.com', 'https://www.tinyco.ca/contact': 'privacy@tinyco.ca hr@tinyco.ca' };
+  const pages = { 'https://www.tinyco.ca/careers': 'Questions? talent@tinyco.ca or someone@gmail.com or plus@tinyco.ca', 'https://www.tinyco.ca/contact': 'privacy@tinyco.ca hr@tinyco.ca' };
   const asked = [];
   const get = async (url, o) => {
     asked.push(url);
@@ -31,7 +31,7 @@ test('contacts: posting first, then the employer’s own pages (robots.txt respe
   const emails = r.contacts.map(c => c.email);
   assert.deepEqual(emails.slice(0, 1), ['jobs@tinyco.ca']); // from the posting, ranked first
   for (const e of ['talent@tinyco.ca', 'hr@tinyco.ca', 'pat.lee@tinyco.ca']) assert.ok(emails.includes(e), e);
-  for (const e of ['someone@gmail.com', 'privacy@tinyco.ca', 'ceo@tinyco.ca']) assert.ok(!emails.includes(e), e); // other domains, non-hiring inboxes, non-recruiters
+  for (const e of ['someone@gmail.com', 'privacy@tinyco.ca', 'ceo@tinyco.ca', 'plus@tinyco.ca']) assert.ok(!emails.includes(e), e); // other domains, non-hiring inboxes, non-recruiters
   assert.ok(!asked.includes('https://www.tinyco.ca/about')); // robots.txt said no
   assert.ok(!asked.some(u => /linkedin/.test(u)));
   const none = await findContacts({ company: 'Tiny Co', url: 'https://careers.tinyco.ca/job/1', description: '' }, { get, robots });
