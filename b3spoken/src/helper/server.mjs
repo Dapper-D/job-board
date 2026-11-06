@@ -55,6 +55,9 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
         const province = PROVINCES.includes(p.province) ? p.province : '';
         return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 3, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: ['tracked', 'due'].includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' }));
       }
+      const conM = url.pathname.match(/^\/api\/jobs\/(.+)\/contacts$/);
+      if (conM && req.method === 'POST') return send(res, 200, await app.contacts(decodeURIComponent(conM[1]), { refresh: (await readBody(req)).refresh === true }));
+      if (route === 'PUT /api/hunter-key') return send(res, 200, app.saveHunterKey((await readBody(req)).key));
       const prepM = url.pathname.match(/^\/api\/jobs\/(.+)\/prep$/);
       if (prepM && req.method === 'POST') return send(res, 200, await app.prep(decodeURIComponent(prepM[1])));
       const docs = url.pathname.match(/^\/api\/jobs\/(.+)\/documents(?:\/(resume|letter))?$/);

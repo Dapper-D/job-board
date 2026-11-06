@@ -21,6 +21,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { makeContext, scoreJob } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
 import { VERSION } from './version.mjs';
+import { findContacts, draftEmail } from './contacts.mjs';
 import { checkForUpdate, downloadUpdate, runInstaller } from './updater.mjs';
 import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
@@ -200,8 +201,31 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return buildPrep(lib, job, scoredJobs().find(j => j.id === id)?.match || null, ob.profile(), { extraQuestions: extra });
   }
 
+  // Recruiter contacts (published emails only; Hunter.io with the person's own key) and a draft to send themselves.
+  const secretsFile = join(dir, 'secrets.json');
+  async function contacts(id, { refresh: again = false } = {}) {
+    const job = byId.get(id); if (!job) throw err(404, 'no such job');
+    const cacheFile = join(dir, 'contacts.json');
+    const cache = readJson(cacheFile, {});
+    let found = !again && cache[id];
+    if (!found) {
+      found = await (deps.findContacts || findContacts)(job, { hunterKey: readJson(secretsFile, {}).hunterKey || '', log });
+      cache[id] = { ...found, at: new Date().toISOString() }; writeJson(cacheFile, cache);
+    }
+    const lib = ob.library();
+    const plan = lib?.entries ? planResume(lib, job) : null;
+    return { ...found, hunter: !!readJson(secretsFile, {}).hunterKey, draft: draftEmail({ name: lib?.contact?.name || '', contact: lib?.contact?.lines || [] }, job, plan, found.contacts?.[0]) };
+  }
+  function saveHunterKey(key) {
+    const k = String(key || '').trim();
+    if (k && !/^[A-Za-z0-9]{20,80}$/.test(k)) throw err(400, 'That doesn’t look like a Hunter.io API key.');
+    const sec = readJson(secretsFile, {}); if (k) sec.hunterKey = k; else delete sec.hunterKey;
+    writeJson(secretsFile, sec);
+    return { hunter: !!k };
+  }
+
   return {
-    refresh, makeDocuments, documentFile, paste, prep, prepareAll, checkUpdate, installUpdate,
+    refresh, makeDocuments, documentFile, paste, prep, prepareAll, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
     aiInstallStatus: () => installStatus(),

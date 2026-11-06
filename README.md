@@ -191,7 +191,8 @@ A future subscription charges for the service, not the app: the shared scan and 
 | One-click AI setup: Install it for me (each company's official installer, no admin rights), Sign in (opens the tool's own sign-in), Check it works | Done; both installers tested on a clean Windows machine in GitHub Actions; sign-in needs a person |
 | Documents ready in advance: after each refresh, a resume and cover letter for every Strong and Good match from the last 3 days (your AI picks the order for the best 12); the board shows progress | Done, tested |
 | Updates: the board offers newer versions; the update is downloaded, checked against the release key and its SHA-256, installed silently and B3spoken reopens; your setup, tracker and documents are kept | Done, tested; checked against the real releases on GitHub |
-| Later: recruiter contacts, Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
+| Recruiter contacts per job: emails published in the posting or on the employer's own pages (robots.txt respected, same domain only), plus Hunter.io with the person's own key (recruiting and HR people only); never LinkedIn, guessing or mail-server checks. A draft email from their own lines, which they copy or open in their own email app; nothing is sent | Done, tested |
+| Later: Google Drive sync and phone view, Mac and Linux installers, code-signing the .exe, moving old kit users over | Not started |
 
 Run it yourself (Node 22 or newer):
 

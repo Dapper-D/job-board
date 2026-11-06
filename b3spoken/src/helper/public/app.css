@@ -92,3 +92,5 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .aiact p.note { flex: 1 1 100%; margin: 2px 0 0; }
 .update { background: var(--accent); color: #fff; padding: 8px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
 .update button.primary { background: #fff; color: var(--accent); border-color: #fff; }
+.prep input:not([type]), .prep input[type=password] { width: 100%; margin: 4px 0; }
+.prep a.link { color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-size: 12px; text-decoration: none; font-weight: 600; }

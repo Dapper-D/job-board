@@ -78,10 +78,19 @@ function card(j) {
     catch (e) { prepBox.hidden = false; prepBox.replaceChildren(el('p', 'problems', e.message)); }
     finally { prepBtn.disabled = false; prepBtn.textContent = 'Interview prep'; }
   });
-  row.append(make, files, prepBtn);
+  const conBtn = el('button', 'small', 'Recruiter contacts'); conBtn.type = 'button';
+  const conBox = el('div', 'prep'); conBox.hidden = true;
+  const loadContacts = async (again = false) => {
+    conBtn.disabled = true; conBtn.textContent = 'Looking…';
+    try { drawContacts(conBox, j, await api(`/api/jobs/${encodeURIComponent(j.id)}/contacts`, { method: 'POST', body: JSON.stringify({ refresh: again }) }), loadContacts); conBox.hidden = false; }
+    catch (e) { conBox.hidden = false; conBox.replaceChildren(el('p', 'problems', e.message)); }
+    finally { conBtn.disabled = false; conBtn.textContent = 'Recruiter contacts'; }
+  };
+  conBtn.addEventListener('click', () => { if (!conBox.hidden) { conBox.hidden = true; return; } loadContacts(); });
+  row.append(make, files, prepBtn, conBtn);
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
-  li.append(row, prepBox, trackerControls(j));
+  li.append(row, prepBox, conBox, trackerControls(j));
   return li;
 }
 
@@ -100,6 +109,40 @@ function showFiles(box, jobId, d) {
     b.addEventListener('click', () => download(jobId, kind, d.files[kind]));
     box.append(b);
   }
+}
+
+function drawContacts(box, j, r, again) {
+  box.replaceChildren();
+  box.append(el('h3', null, 'Who to contact'));
+  if (!r.contacts.length) box.append(el('p', 'tip', r.domain ? `No hiring emails are published in the posting or on ${r.domain}.${r.hunter ? '' : ' Adding a Hunter.io key (below) can find more.'}` : 'No hiring emails are published in the posting, and B3spoken doesn’t know this employer’s website.'));
+  const ul = el('ul', 'lines');
+  for (const c of r.contacts) {
+    const li = el('li');
+    li.append(el('strong', null, c.email), el('em', null, ` ${[c.name, c.position].filter(Boolean).join(', ')} (from ${c.source}${c.confidence ? `, ${c.confidence}% sure` : ''})`));
+    ul.append(li);
+  }
+  box.append(ul);
+  box.append(el('h3', null, 'Draft email (you review and send it)'));
+  const subj = el('input'); subj.value = r.draft.subject; subj.setAttribute('aria-label', 'Subject');
+  const body = el('textarea'); body.rows = 9; body.value = r.draft.body; body.setAttribute('aria-label', 'Email');
+  box.append(subj, body);
+  const row = el('div', 'row');
+  const copy = el('button', 'small', 'Copy email'); copy.type = 'button';
+  copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`Subject: ${subj.value}\n\n${body.value}`); copy.textContent = 'Copied'; } catch { body.select(); } });
+  row.append(copy);
+  if (r.contacts[0]) {
+    const a = el('a', 'small link', 'Open in my email app');
+    const set = () => { a.href = `mailto:${encodeURIComponent(r.contacts[0].email)}?subject=${encodeURIComponent(subj.value)}&body=${encodeURIComponent(body.value)}`; };
+    set(); subj.addEventListener('input', set); body.addEventListener('input', set);
+    row.append(a);
+  }
+  const redo = el('button', 'small', 'Look again'); redo.type = 'button'; redo.addEventListener('click', () => again(true)); row.append(redo);
+  box.append(row);
+  const hk = el('details'); hk.append(el('summary', null, r.hunter ? 'Hunter.io key saved' : 'Find more with your own Hunter.io key'));
+  const key = el('input'); key.type = 'password'; key.placeholder = 'Hunter.io API key (free account at hunter.io)'; key.setAttribute('aria-label', 'Hunter.io API key');
+  const save = el('button', 'small', r.hunter ? 'Replace key' : 'Save key'); save.type = 'button';
+  save.addEventListener('click', async () => { try { await api('/api/hunter-key', { method: 'PUT', body: JSON.stringify({ key: key.value }) }); again(true); } catch (e) { save.textContent = e.message; } });
+  hk.append(key, save); box.append(hk);
 }
 
 function drawPrep(box, p) {
