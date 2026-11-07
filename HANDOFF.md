@@ -27,7 +27,7 @@ The original personal job board: runs on his own computer, scans with career-ops
 To help him set it up again on a new computer: follow `main`'s README Setup section with him step by step. His kit data (config.json, data/, resume library, tracker) stays in his local kit folder; B3spoken can import it (see below).
 
 ### 2. B3spoken (`b3spoken` branch, folder `b3spoken/`)
-The product that replaces the kit: a desktop helper that opens a job board on localhost, free for now (a paid subscription for the shared scan may come later; what's free vs paid is still to be decided). Zero dependencies, Node 22, `cd b3spoken && npm test` (69 tests). Key parts:
+The product that replaces the kit: a desktop helper that opens a job board on localhost, free for now (a paid subscription for the shared scan may come later; what's free vs paid is still to be decided). Zero dependencies, Node 22, `cd b3spoken && npm test` (70 tests). Key parts:
 - `src/scan/`: scanners for 21 hiring systems plus Remotive, Remote OK, Jobicy, Himalayas and Job Bank (Job Bank runs on the person's computer, last 3 days). Employer list in `catalog/employers.json` (~315), seeds in `catalog/seeds.json`. Sources and their terms in `SOURCES.md`.
 - Daily pool: `.github/workflows/b3spoken-daily.yml` (on main, 10:23 UTC) builds `pool.json.gz` and publishes it to the `job-pool` pre-release.
 - `src/helper/`: the app (server on 127.0.0.1 with a per-run token, setup, scoring, tailored one-page PDFs with no metadata, cover letters, interview prep, recruiter contacts, tracker, paste-a-link, documents prepared in advance, one-click Claude Code/Codex install and sign-in, signed self-updates, import from the old kit).
@@ -36,14 +36,31 @@ The product that replaces the kit: a desktop helper that opens a job board on lo
 - **Releases:** tag `b3spoken-vX.Y.Z` (must equal `b3spoken/package.json` version and `src/helper/version.mjs`). Only Oladapo can push these tags (ruleset). The run builds and tests everything, then waits for **his** approval on the `release` environment before signing and publishing. He pushes tags from `C:\Users\olada\b3-release`: `git fetch origin`, `git tag b3spoken-vX.Y.Z origin/b3spoken`, `git push origin b3spoken-vX.Y.Z`. Always remind him to fetch first.
 - Published so far: 0.1.0, 0.1.1, 0.1.2. **0.1.3 is ready but not yet tagged**; it's the first with the update button, so it's the last one he installs by hand.
 
-## Where things stand (as of 2026-11-07)
+## Where things stand (as of 2026-11-07, 11:00 Pacific)
 
 Waiting on Oladapo:
-- Tag and approve **b3spoken-v0.1.3**, install it over 0.1.2 (his setup is kept), then test with his real resume: Claude Code/Codex sign-in buttons, Job Bank from his home connection, scores, PDFs.
+- Tag and approve **b3spoken-v0.1.3** (it now also carries the source package and the new setup scripts), install it over 0.1.2 (his setup is kept), then test with his real resume: Claude Code/Codex sign-in buttons, Job Bank from his home connection, scores, PDFs.
+- Tell us whether the kit's `setup.ps1` runs with the Unblock/Bypass steps, and whether his tester now gets B3spoken.
 - Decide: Google Drive sync and phone view (needs a Google Cloud sign-in app in his name), Windows code signing (paid certificate) and Mac notarization (Apple developer account), and which friends test first.
 - Earlier to-dos: check domains for the product name (reminder set for Nov 12 on the old account), Gmail sign-in idea (reminder Dec 3).
 
 Not done yet: Metro (classic hosted sapsf.com site), Microsoft rate limits, Dayforce and Meta are left out on purpose (bot check / no public feed), Chrome built-in AI isn't used for tailoring yet, recruiter contacts mostly need his own Hunter.io key.
+
+## Latest conversation (2026-11-07), in order
+
+1. **Handoff.** He's moving to another Claude account. A word-for-word transcript export wasn't possible, so this file was written instead and covers both projects.
+2. **Kit `setup.ps1` closed straight away on his computer** (a window flashed and shut, with no logs). Cause: Windows blocked the script before it ran (downloaded-file block or script policy). Setup itself always waits with "Press Enter to close", and its `logs` folder is only created once `app/setup.mjs` starts. Fix given: open PowerShell in the kit folder (type `powershell` in File Explorer's address bar), run `Get-ChildItem -Recurse | Unblock-File`, then `powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1`. Any error then stays on screen. He wants to test **both** the kit and B3spoken; he hasn't said yet whether that worked.
+3. **A tester saw the old board after "installing B3spoken" and running `setup.ps1`.** Cause: the `b3spoken` branch still had the kit's root `setup.ps1` and `setup.sh`, inherited from `main`. Testers want to see every file that goes onto their computer, so a source install has to work and shipping only an .exe isn't enough. Fixed on `b3spoken` only:
+   - root `setup.ps1` / `setup.sh` now install B3spoken from source: Node 22 check, a Start menu shortcut running `node b3spoken/src/helper/main.mjs`, then start the app;
+   - `uninstall.ps1` / `uninstall.sh` were added, and `update-kit.ps1` / `update-kit.sh` removed;
+   - releases now include a signed `B3spoken-source-X.tar.gz`, and source installs update themselves from it;
+   - the README opens with install steps;
+   - Windows CI tests `setup.ps1` and `uninstall.ps1`.
+
+   The tester should run `node app\uninstall.mjs` in his old download if he wants the kit's shortcut and daily refresh gone, then re-download the branch, or 0.1.3's source package, and run the new `setup.ps1`.
+4. **"B3spoken releases are missing."** They aren't: 0.1.0 to 0.1.2 are pre-releases. The repo's Releases sidebar only shows the release GitHub marks Latest (kit v2.2.0). Always give testers the direct link: https://github.com/Dapper-D/job-board/releases?q=b3spoken&expanded=true. Don't mark a B3spoken release as Latest, because the kit's own updater may rely on Latest.
+5. **He said not to touch `main`.** Everything above is on `b3spoken`. An optional line in main's README pointing testers to B3spoken was suggested but **not** made; only add it if he asks.
+6. **Ideas still waiting on his yes:** B3spoken noticing a running old kit (port 4777) and offering to import it and switch it off.
 
 ## Things that stayed on the old Claude account
 
@@ -56,5 +73,5 @@ These don't move with the repo; ask him to bring them over if he wants them:
 ## How to start
 
 1. Attach the repo, check out `b3spoken`, read this file and `README.md`, run `cd b3spoken && npm test`.
-2. Ask him where he is: has he tagged 0.1.3 and tried it? Fix what he reports first.
+2. Ask him where he is: has he tagged 0.1.3 and tried it? Did the kit setup and the tester's B3spoken install work? Fix what he reports first.
 3. Keep the same style: say what you're about to do, do it, then leave a short note of what worked, what didn't, and what's next.
