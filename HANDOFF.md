@@ -46,12 +46,16 @@ The product that replaces the kit: a desktop helper that opens a job board on lo
 - AI tailoring was tested end to end with Claude Code and his real resume (Affirm SWE I): the AI's draft passed the honesty check, and the resume and letter each came out on one page.
 - To release, he runs `git fetch origin` and `git tag b3spoken-v0.1.4 origin/b3spoken`, pushes the tag, then approves the release environment. 0.1.3 installs then update themselves.
 
+Also done, in 0.1.4:
+- Carlito is embedded as a subset (about 50 KB per PDF). PDF details carry only the title and the person's name as author.
+- Project addresses in headings are clickable.
+- AI traps are flagged on the board and blocked in every AI draft. As he asked, "don't use AI" requests are ignored.
+- Writing help: LinkedIn note, interview debrief, negotiation plan and offer review (`src/helper/tailor/drafts.mjs`, `POST /api/jobs/<id>/draft`).
+- All of it was tested in a real browser with Claude Code. There are 83 tests.
+
 Still to do:
-- Embed Carlito, replacing Helvetica.
-- Optional Author/Title metadata.
-- AI-trap and "no AI" detection (the kit has it; B3spoken doesn't).
-- The kit's one-click drafts: follow-up, thank-you, LinkedIn note, debrief, negotiation, offer review.
 - The interview story bank.
+- A follow-up email or thank-you note in Writing help, if he wants them; the recruiter-contacts draft covers the first email.
 
 ## Where things stand (as of 2026-11-07, 11:00 Pacific)
 

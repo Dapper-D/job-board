@@ -52,6 +52,10 @@ function card(j) {
   if (j.postedAt) meta.append(el('span', null, ago(j.postedAt)));
   if (j.salary) meta.append(el('span', null, j.salary));
   li.append(meta);
+  if (j.aiTrap) {
+    const t = el('p', 'trap', `AI trap in this posting: “${j.aiTrap.instruction}” B3spoken won’t follow it${j.aiTrap.phrases.length ? `, and nothing it writes will use “${j.aiTrap.phrases.join('”, “')}”` : ''}. If you write anything yourself, don’t follow it either.`);
+    li.append(t);
+  }
   if (j.match?.reasons?.length) li.append(el('p', 'reasons', j.match.reasons.join(' · ')));
   else if (j.snippet) li.append(el('p', 'snippet', j.snippet + (j.snippet.length >= 280 ? '…' : '')));
   const row = el('div', 'row');
@@ -61,6 +65,7 @@ function card(j) {
   else if (j.employerVerified !== false) row.append(el('span', 'badge ok', 'On the employer’s own site'));
   else if (j.employerUrl) row.append(el('span', 'badge ok', 'Confirmed on the employer’s site'));
   if (j.via) row.append(el('span', 'badge', `via ${j.via}`));
+  if (j.aiTrap) row.append(el('span', 'badge bad', 'AI trap'));
   const make = el('button', 'small', 'Make my resume and cover letter'); make.type = 'button';
   const files = el('span', 'files');
   make.addEventListener('click', async () => {
@@ -87,10 +92,16 @@ function card(j) {
     finally { conBtn.disabled = false; conBtn.textContent = 'Recruiter contacts'; }
   };
   conBtn.addEventListener('click', () => { if (!conBox.hidden) { conBox.hidden = true; return; } loadContacts(); });
-  row.append(make, files, prepBtn, conBtn);
+  const helpBtn = el('button', 'small', 'Writing help'); helpBtn.type = 'button';
+  const helpBox = el('div', 'prep drafts'); helpBox.hidden = true;
+  helpBtn.addEventListener('click', async () => {
+    if (!helpBox.hidden) { helpBox.hidden = true; return; }
+    helpBox.hidden = false; await drawDrafts(helpBox, j);
+  });
+  row.append(make, files, prepBtn, conBtn, helpBtn);
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
-  li.append(row, prepBox, conBox, trackerControls(j));
+  li.append(row, prepBox, conBox, helpBox, trackerControls(j));
   return li;
 }
 
@@ -143,6 +154,53 @@ function drawContacts(box, j, r, again) {
   const save = el('button', 'small', r.hunter ? 'Replace key' : 'Save key'); save.type = 'button';
   save.addEventListener('click', async () => { try { await api('/api/hunter-key', { method: 'PUT', body: JSON.stringify({ key: key.value }) }); again(true); } catch (e) { save.textContent = e.message; } });
   hk.append(key, save); box.append(hk);
+}
+
+// Writing help: the person's own AI drafts these from their real resume, their answers and the posting.
+const TOOLS = [
+  { kind: 'linkedin', label: 'LinkedIn note', inputs: [['name', 'text', 'Their name (optional)'], ['role', 'select', ['Recruiter', 'Hiring manager', 'Engineer on the team', 'Alum of my school at the company']]] },
+  { kind: 'debrief', label: 'Interview debrief', when: s => ['interview', 'offer', 'rejected'].includes(s), inputs: [['notes', 'textarea', 'How did it go? Questions they asked, what went well, what didn’t, who you met.']] },
+  { kind: 'negotiate', label: 'Negotiation plan', when: s => ['interview', 'offer'].includes(s), inputs: [['offer', 'text', 'Offer, e.g. $95,000 base + 10% bonus'], ['other', 'text', 'Anything else (competing offer, start date)']] },
+  { kind: 'offer', label: 'Offer letter review', when: s => s === 'offer', inputs: [['text', 'textarea', 'Paste the offer letter text here.']] },
+];
+async function drawDrafts(box, j) {
+  box.replaceChildren(el('h3', null, 'Writing help (uses your AI)'));
+  const saved = await api(`/api/jobs/${encodeURIComponent(j.id)}/drafts`).catch(() => ({}));
+  const status = j.track?.status || '';
+  const shown = TOOLS.filter(t => !t.when || t.when(status));
+  const hidden = TOOLS.filter(t => t.when && !t.when(status));
+  if (hidden.length) box.append(el('p', 'tip', `More appear as you move this job along: ${hidden.map(t => t.label).join(', ')} (set the status to Interview or Offer).`));
+  const bar = el('div', 'toolbar'), area = el('div'); box.append(bar, area);
+  const open = t => {
+    for (const b of bar.children) b.classList.toggle('on', b.dataset.kind === t.kind);
+    area.replaceChildren();
+    const values = {}, inputs = el('div', 'inputs');
+    for (const [name, type, ph] of t.inputs) {
+      let inp;
+      if (type === 'select') { inp = el('select'); for (const o of ph) inp.append(el('option', null, o)); values[name] = ph[0]; inp.addEventListener('change', () => { values[name] = inp.value; }); inp.setAttribute('aria-label', name); }
+      else { inp = el(type === 'textarea' ? 'textarea' : 'input'); if (type !== 'textarea') inp.type = 'text'; inp.placeholder = ph; inp.setAttribute('aria-label', ph); inp.addEventListener('input', () => { values[name] = inp.value; }); }
+      inputs.append(inp);
+    }
+    const go = el('button', 'small primary', saved[t.kind] ? 'Write a new version' : 'Write it'); go.type = 'button';
+    const out = el('div');
+    const show = d => {
+      out.replaceChildren(el('p', 'tip', `${d.title} · saved ${ago(d.at)}`), el('p', 'out', d.text));
+      const copy = el('button', 'small', 'Copy'); copy.type = 'button';
+      copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(d.text); copy.textContent = 'Copied'; } catch { copy.textContent = 'Select the text and copy it'; } });
+      out.append(copy);
+    };
+    go.addEventListener('click', async () => {
+      go.disabled = true; go.textContent = 'Writing… (can take a minute)';
+      try { const d = await api(`/api/jobs/${encodeURIComponent(j.id)}/draft`, { method: 'POST', body: JSON.stringify({ kind: t.kind, values }) }); saved[t.kind] = d; show(d); }
+      catch (e) { out.replaceChildren(el('p', 'problems', e.message)); }
+      finally { go.disabled = false; go.textContent = 'Write a new version'; }
+    });
+    inputs.append(go);
+    area.append(inputs, el('p', 'tip', 'Uses your AI plan’s allowance. Check it before you send it: it should only use what’s on your resume.'), out);
+    if (saved[t.kind]) show(saved[t.kind]);
+  };
+  for (const t of shown) { const b = el('button', 'small', t.label); b.type = 'button'; b.dataset.kind = t.kind; b.addEventListener('click', () => open(t)); bar.append(b); }
+  if (shown[0]) open(shown[0]);
 }
 
 function drawPrep(box, p) {

@@ -28,3 +28,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Carlito font
+
+`b3spoken/fonts/Carlito-Regular.ttf` and `Carlito-Bold.ttf` are Carlito by tyPoland Lukasz Dziedzic, licensed under the SIL Open Font License 1.1 (full text in `b3spoken/fonts/OFL.txt`). Carlito has the same character widths as Calibri. B3spoken embeds a subset of it, holding only the letters each resume or cover letter uses, so the PDFs look the same on every computer.

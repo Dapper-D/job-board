@@ -1,5 +1,5 @@
-:root { --bg: #f7f7f5; --card: #fff; --ink: #1d1d1b; --muted: #66665f; --line: #e2e2dc; --accent: #2a5bd7; --ok: #1d7a46; --warn: #9a5b00; color-scheme: light; }
-@media (prefers-color-scheme: dark) { :root { --bg: #151514; --card: #1f1f1d; --ink: #ecece6; --muted: #a2a29a; --line: #33332f; --accent: #7aa2ff; --ok: #5fcf8f; --warn: #f0b45a; color-scheme: dark; } }
+:root { --bad: #b42318; --bg: #f7f7f5; --card: #fff; --ink: #1d1d1b; --muted: #66665f; --line: #e2e2dc; --accent: #2a5bd7; --ok: #1d7a46; --warn: #9a5b00; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg: #151514; --card: #1f1f1d; --ink: #ecece6; --muted: #a2a29a; --line: #33332f; --accent: #7aa2ff; --ok: #5fcf8f; --warn: #f0b45a; --bad: #ff8a80; color-scheme: dark; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
 header { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; z-index: 1; flex-wrap: wrap; }
@@ -97,3 +97,11 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .kit { border: 1px solid var(--accent); border-radius: 10px; padding: 12px; margin: 8px 0 16px; background: var(--card); }
 .kit .row input { flex: 1; min-width: 0; }
 .kit .row { display: flex; gap: 8px; }
+
+.badge.bad { color: var(--bad); border-color: var(--bad); font-weight: 600; }
+.trap { border: 1px solid var(--bad); color: var(--bad); border-radius: 8px; padding: 6px 10px; margin: 6px 0; font-size: 13px; }
+.drafts .toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.drafts .toolbar button.on { border-color: var(--accent); color: var(--accent); }
+.drafts .out { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+.drafts .inputs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.drafts .inputs textarea { min-height: 90px; }

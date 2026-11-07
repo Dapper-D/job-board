@@ -53,11 +53,15 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/jobs') {
         const p = Object.fromEntries(url.searchParams);
         const province = PROVINCES.includes(p.province) ? p.province : '';
-        return send(res, 200, queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 3, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: ['tracked', 'due'].includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' }));
+        const page = queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 3, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: ['tracked', 'due'].includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' });
+        return send(res, 200, page); // AI traps are found when jobs are scored (see main.mjs)
       }
       const conM = url.pathname.match(/^\/api\/jobs\/(.+)\/contacts$/);
       if (conM && req.method === 'POST') return send(res, 200, await app.contacts(decodeURIComponent(conM[1]), { refresh: (await readBody(req)).refresh === true }));
       if (route === 'PUT /api/hunter-key') return send(res, 200, app.saveHunterKey((await readBody(req)).key));
+      const draftM = url.pathname.match(/^\/api\/jobs\/(.+)\/drafts?$/);
+      if (draftM && req.method === 'POST') { const body = await readBody(req); return send(res, 200, await app.draft(decodeURIComponent(draftM[1]), String(body.kind || ''), body.values || {})); }
+      if (draftM && req.method === 'GET') return send(res, 200, app.drafts(decodeURIComponent(draftM[1])));
       const prepM = url.pathname.match(/^\/api\/jobs\/(.+)\/prep$/);
       if (prepM && req.method === 'POST') return send(res, 200, await app.prep(decodeURIComponent(prepM[1])));
       const docs = url.pathname.match(/^\/api\/jobs\/(.+)\/documents(?:\/(resume|letter))?$/);

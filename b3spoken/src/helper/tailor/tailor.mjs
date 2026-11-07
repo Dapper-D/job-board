@@ -179,7 +179,7 @@ export function renderResume(plan) {
 }
 
 function layoutResume(plan, { size, maxBullets, maxProjects }) {
-  const doc = new Doc({ width: PAGE.w, height: PAGE.h });
+  const doc = new Doc({ width: PAGE.w, height: PAGE.h, title: plan.name ? `${plan.name} - Resume` : '', author: plan.name || '' });
   const left = PAGE.margin, width = PAGE.w - 2 * PAGE.margin;
   let y = PAGE.h - PAGE.margin, fits = true;
   const lead = size * 1.32;
@@ -193,8 +193,9 @@ function layoutResume(plan, { size, maxBullets, maxProjects }) {
   const entry = (e, n) => {
     need(lead * 2);
     const datesW = e.dates ? textWidth(e.dates, size) + 12 : 0;
-    const head = wrap(e.heading, size, width - datesW, true);
-    head.forEach((l, i) => { need(lead); doc.text(left, y - size, l, { size, bold: true }); if (i === 0 && e.dates) rightText(e.dates, y - size); y -= lead; });
+    // Project addresses in a heading (e.g. github.com/name/repo) are clickable too.
+    const head = wrapTokens(tokens(e.heading), size, width - datesW, true);
+    head.forEach((l, i) => { need(lead); drawTokens(doc, left, y - size, l, size, true); if (i === 0 && e.dates) rightText(e.dates, y - size); y -= lead; });
     for (const d of (e.details || []).slice(0, 1)) para(d, { sz: size - 1 });
     for (const b of e.bullets.slice(0, n)) {
       wrapTokens(tokens(b.text), size, width - 14).forEach((l, i) => { need(lead); if (i === 0) doc.text(left + 4, y - size, '•', { size }); drawTokens(doc, left + 14, y - size, l, size); y -= lead; });
@@ -268,7 +269,7 @@ export function renderCoverLetter(plan, letter) {
 }
 
 function layoutLetter(plan, letter, size) {
-  const doc = new Doc({ width: PAGE.w, height: PAGE.h });
+  const doc = new Doc({ width: PAGE.w, height: PAGE.h, title: plan.name ? `${plan.name} - Cover Letter` : '', author: plan.name || '' });
   const left = 72, width = PAGE.w - 144, lead = size * 1.45;
   let y = PAGE.h - 72, fits = true;
   const line = (t, { bold = false, indent = 0, header = false } = {}) => {

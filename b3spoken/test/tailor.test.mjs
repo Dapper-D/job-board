@@ -49,7 +49,9 @@ test('tailored resume: own bullets only, closest first, flagged lines left out, 
   const pdf = renderResume(plan);
   const raw = pdf.toString('latin1');
   assert.match(raw, /\/Count 1 /);
-  assert.doesNotMatch(raw, /\/Info|\/Producer|\/Creator|\/CreationDate|\/Metadata|\/Author/);
+  assert.match(raw, /\/Author \(Jordan Lee\)/); // only the person's name and the title
+  assert.match(raw, /\/FontFile2 .*|\/BaseFont \/[A-Z]{6}\+Carlito/);
+  assert.doesNotMatch(raw, /\/Producer|\/Creator|\/CreationDate|\/ModDate|\/Metadata|Helvetica/);
   const back = extractText(pdf, 'r.pdf').text;
   assert.match(back, /Jordan Lee/);
   assert.match(back, /Managed user accounts and access reviews in Active Directory\./);
@@ -77,11 +79,18 @@ test('cover letter is honest about gaps and uses the person’s own achievements
   assert.match(renderCoverLetter(plan, letter).toString('latin1'), /\/Count 1 /);
 });
 
-test('PDF basics: Windows-1252 text, widths and wrapping', () => {
+test('PDF basics: embedded Carlito subset, widths, wrapping and readable text', () => {
   assert.deepEqual(toWinAnsi('é–•'), [0xe9, 0x96, 0x95]);
-  assert.equal(textWidth('ii', 10), 4.44);
+  assert.equal(Math.round(textWidth('ii', 10) * 100) / 100, 4.59); // Carlito (Calibri widths)
+  assert.ok(textWidth('Bold', 10, true) > textWidth('Bold', 10));
   assert.ok(wrap('one two three four five six', 10, 50).length > 1);
-  assert.match(new Doc().text(10, 10, 'a (b) \\ c').build().toString('latin1'), /\(a \\\(b\\\) \\\\ c\) Tj/);
+  const pdf = new Doc({ title: 'T', author: 'Jordan Lee' }).text(10, 10, 'a (b) \\ c é–•').build();
+  const raw = pdf.toString('latin1');
+  assert.match(raw, /\/Type0 .*\/Encoding \/Identity-H/);
+  assert.match(raw, /\/ToUnicode/);
+  assert.match(raw, /\/Info \d+ 0 R/);
+  assert.ok(pdf.length < 60000, `subset should be small, got ${pdf.length}`);
+  assert.match(extractText(pdf, 'x.pdf').text, /a \(b\) \\ c é–•/);
 });
 
 // ---- AI tailoring, as in the Job Hunt Kit ----
@@ -155,7 +164,7 @@ test('links: addresses in the resume are clickable; the header shows GitHub as a
   const raw = renderResume(planResume(lib, job('Developer', 'Python'))).toString('latin1');
   assert.match(raw, /\/Subtype \/Link .*\/URI \(https:\/\/github\.com\/jordanlee-example\)/);
   assert.match(raw, /\/URI \(mailto:jordan\.lee@example\.com\)/);
-  assert.doesNotMatch(raw, /\/Info|\/Producer|\/Creator|\/Author|\/Metadata/);
+  assert.doesNotMatch(raw, /\/Producer|\/Creator|\/Metadata/);
   assert.equal(withSeeking('Builds APIs.', 'Software Developer - Remote'), 'Builds APIs. Seeking a Software Developer role.');
   assert.equal(withSeeking('Software developer who builds APIs.', 'Software Developer'), 'Software developer who builds APIs.');
 });
