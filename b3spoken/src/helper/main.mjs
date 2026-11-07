@@ -23,7 +23,9 @@ import { checkLink } from './paste.mjs';
 import { VERSION } from './version.mjs';
 import { findContacts, draftEmail } from './contacts.mjs';
 import { findKits, readKit, libraryText } from './importkit.mjs';
-import { checkForUpdate, downloadUpdate, runInstaller } from './updater.mjs';
+import { checkForUpdate, downloadUpdate, runInstaller, installSource, restartFromSource } from './updater.mjs';
+import { insideExe } from './assets.mjs';
+import { fileURLToPath } from 'node:url';
 import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
@@ -109,6 +111,15 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   async function installUpdate() {
     const info = await checkUpdate(true);
     if (!info?.available) throw err(409, 'You already have the newest version.');
+    // Installed from source (setup.ps1 / setup.sh): update the source folder itself, then restart.
+    if (!insideExe && !deps.runInstaller) {
+      const root = deps.sourceRoot || fileURLToPath(new URL('../../../', import.meta.url));
+      let n;
+      try { n = (deps.installSource || installSource)(await (deps.downloadUpdate || downloadUpdate)(info.rel, dir, { kind: 'source' }), root); }
+      catch (e) { throw err(502, `The update wasn’t installed: ${e.message}`); }
+      if (!deps.sourceRoot) { (deps.restart || restartFromSource)(root); setTimeout(() => process.exit(0), 1000); }
+      return { installing: true, version: info.version, files: n, source: true };
+    }
     let file;
     try { file = await (deps.downloadUpdate || downloadUpdate)(info.rel, dir); }
     catch (e) { throw err(502, `The update wasn’t installed: ${e.message}`); }

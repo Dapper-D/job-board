@@ -6,6 +6,17 @@ B3spoken is a free, open-source job search tool. It finds verified jobs every da
 
 What's built so far is in [`b3spoken/`](b3spoken/); see [Build status](#build-status).
 
+## Install B3spoken (testers)
+
+Get it from the [B3spoken releases](https://github.com/Dapper-D/job-board/releases?q=b3spoken&expanded=true), the ones tagged `b3spoken-v…`, **not** the release marked "Latest". That one is the old Job Hunt Kit.
+
+- **Installer:** Windows `B3spoken-Setup-<version>.exe`, Mac `B3spoken-mac-…zip`, Linux `B3spoken-linux-…tar.gz`.
+- **From source, so you can read every file first:** download `B3spoken-source-<version>.tar.gz` (or this branch's code zip), unpack it and run `setup.ps1` on Windows or `bash setup.sh` on Mac and Linux. Setup only checks for Node.js 22, adds a B3spoken shortcut and starts the app. B3spoken has no other packages: everything it runs is in that folder. `uninstall.ps1` / `uninstall.sh` remove it again.
+
+Both kinds update themselves with the **Update now** button, and only with releases signed by the maintainer's key. Your own files (resume, answers, tracker, documents) are kept in `%LOCALAPPDATA%\B3spoken` on Windows, `~/Library/Application Support/B3spoken` on Mac and `~/.local/share/b3spoken` on Linux, and survive updates.
+
+The `app/` folder on this branch is the old Job Hunt Kit's code, kept for reference; B3spoken doesn't use it.
+
 ## Decisions already made
 
 | Area | Decision |

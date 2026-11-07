@@ -14,7 +14,7 @@ import { findOnPath } from '../src/helper/ai.mjs';
 import { makeJob } from '../src/scan/job.mjs';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'b3-test-'));
-const job = (o) => makeJob({ source: 'greenhouse', company: 'Acme', nativeId: o.id, title: o.title, url: `https://boards.greenhouse.io/acme/jobs/${o.id}`, location: o.location, postedAt: o.postedAt || '2026-11-04T00:00:00Z', description: 'Build things' });
+const job = (o) => makeJob({ source: 'greenhouse', company: 'Acme', nativeId: o.id, title: o.title, url: `https://boards.greenhouse.io/acme/jobs/${o.id}`, location: o.location, postedAt: o.postedAt || new Date(Date.now() - 864e5).toISOString(), description: 'Build things' });
 const makePool = jobs => { const gz = gzipSync(JSON.stringify({ version: 1, jobs })); return { gz, meta: { version: 1, count: jobs.length, generatedAt: '2026-11-05T10:00:00Z', bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex') } }; };
 
 test('data folder per operating system', () => {
@@ -44,13 +44,13 @@ test('pool is checked by size and SHA-256 before it is saved', async () => {
 
 test('pool and Job Bank are merged without duplicates; filters', async () => {
   const a = job({ id: 1, title: 'Software Developer', location: 'Vancouver, BC' });
-  const b = makeJob({ source: 'jobbank', company: 'Acme', nativeId: 99, title: 'Software Developer', url: 'https://www.jobbank.gc.ca/jobsearch/jobposting/99', location: 'Vancouver, BC', postedAt: '2026-11-05T00:00:00Z' });
+  const b = makeJob({ source: 'jobbank', company: 'Acme', nativeId: 99, title: 'Software Developer', url: 'https://www.jobbank.gc.ca/jobsearch/jobposting/99', location: 'Vancouver, BC', postedAt: new Date(Date.now() - 864e5).toISOString() });
   const c = job({ id: 2, title: 'Analyst', location: 'Toronto, ON' });
   const all = mergeJobs([a, c], [b]);
   assert.equal(all.length, 2);
   assert.equal(queryJobs(all, { province: 'BC' }).total, 1);
   assert.equal(queryJobs(all, { q: 'analyst' }).jobs[0].title, 'Analyst');
-  assert.equal(queryJobs(all, { maxAgeDays: 3, now: Date.parse('2026-11-08T12:00:00Z') }).total, 0);
+  assert.equal(queryJobs(all, { maxAgeDays: 3, now: Date.now() + 5 * 864e5 }).total, 0);
   assert.ok(inProvince({ location: 'Burnaby, British Columbia' }, 'BC'));
   assert.ok(!inProvince({ location: 'Toronto, ON' }, 'BC'));
   assert.equal('description' in queryJobs(all).jobs[0], false);

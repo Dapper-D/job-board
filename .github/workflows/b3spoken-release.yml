@@ -97,6 +97,11 @@ jobs:
         with:
           path: b3spoken/dist
           merge-multiple: true
+      - name: Source package (for people who install from source with setup.ps1 / setup.sh)
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: git archive --format=tar.gz -o "b3spoken/dist/B3spoken-source-${TAG#b3spoken-v}.tar.gz" HEAD b3spoken setup.ps1 setup.sh uninstall.ps1 uninstall.sh README.md HANDOFF.md LICENSE SECURITY.md
       - name: Sign
         working-directory: b3spoken
         shell: bash
@@ -107,7 +112,7 @@ jobs:
           umask 077
           keyfile="$RUNNER_TEMP/release-signing-key.pem"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
-          B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz | tee "$RUNNER_TEMP/sign.txt"
+          B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz | tee "$RUNNER_TEMP/sign.txt"
           rm -f "$keyfile"
           node scripts/sign-release.mjs --verify dist
       - name: Publish the pre-release
@@ -118,9 +123,9 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           fp="$(grep -o 'Release key fingerprint: .*' "$RUNNER_TEMP/sign.txt" | head -1)"
-          notes="B3spoken preview for testers. Windows: download B3spoken-Setup and run it. Mac (Apple silicon): download the mac zip, open it, then right-click B3spoken and choose Open. Linux: unpack the tar.gz and run ./b3spoken. B3spoken opens in your browser.
+          notes="B3spoken preview for testers. Windows: download B3spoken-Setup and run it. Mac (Apple silicon): download the mac zip, open it, then right-click B3spoken and choose Open. Linux: unpack the linux tar.gz and run ./b3spoken. Prefer to see every file? Download B3spoken-source, unpack it and run setup.ps1 (Windows) or bash setup.sh (Mac, Linux). B3spoken opens in your browser.
           Windows may warn that the app is from an unknown publisher (it isn't code-signed yet): choose More info, then Run anyway.
           To check the download: SHA256SUMS lists the installer's SHA-256 and SHA256SUMS.sig is signed with the release key.
 
           $fp"
-          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --prerelease --title "B3spoken ${TAG#b3spoken-v} (preview)" --notes "$notes" --target "$GITHUB_SHA"
+          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --prerelease --title "B3spoken ${TAG#b3spoken-v} (preview)" --notes "$notes" --target "$GITHUB_SHA"

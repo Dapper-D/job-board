@@ -4,7 +4,7 @@ name: B3spoken Windows build
 on:
   push:
     branches: [b3spoken]
-    paths: ['b3spoken/**', '.github/workflows/b3spoken-windows.yml']
+    paths: ['b3spoken/**', 'setup.ps1', 'uninstall.ps1', '.github/workflows/b3spoken-windows.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +29,16 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe')) { choco install innosetup -y --no-progress }
+      - name: Source setup (setup.ps1) adds the shortcut, uninstall.ps1 removes it
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ..\setup.ps1 -NoLaunch -Quiet
+          $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'B3spoken.lnk'
+          if (-not (Test-Path $lnk)) { throw 'setup.ps1 made no shortcut' }
+          $t = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          if ($t.Arguments -notmatch 'b3spoken\\src\\helper\\main\.mjs') { throw "shortcut points at $($t.Arguments)" }
+          powershell -NoProfile -ExecutionPolicy Bypass -File ..\uninstall.ps1 -Quiet
+          if (Test-Path $lnk) { throw 'uninstall.ps1 left the shortcut' }
       - name: Build B3spoken.exe and the installer
         run: node scripts/build-exe.mjs
       - name: Install (silently, for this user only)
