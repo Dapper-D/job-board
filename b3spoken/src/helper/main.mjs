@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
-import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT } from './tailor/tailor.mjs';
+import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT, TAILOR_PROMPT, checkTailored } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
 export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto' };
@@ -149,15 +149,30 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const lib = ob.library(), prof = ob.profile();
     if (!lib?.entries) throw err(409, 'finish setup first: upload your resume');
     const match = scoredJobs().find(j => j.id === id)?.match || null;
-    let order = [], picker = 'rules';
+    let order = [], picker = 'rules', ai = null, note = '';
     if (useAi && ['codex', 'claude'].includes(settings.ai)) {
-      try {
-        const known = new Set(lib.entries.flatMap(e => e.bullets.filter(b => !b.flagged).map(b => b.id)));
-        order = (parseAiJson(await (deps.ask || ask)(settings.ai, PICK_PROMPT(job, lib))).order || []).filter(x => known.has(x));
-        if (order.length) picker = settings.ai;
-      } catch { order = []; }
+      const askAi = deps.ask || ask;
+      // As in the Job Hunt Kit: the AI writes the summary and letter and picks the lines; its draft is checked,
+      // and redone once if it claims more than the resume shows.
+      let problem = '';
+      for (let attempt = 0; attempt < 2 && !ai; attempt++) {
+        try {
+          const r = checkTailored(parseAiJson(await askAi(settings.ai, TAILOR_PROMPT(job, lib, prof, problem), { timeoutMs: 300_000 })), lib, prof, job);
+          if (r.tailored) ai = r.tailored; else problem = r.problem;
+        } catch (e) { problem = problem || e.message; break; }
+      }
+      if (ai) picker = settings.ai;
+      else {
+        if (problem) note = `The AI's draft was set aside (${problem}), so these use your own lines in the best order.`;
+        // Fallback: the AI only orders the person's own lines.
+        try {
+          const known = new Set(lib.entries.flatMap(e => e.bullets.filter(b => !b.flagged).map(b => b.id)));
+          order = (parseAiJson(await askAi(settings.ai, PICK_PROMPT(job, lib))).order || []).filter(x => known.has(x));
+          if (order.length) picker = `${settings.ai} (order only)`;
+        } catch { order = []; }
+      }
     }
-    const plan = planResume(lib, job, { order });
+    const plan = planResume(lib, job, { order, ai });
     const letter = coverLetter(plan, job, match, prof);
     const folder = join(dir, 'documents', fileSafe(`${job.company} - ${plan.headline}`) || fileSafe(id));
     mkdirSync(folder, { recursive: true });
@@ -165,7 +180,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const files = { resume: `${base} - Resume - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf`, letter: `${base} - Cover Letter - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf` };
     writeFileSync(join(folder, files.resume), renderResume(plan));
     writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
-    const made = { jobId: id, folder, files, picker, stamp, createdAt: new Date().toISOString(), match, letter: letter.paragraphs };
+    const made = { jobId: id, folder, files, picker, stamp, createdAt: new Date().toISOString(), match, letter: letter.paragraphs, ...(note ? { note } : {}) };
     const index = readJson(join(dir, 'documents', 'index.json'), {});
     index[id] = made; writeJson(join(dir, 'documents', 'index.json'), index);
     return made;

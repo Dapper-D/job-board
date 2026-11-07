@@ -46,10 +46,17 @@ const num = n => (Math.round(n * 100) / 100).toString();
 
 // A page is a list of drawing operations; build() turns pages into PDF bytes.
 export class Doc {
-  constructor({ width = 612, height = 792 } = {}) { this.width = width; this.height = height; this.pages = []; this.page(); }
-  page() { this.ops = []; this.pages.push(this.ops); return this; }
-  text(x, y, s, { size = 10, bold = false } = {}) { this.ops.push(`BT /${bold ? 'F2' : 'F1'} ${num(size)} Tf ${num(x)} ${num(y)} Td (${esc(toWinAnsi(s))}) Tj ET`); return this; }
-  line(x1, y1, x2, y2, w = 0.6) { this.ops.push(`${num(w)} w ${num(x1)} ${num(y1)} m ${num(x2)} ${num(y2)} l S`); return this; }
+  constructor({ width = 612, height = 792 } = {}) { this.width = width; this.height = height; this.pages = []; this.annots = []; this.page(); }
+  page() { this.ops = []; this.pages.push(this.ops); this.links = []; this.annots.push(this.links); return this; }
+  // color: optional [r, g, b] from 0 to 1 (links are drawn in blue); black otherwise.
+  text(x, y, s, { size = 10, bold = false, color = null } = {}) { this.ops.push(`BT ${color ? color.map(num).join(' ') + ' rg' : '0 g'} /${bold ? 'F2' : 'F1'} ${num(size)} Tf ${num(x)} ${num(y)} Td (${esc(toWinAnsi(s))}) Tj ET`); return this; }
+  line(x1, y1, x2, y2, w = 0.6, color = null) { this.ops.push(`${color ? color.map(num).join(' ') + ' RG' : '0 G'} ${num(w)} w ${num(x1)} ${num(y1)} m ${num(x2)} ${num(y2)} l S`); return this; }
+  // A clickable area on the current page that opens a web or mailto address. No border is drawn.
+  link(x1, y1, x2, y2, uri) {
+    const u = String(uri || '');
+    if (/^(https?:\/\/|mailto:)[\x21-\x7e]+$/i.test(u)) this.links.push({ rect: [x1, y1, x2, y2], uri: u });
+    return this;
+  }
   build() {
     const objs = [];
     const add = s => { objs.push(s); return objs.length; };
@@ -57,11 +64,13 @@ export class Doc {
     const f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     const f2 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
     const kids = [];
-    for (const ops of this.pages) {
+    this.pages.forEach((ops, i) => {
       const content = ops.join('\n');
       const c = add(`<< /Length ${Buffer.byteLength(content, 'latin1')} >>\nstream\n${content}\nendstream`);
-      kids.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${this.width} ${this.height}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${c} 0 R >>`));
-    }
+      const links = (this.annots[i] || []).map(l => add(`<< /Type /Annot /Subtype /Link /Rect [${l.rect.map(num).join(' ')}] /Border [0 0 0] /A << /S /URI /URI (${esc([...l.uri].map(ch => ch.charCodeAt(0)))}) >> >>`));
+      const annots = links.length ? ` /Annots [${links.map(k => `${k} 0 R`).join(' ')}]` : '';
+      kids.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${this.width} ${this.height}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${c} 0 R${annots} >>`));
+    });
     objs[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
     objs[pagesId - 1] = `<< /Type /Pages /Kids [${kids.map(k => `${k} 0 R`).join(' ')}] /Count ${kids.length} >>`;
     let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n';

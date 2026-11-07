@@ -83,3 +83,79 @@ test('PDF basics: Windows-1252 text, widths and wrapping', () => {
   assert.ok(wrap('one two three four five six', 10, 50).length > 1);
   assert.match(new Doc().text(10, 10, 'a (b) \\ c').build().toString('latin1'), /\(a \\\(b\\\) \\\\ c\) Tj/);
 });
+
+// ---- AI tailoring, as in the Job Hunt Kit ----
+import { checkTailored, TAILOR_PROMPT, withSeeking, tokens } from '../src/helper/tailor/tailor.mjs';
+
+const goodDraft = () => ({
+  summary: 'Developer with two years of Python experience building REST APIs and internal tools, plus IT support in a health setting.',
+  skills: [{ group: 'Backend', items: ['python', 'PostgreSQL', 'Kubernetes'] }, { group: 'Testing', items: ['pytest'] }],
+  experience: [{ id: 'e1', bullets: ['e1b2', 'e1b1', 'zz'] }, { id: 'e3', bullets: ['e3b1'] }],
+  projects: [{ id: 'e3', bullets: ['e3b1'] }],
+  expFirst: true,
+  cover: {
+    hook: 'Acme moves freight data for thousands of carriers, and its API team keeps that data flowing.',
+    proof: 'At Northwind Logistics I built a Python service that cut invoice processing time by 40%.',
+    bullets: [{ label: 'REST APIs:', text: 'Wrote Flask APIs used by three internal teams.' }, { label: 'Testing', text: 'Added pytest coverage and a GitHub Actions pipeline.' }, { label: 'Support:', text: 'Resolved L1/L2 tickets for 200 staff.' }],
+    why: 'Acme’s focus on logistics matches the work I already know.',
+    gap: 'I haven’t used Kafka yet, and I would learn it quickly.',
+    close: 'Thank you for your time; I would welcome a conversation.',
+  },
+});
+
+test('AI tailoring: only real IDs and skills are kept, in the AI’s order, with the role sought in the summary', () => {
+  const j = job('Backend Developer - Vancouver, BC', 'Python, PostgreSQL, REST APIs and Kafka.');
+  const { tailored, problem } = checkTailored(goodDraft(), lib, { missingSkills: [] }, j);
+  assert.equal(problem, '');
+  assert.deepEqual(tailored.skills, [{ label: 'Backend', items: ['Python', 'PostgreSQL'] }, { label: 'Testing', items: ['pytest'] }]); // library spelling, Kubernetes dropped
+  assert.deepEqual(tailored.experience, [{ id: 'e1', bullets: ['e1b2', 'e1b1'] }]); // unknown bullet and a project listed as experience dropped
+  const plan = planResume(lib, j, { ai: tailored });
+  assert.match(plan.summary, /internal tools, plus IT support in a health setting\. Seeking a Backend Developer role\.$/);
+  assert.equal(plan.experience.length, 1);
+  assert.deepEqual(plan.experience[0].bullets.map(b => b.id), ['e1b2', 'e1b1']);
+  assert.equal(plan.projectsFirst, false);
+  const back = extractText(renderResume(plan), 'r.pdf').text;
+  for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'KEY PROJECTS']) assert.match(back, new RegExp(h));
+  assert.ok(back.indexOf('EDUCATION') < back.indexOf('PROFESSIONAL EXPERIENCE')); // same order as the kit
+  assert.doesNotMatch(back, /Contoso/); // the AI left it out
+  assert.ok(TAILOR_PROMPT(j, lib, { missingSkills: ['Kafka'] }).includes('Never claim these (the person said they don\'t have them): Kafka'));
+});
+
+test('AI tailoring: drafts that claim more than the resume shows are rejected', () => {
+  const j = job('Backend Developer', 'Python, Kafka and Kubernetes. 5+ years.');
+  const bad = (edit) => { const d = goodDraft(); edit(d); return checkTailored(d, lib, { missingSkills: ['Kafka'] }, j).problem; };
+  assert.match(bad(d => { d.cover.bullets[0].text = 'Built Kafka pipelines.'; }), /Kafka.*don't have/);
+  assert.match(bad(d => { d.summary += ' Experienced with Kubernetes.'; }), /"kubernetes", which isn't on the resume/);
+  assert.match(bad(d => { d.summary = 'Developer with 7 years of Python.'; }), /number "7"/);
+  assert.match(bad(d => { d.cover.hook = "I'm applying for the Backend Developer role."; }), /generic/);
+  assert.equal(bad(d => { d.cover.gap = 'I have not used Kafka yet.'; }), ''); // naming a missing skill in the gap line is honest, so it's allowed
+  assert.equal(checkTailored('nope', lib, {}, j).tailored, null);
+});
+
+test('AI cover letter follows the template: subject, hook, three labelled bullets, why and gap, close; one page', () => {
+  const j = job('Backend Developer', 'Python and REST APIs.');
+  const plan = planResume(lib, j, { ai: checkTailored(goodDraft(), lib, {}, j).tailored });
+  const letter = coverLetter(plan, j, null, {}, new Date(2026, 10, 5));
+  assert.equal(letter.subject, 'Application for Backend Developer');
+  assert.match(letter.paragraphs[0], /^Acme moves freight/);
+  assert.deepEqual(letter.paragraphs.filter(p => p.startsWith('• ')).map(p => p.split(':')[0]), ['• REST APIs', '• Testing', '• Support']);
+  assert.match(letter.paragraphs.at(-1), /^Thank you/);
+  const pdf = renderCoverLetter(plan, letter);
+  assert.match(pdf.toString('latin1'), /\/Count 1 /);
+  const back = extractText(pdf, 'c.pdf').text;
+  assert.match(back, /Subject: Application for Backend Developer/);
+  assert.match(back, /Dear Hiring Manager/);
+  assert.doesNotMatch(back, /I'm applying/);
+});
+
+test('links: addresses in the resume are clickable; the header shows GitHub as a word', () => {
+  assert.deepEqual(tokens('Burnaby | jordan@example.com | github.com/jl | linkedin.com/in/jl', { header: true }).filter(t => t.uri),
+    [{ w: 'jordan@example.com', uri: 'mailto:jordan@example.com' }, { w: 'GitHub', uri: 'https://github.com/jl' }, { w: 'linkedin.com/in/jl', uri: 'https://linkedin.com/in/jl' }]);
+  assert.deepEqual(tokens('See github.com/Dapper-D/Under50.').at(-1), { w: 'github.com/Dapper-D/Under50.', uri: 'https://github.com/Dapper-D/Under50' });
+  const raw = renderResume(planResume(lib, job('Developer', 'Python'))).toString('latin1');
+  assert.match(raw, /\/Subtype \/Link .*\/URI \(https:\/\/github\.com\/jordanlee-example\)/);
+  assert.match(raw, /\/URI \(mailto:jordan\.lee@example\.com\)/);
+  assert.doesNotMatch(raw, /\/Info|\/Producer|\/Creator|\/Author|\/Metadata/);
+  assert.equal(withSeeking('Builds APIs.', 'Software Developer - Remote'), 'Builds APIs. Seeking a Software Developer role.');
+  assert.equal(withSeeking('Software developer who builds APIs.', 'Software Developer'), 'Software developer who builds APIs.');
+});
