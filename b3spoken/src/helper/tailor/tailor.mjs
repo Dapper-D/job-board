@@ -34,6 +34,22 @@ function relevance(text, jobTerms, titleWords, jobWords) {
   return jobTerms.filter(x => t.includes(x)).length * 2 + titleWords.filter(x => t.includes(x)).length + [...words].filter(w => jobWords.has(w)).length;
 }
 
+// Work history reads newest first, whatever order the AI returned. Entries without dates keep their order.
+const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
+function endOf(dates) {
+  const d = norm(dates);
+  if (/present|current|now/.test(d)) return 999999;
+  const parts = [...d.matchAll(/(?:([a-z]{3})[a-z]*\.?\s+)?((?:19|20)\d{2})/g)];
+  if (!parts.length) return null;
+  const last = parts.at(-1), m = MONTHS.indexOf(last[1] || '');
+  return Number(last[2]) * 100 + (m >= 0 ? m + 1 : 12);
+}
+export function newestFirst(list) {
+  const keys = list.map(e => endOf(e.dates || ''));
+  if (keys.some(k => k == null)) return list;
+  return list.map((e, i) => ({ e, k: keys[i], i })).sort((a, b) => b.k - a.k || a.i - b.i).map(x => x.e);
+}
+
 // order: optional list of bullet IDs from the AI, best first. Unknown or flagged IDs are ignored.
 // ai: optional checked selection from checkTailored(); when given it decides the summary, skills, entries and bullets.
 export function planResume(lib, job, { order = [], ai = null } = {}) {
@@ -69,7 +85,7 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
       return bullets.length ? { ...e, bullets } : null;
     }).filter(Boolean);
     const exp = choose(ai.experience, 'experience'), proj = choose(ai.projects, 'projects');
-    if (exp.length) experience = exp;
+    if (exp.length) experience = newestFirst(exp);
     if (proj.length || ai.projects?.length === 0) projects = proj;
     if (ai.skills?.length) skills = ai.skills;
     if (ai.summary) summary = ai.summary;

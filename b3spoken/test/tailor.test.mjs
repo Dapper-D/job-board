@@ -159,3 +159,10 @@ test('links: addresses in the resume are clickable; the header shows GitHub as a
   assert.equal(withSeeking('Builds APIs.', 'Software Developer - Remote'), 'Builds APIs. Seeking a Software Developer role.');
   assert.equal(withSeeking('Software developer who builds APIs.', 'Software Developer'), 'Software developer who builds APIs.');
 });
+
+test('AI tailoring: work history is put newest first even if the AI returns it oldest first', async () => {
+  const { newestFirst } = await import('../src/helper/tailor/tailor.mjs');
+  const a = { id: 'a', dates: 'Mar 2021 - Aug 2021' }, b = { id: 'b', dates: 'Mar 2022 - Mar 2023' }, c = { id: 'c', dates: 'Jan 2024 - Present' };
+  assert.deepEqual(newestFirst([a, b, c]).map(e => e.id), ['c', 'b', 'a']);
+  assert.deepEqual(newestFirst([a, { id: 'x', dates: '' }]).map(e => e.id), ['a', 'x']);
+});

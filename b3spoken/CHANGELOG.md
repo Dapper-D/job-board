@@ -1,6 +1,17 @@
 # B3spoken changelog
 
-## Unreleased
+## 0.1.4 (with everything below up to 0.1.3)
+
+### Resume import fixed (resumes were coming out with only a header)
+- **Numbered "master" resumes now import.** Headings like "2 | VERIFIED EMPLOYMENT HISTORY" were not recognised, so the library came out empty and the PDFs had only your name and contact line.
+- **Multi-page PDFs are read in full.** Before, everything after page 1 could be lost.
+- **A bad upload no longer wipes a good library.** Setup won't continue, and no PDF is made, until the library has real content.
+- **The resume always fits on one page.** If it can't, you get a clear message instead of text running off the page.
+- **Documents are remade after any resume change.** Before, an edit of the same length could keep serving the old PDF.
+
+### Tailoring
+- Work history is always listed newest first, whatever order the AI suggests.
+
 
 ### Tailored resumes and cover letters now work like the Job Hunt Kit's
 - **The AI tailors the documents** when Claude Code or Codex is connected. It writes a summary for each job from your real resume, picks 3–5 skill groups (only skills already on your resume), and chooses the experience, projects and bullets that fit the job best, in the best order. Before, it could only reorder your lines.

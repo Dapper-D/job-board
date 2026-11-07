@@ -36,6 +36,23 @@ The product that replaces the kit: a desktop helper that opens a job board on lo
 - **Releases:** tag `b3spoken-vX.Y.Z` (must equal `b3spoken/package.json` version and `src/helper/version.mjs`). Only Oladapo can push these tags (ruleset). The run builds and tests everything, then waits for **his** approval on the `release` environment before signing and publishing. He pushes tags from `C:\Users\olada\b3-release`: `git fetch origin`, `git tag b3spoken-vX.Y.Z origin/b3spoken`, `git push origin b3spoken-vX.Y.Z`. Always remind him to fetch first.
 - Published so far: 0.1.0, 0.1.1, 0.1.2. **0.1.3 is ready but not yet tagged**; it's the first with the update button, so it's the last one he installs by hand.
 
+## Update (2026-11-07, afternoon Pacific)
+
+- 0.1.3 is tagged, but it was cut before the AI-tailoring commit (ee6a46a), so installed copies still only reorder lines.
+- **0.1.4 is ready on `b3spoken` and not yet tagged.** It carries:
+  - AI tailoring
+  - the resume-import fix: numbered master resumes, full multi-page PDFs, no empty libraries or header-only PDFs, a strict one-page fit, and cache fingerprints
+  - work history listed newest first
+- AI tailoring was tested end to end with Claude Code and his real resume (Affirm SWE I): the AI's draft passed the honesty check, and the resume and letter each came out on one page.
+- To release, he runs `git fetch origin` and `git tag b3spoken-v0.1.4 origin/b3spoken`, pushes the tag, then approves the release environment. 0.1.3 installs then update themselves.
+
+Still to do:
+- Embed Carlito, replacing Helvetica.
+- Optional Author/Title metadata.
+- AI-trap and "no AI" detection (the kit has it; B3spoken doesn't).
+- The kit's one-click drafts: follow-up, thank-you, LinkedIn note, debrief, negotiation, offer review.
+- The interview story bank.
+
 ## Where things stand (as of 2026-11-07, 11:00 Pacific)
 
 Waiting on Oladapo:
