@@ -6,15 +6,17 @@ import { dedupe } from '../scan/scan.mjs';
 import { readJson, writeJson } from './paths.mjs';
 
 const JOBBANK_EVERY_MS = 6 * 3600e3; // Job Bank at most every 6 hours (it asks for 5 s between requests)
+const JOBBANK_RETRY_MS = 3600e3; // after a partial result, try again in an hour
 
 export async function refreshJobBank(dir, settings, { now = Date.now(), force = false, log = () => {}, fetchJobs } = {}) {
   const file = join(dir, 'jobbank.json');
   const have = readJson(file, null);
-  if (!force && have && now - have.fetchedAt < JOBBANK_EVERY_MS && JSON.stringify(have.keywords) === JSON.stringify(settings.keywords || [])) return have;
-  const get = fetchJobs || (t => SOURCES.jobbank.fetchJobs(t, { now }));
+  if (!force && have && now - have.fetchedAt < (have.missed ? JOBBANK_RETRY_MS : JOBBANK_EVERY_MS) && JSON.stringify(have.keywords) === JSON.stringify(settings.keywords || [])) return have;
+  const missed = [];
+  const get = fetchJobs || (t => SOURCES.jobbank.fetchJobs(t, { now, onError: e => missed.push({ keyword: e.keyword || '', error: e.code || e.message }) }));
   log('checking Job Bank for postings from the last 3 days…');
   const jobs = (await get({ keywords: settings.keywords || [], maxAgeDays: 3, maxPages: 40 })).filter(j => j.canada);
-  const saved = { fetchedAt: now, keywords: settings.keywords || [], jobs };
+  const saved = { fetchedAt: now, keywords: settings.keywords || [], jobs, ...(missed.length ? { missed } : {}) };
   writeJson(file, saved);
   log(`Job Bank: ${jobs.length} postings`);
   return saved;

@@ -77,7 +77,7 @@ function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = M
 }
 
 /**
- * request(url, { allow: ['api.lever.co'], method, json, headers, gapMs, retries })
+ * request(url, { allow: ['api.lever.co'], method, json, headers, gapMs, retries, netWaitMs })
  * Returns { status, buffer, text, json? }. parse: 'json' | 'text' | 'buffer'; maxBytes raises the 15 MB limit. Throws on network errors, refused hosts and final non-2xx.
  */
 export async function request(url, o = {}) {
@@ -97,7 +97,7 @@ export async function request(url, o = {}) {
     try { r = await once(u, { method, headers, body, timeoutMs: o.timeoutMs, maxBytes: o.maxBytes }); }
     catch (e) {
       if (e.code === 'EBLOCKED' || attempt >= retries) throw e;
-      attempt++; await sleep(1500 * attempt); continue;
+      attempt++; await sleep((o.netWaitMs ?? 1500) * attempt); continue; // e.g. the server cut the connection
     }
     if (r.status >= 300 && r.status < 400 && r.headers.location) {
       if (++redirects > MAX_REDIRECTS) throw new Error('too many redirects');

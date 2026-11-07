@@ -72,8 +72,10 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       pool = loadPool(dir);
       if (!pool) state.problems.push('No job pool on this computer yet. Check the internet connection and refresh.');
       if (!offline && !process.env.B3SPOKEN_SKIP_JOBBANK) {
-        try { jobBank = await refreshJobBank(dir, settings, { force, log, fetchJobs: deps.jobBank }); }
-        catch (e) { jobBank = readJson(join(dir, 'jobbank.json'), null); state.problems.push(`Couldn't reach Job Bank (${e.message}).`); }
+        state.jobBankTry = Date.now();
+        try { jobBank = await refreshJobBank(dir, settings, { force, log, fetchJobs: deps.jobBank, now: state.jobBankTry }); }
+        catch (e) { jobBank = readJson(join(dir, 'jobbank.json'), null); state.problems.push(jobBankProblem(e, jobBank)); }
+        if (jobBank?.missed?.length && jobBank.fetchedAt === state.jobBankTry) state.problems.push(`Job Bank answered some searches but not ${jobBank.missed.length === 1 ? `"${jobBank.missed[0].keyword}"` : `${jobBank.missed.length} of them`}; B3spoken will ask again in about an hour.`);
       } else jobBank = readJson(join(dir, 'jobbank.json'), null);
       remerge();
       scoredJobs(); // score everything now, so the board opens fast
@@ -345,6 +347,20 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
 }
 
 const err = (status, message) => Object.assign(new Error(message), { status });
+
+// Plain words for a Job Bank failure. Job Bank sometimes cuts connections it doesn't like (for example from cloud servers,
+// VPNs or busy networks); B3spoken never disguises itself to get around that.
+export function jobBankProblem(e, old) {
+  const code = e?.code || '', msg = String(e?.message || '');
+  const why = /ECONNRESET|socket hang up/i.test(code + msg) ? 'Job Bank cut the connection'
+    : /timed out|ETIMEDOUT/i.test(code + msg) ? 'Job Bank took too long to answer'
+    : /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ENETUNREACH/i.test(code + msg) ? 'this computer couldn\'t reach Job Bank (check the internet connection)'
+    : e?.status === 403 ? 'Job Bank refused the request (HTTP 403)'
+    : e?.status === 429 ? 'Job Bank asked us to slow down'
+    : `Job Bank didn't answer (${msg.slice(0, 80)})`;
+  const kept = old?.jobs?.length ? ` Showing the ${old.jobs.length} Job Bank jobs from ${new Date(old.fetchedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} instead.` : '';
+  return `${why}, so this refresh has no new Job Bank jobs; your other jobs are fine.${kept} Press Refresh to try again. If it keeps happening on a VPN or work network, try your home connection.`;
+}
 
 // Resume upload, the resume library, role checks and the onboarding answers.
 export function onboarding(dir, { getSettings, setSettings, ask }) {

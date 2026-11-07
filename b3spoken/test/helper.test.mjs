@@ -149,3 +149,23 @@ test('documents are made ahead of time for Strong and Good matches from the last
   const made = JSON.parse(readFileSync(join(dir, 'documents', 'index.json'), 'utf8'));
   assert.deepEqual(Object.values(made).map(d => d.files.resume), ['Jordan Lee - Resume - Acme - Software Developer.pdf']); // old and unmatched jobs skipped
 });
+
+test('Job Bank problems are explained in plain words, and a partial result is retried within the hour', async () => {
+  const { jobBankProblem } = await import('../src/helper/main.mjs');
+  const { refreshJobBank } = await import('../src/helper/jobs.mjs');
+  const reset = jobBankProblem(Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }), { jobs: [1, 2], fetchedAt: Date.UTC(2026, 10, 7, 18) });
+  assert.match(reset, /^Job Bank cut the connection, so this refresh has no new Job Bank jobs; your other jobs are fine\. Showing the 2 Job Bank jobs/);
+  assert.match(jobBankProblem(Object.assign(new Error('HTTP 403'), { status: 403 })), /refused the request/);
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { join } = await import('node:path'); const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'jb-'));
+  try {
+    let calls = 0; const fetchJobs = async () => { calls++; return []; };
+    const now = Date.now();
+    writeFileSync(join(dir, 'jobbank.json'), JSON.stringify({ fetchedAt: now - 2 * 3600e3, keywords: ['dev'], jobs: [], missed: [{ keyword: 'dev', error: 'ECONNRESET' }] }));
+    await refreshJobBank(dir, { keywords: ['dev'] }, { now, fetchJobs });
+    assert.equal(calls, 1); // partial result two hours ago: asked again
+    await refreshJobBank(dir, { keywords: ['dev'] }, { now: now + 60e3, fetchJobs });
+    assert.equal(calls, 1); // full result a minute ago: not asked again
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

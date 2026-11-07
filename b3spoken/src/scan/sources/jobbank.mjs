@@ -49,21 +49,28 @@ export default {
     }).filter(Boolean).map(j => ({ ...j, canada: true }));
   },
   // target: { keywords: ['software developer', ...] or [''] for everything, maxPages, maxAgeDays }
-  async fetchJobs(target, { now = Date.now() } = {}) {
+  // A search that fails (for example Job Bank cuts the connection) is skipped and reported through onError; the others still
+  // count. After two failures in a row we stop asking, to be polite. Only when nothing at all came back does it throw.
+  async fetchJobs(target, { now = Date.now(), onError = () => {} } = {}) {
     const keywords = target.keywords?.length ? target.keywords : [''];
     const maxPages = Math.min(target.maxPages || 5, 200);
     const cutoff = now - (target.maxAgeDays ?? 3) * 864e5;
     const seen = new Map();
+    let ok = 0, failedInARow = 0, last = null;
     for (const kw of keywords) {
+      if (failedInARow >= 2) { onError(Object.assign(new Error('stopped after repeated failures'), { code: 'ESTOPPED', keyword: kw })); continue; }
       for (let p = 1; p <= maxPages; p++) {
         const qs = new URLSearchParams({ searchstring: kw, locationstring: '', sort: 'D', page: String(p) });
-        const r = await request(`${FEED}?${qs}`, { allow: HOSTS, parse: 'text', gapMs: 5000, accept: 'application/atom+xml, application/xml' });
+        let r;
+        try { r = await request(`${FEED}?${qs}`, { allow: HOSTS, parse: 'text', gapMs: 5000, netWaitMs: 10_000, accept: 'application/atom+xml, application/xml' }); ok++; failedInARow = 0; }
+        catch (e) { last = e; failedInARow++; onError(Object.assign(e, { keyword: kw })); break; }
         const got = this.parse(r.text);
         for (const j of got) seen.set(j.url, j);
         const allOld = got.length && got.every(j => j.postedAt && Date.parse(j.postedAt) < cutoff);
         if (got.length < PAGE || allOld) break;
       }
     }
+    if (!ok && last) throw last;
     // Keep only postings inside the window (undated ones are kept and checked later).
     return [...seen.values()].filter(j => !j.postedAt || Date.parse(j.postedAt) >= cutoff);
   },
