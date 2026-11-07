@@ -90,7 +90,7 @@ $('aiNext').addEventListener('click', async () => {
 
 // ---- 2. Resume ----
 function drawLibrary() {
-  $('libraryBox').hidden = !lib; $('resumeNext').disabled = !lib;
+  $('libraryBox').hidden = !lib; $('resumeNext').disabled = !lib?.entries?.some(e => !e.flagged && (e.bullets?.some(b => !b.flagged && b.text) || ['education', 'certifications'].includes(e.kind)));
   if (!lib) return;
   const box = $('library'); box.replaceChildren();
   if (lib.contact?.name) box.append(el('p', 'small', `${lib.contact.name} · read by ${lib.source === 'rules' ? 'B3spoken' : lib.source === 'codex' ? 'ChatGPT' : 'Claude'}`));

@@ -98,7 +98,7 @@ function pdfObjects(buf) {
     if (sm) {
       const start = m.index + m[0].indexOf(body) + sm[0].length;
       const end = raw.indexOf('endstream', start);
-      const len = Number((sm[1].match(/\/Length\s+(\d+)(?!\s+\d+\s+R)/) || [])[1]);
+      const len = Number((sm[1].match(/\/Length\s+(\d+)\b(?!\s+\d+\s+R)/) || [])[1]);
       const data = buf.subarray(start, Number.isFinite(len) && len > 0 && start + len <= end ? start + len : end);
       objs.set(m[1], { dict: sm[1], stream: inflate(sm[1], data) });
     } else objs.set(m[1], { dict: body, stream: null });

@@ -3,6 +3,7 @@
 //   node src/helper/main.mjs [--port 4747] [--no-open] [--offline]
 // On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 3 days,
 // and looks for ChatGPT (Codex) or Claude (Claude Code) on this computer.
+import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -13,7 +14,7 @@ import { refreshJobBank, mergeJobs, PROVINCES } from './jobs.mjs';
 import { detect, startInstall, installStatus, openSignIn, testAi } from './ai.mjs';
 import { createServer } from './server.mjs';
 import { extractText } from './resume/extract.mjs';
-import { buildLibrary, checkAiLibrary, LIBRARY_PROMPT, parseAiJson } from './resume/library.mjs';
+import { buildLibrary, checkAiLibrary, LIBRARY_PROMPT, parseAiJson, requireResumeContent } from './resume/library.mjs';
 import { suggestRoles, checkTarget } from './roles.mjs';
 import { cleanProfile, searchRoles } from './profile.mjs';
 import { ask } from './ai.mjs';
@@ -81,11 +82,12 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   // the AI picks the order for the best ones, one at a time.
   let preparing = null;
   const AI_PREP_LIMIT = 12;
+  const documentStamp = () => createHash('sha256').update('resume-layout-v2|' + JSON.stringify(ob.library()) + '|' + JSON.stringify(ob.profile())).digest('hex');
   async function prepareAll() {
     if (preparing?.running || offline && !deps.allowOfflinePrep) return;
     const lib = ob.library(), prof = ob.profile();
     if (!lib?.entries || !prof.done) return;
-    const libStamp = `${lib.source}|${lib.entries.length}|${lib.entries.flatMap(e => e.bullets.map(b => b.text + b.flagged)).join('').length}|${JSON.stringify(prof)}`;
+    const libStamp = documentStamp();
     const t = tracker();
     const list = queryList(scoredJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)), { province: settings.province, remote: settings.remote, minLabel: 'Good', limit: 200 }).jobs;
     const index = readJson(join(dir, 'documents', 'index.json'), {});
@@ -134,7 +136,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   let scored = null, scoredKey = '';
   function scoredJobs() {
     const lib = ob.library(), prof = ob.profile();
-    const key = `${merged.length}|${pool?.meta.sha256}|${JSON.stringify(prof)}|${lib?.entries?.length}|${lib?.source}`;
+    const key = `${merged.length}|${pool?.meta.sha256}|${JSON.stringify(prof)}|${JSON.stringify(lib)}`;
     if (scored && key === scoredKey) return scored;
     if (!lib?.entries || !prof.done) { scored = merged; scoredKey = key; return scored; }
     const ctx = makeContext(lib, existsSync(join(dir, 'resume.txt')) ? readFileSync(join(dir, 'resume.txt'), 'utf8') : '', prof, settings.keywords);
@@ -148,6 +150,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const job = byId.get(id); if (!job) throw err(404, 'no such job');
     const lib = ob.library(), prof = ob.profile();
     if (!lib?.entries) throw err(409, 'finish setup first: upload your resume');
+    requireResumeContent(lib);
     const match = scoredJobs().find(j => j.id === id)?.match || null;
     let order = [], picker = 'rules', ai = null, note = '';
     if (useAi && ['codex', 'claude'].includes(settings.ai)) {
@@ -180,13 +183,14 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const files = { resume: `${base} - Resume - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf`, letter: `${base} - Cover Letter - ${fileSafe(job.company)} - ${fileSafe(plan.headline)}.pdf` };
     writeFileSync(join(folder, files.resume), renderResume(plan));
     writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
-    const made = { jobId: id, folder, files, picker, stamp, createdAt: new Date().toISOString(), match, letter: letter.paragraphs, ...(note ? { note } : {}) };
+    const made = { jobId: id, folder, files, picker, stamp: stamp || documentStamp(), createdAt: new Date().toISOString(), match, letter: letter.paragraphs, ...(note ? { note } : {}) };
     const index = readJson(join(dir, 'documents', 'index.json'), {});
     index[id] = made; writeJson(join(dir, 'documents', 'index.json'), index);
     return made;
   }
   function documentFile(id, kind) {
     const made = readJson(join(dir, 'documents', 'index.json'), {})[id];
+    if (made && made.stamp !== documentStamp()) throw err(409, 'Your resume library changed. Make the documents again to use the current content.');
     if (!made || !made.files[kind]) throw err(404, 'make the documents first');
     return { name: made.files[kind], bytes: readFileSync(join(made.folder, made.files[kind])) };
   }
@@ -288,7 +292,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     aiTest: async provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); const r = await testAi(provider, deps.ask || ask); ai = await (deps.detect || detect)(); return r; },
     aiDetect: async () => (ai = await (deps.detect || detect)()),
     tracker, track, dueCount: () => Object.values(tracker()).filter(e => dueToday(e)).length,
-    documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).map(([id, d]) => [id, d.files])),
+    documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).filter(([, d]) => d.stamp === documentStamp()).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
       version: VERSION, ...state, update: updateInfo, preparing, settings,
@@ -316,8 +320,9 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       try { got = text != null ? extractText(Buffer.from(String(text).slice(0, 200_000), 'utf8'), 'pasted.txt') : extractText(Buffer.from(String(dataBase64 || ''), 'base64'), String(filename)); }
       catch (e) { throw err(400, `Couldn't read that file: ${e.message}`); }
       if (!got.readable) throw err(422, 'Very little text came out of that file (it may be a scanned picture). Upload the Word version or paste the text instead.');
-      writeFileSync(resumeFile, got.text, { mode: 0o600 });
       const lib = buildLibrary(got.text);
+      requireResumeContent(lib);
+      writeFileSync(resumeFile, got.text, { mode: 0o600 });
       lib.roles = suggestRoles(got.text);
       writeJson(libFile, lib);
       return lib;
@@ -335,7 +340,7 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       const ruleRoles = suggestRoles(text);
       const aiRoles = (Array.isArray(ai.roles) ? ai.roles : []).slice(0, 8).map(r => ({ title: String(r?.title || '').slice(0, 80), reason: String(r?.reason || '').slice(0, 160), fromAi: true })).filter(r => r.title);
       lib.roles = [...aiRoles, ...ruleRoles.filter(r => !aiRoles.some(a => a.title.toLowerCase() === r.title.toLowerCase()))].slice(0, 10);
-      if (!lib.entries.length) throw err(502, 'The AI returned an empty resume; the rule-based version is kept.');
+      requireResumeContent(lib);
       writeJson(libFile, lib);
       return lib;
     },

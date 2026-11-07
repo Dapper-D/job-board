@@ -9,7 +9,7 @@
 // - Without an AI, or when the AI's draft is rejected: rules pick and order the person's own lines.
 // Nothing is invented. Flagged lines (not yet checked by the person) are never used.
 import { Doc, wrap, textWidth } from './pdf.mjs';
-import { norm } from '../resume/library.mjs';
+import { norm, requireResumeContent } from '../resume/library.mjs';
 import { termsIn } from './match.mjs';
 
 const PAGE = { w: 612, h: 792, margin: 50 };
@@ -37,6 +37,7 @@ function relevance(text, jobTerms, titleWords, jobWords) {
 // order: optional list of bullet IDs from the AI, best first. Unknown or flagged IDs are ignored.
 // ai: optional checked selection from checkTailored(); when given it decides the summary, skills, entries and bullets.
 export function planResume(lib, job, { order = [], ai = null } = {}) {
+  requireResumeContent(lib);
   const jobText = norm(`${job.title} ${job.description || ''}`);
   const jobTerms = termsIn(jobText, (lib.skills || []).flatMap(s => s.items));
   const titleWords = norm(cleanTitle(job.title)).split(' ').filter(w => w.length > 3);
@@ -45,7 +46,7 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
   const score = b => (rank.get(b.id) || 0) * 100 + relevance(b.text, jobTerms, titleWords, jobWords);
   const usable = e => e.bullets.filter(b => !b.flagged && b.text);
   const sortBullets = e => usable(e).map((b, i) => ({ b, s: score(b), i })).sort((x, y) => y.s - x.s || x.i - y.i).map(x => x.b);
-  const pick = kind => lib.entries.filter(e => e.kind === kind).map(e => ({ ...e, bullets: sortBullets(e), weight: usable(e).reduce((n, b) => n + score(b), 0) }));
+  const pick = kind => lib.entries.filter(e => !e.flagged && e.kind === kind).map(e => ({ ...e, bullets: sortBullets(e), weight: usable(e).reduce((n, b) => n + score(b), 0) }));
   let experience = pick('experience');
   let projects = pick('projects').sort((a, b) => b.weight - a.weight);
   const education = [...pick('education'), ...pick('certifications')];
@@ -133,10 +134,32 @@ function drawTokens(doc, x, y, line, size, bold = false) {
 // ---- Resume ----
 // Lays the resume out; shrinks text and trims the least relevant lines until it fits one page.
 export function renderResume(plan) {
-  const tries = [];
-  for (const size of [10.5, 10, 9.5, 9]) for (const maxBullets of [5, 4, 3, 2]) for (const maxProjects of [4, 3, 2, 1]) tries.push({ size, maxBullets, maxProjects });
-  for (const t of tries) { const r = layoutResume(plan, t); if (r.fits) return r.doc.build(); }
-  return layoutResume(plan, tries.at(-1)).doc.build();
+  if (![...plan.experience, ...plan.projects, ...plan.education].some(e => e.heading && (e.bullets.length || e.kind === 'education' || e.kind === 'certifications'))) {
+    throw Object.assign(new Error('The resume has no usable content. Re-import your source document before making a PDF.'), { status: 422 });
+  }
+  // All selections are whole source bullets; never clip text or draw below the page.
+  const variants = [plan, {
+    ...plan,
+    summary: plan.summary.length <= 360 ? plan.summary : (plan.summary.match(/^[\s\S]*?[.!?](?=\s|$)/) || [plan.summary])[0].trim(),
+    skills: plan.skills.slice(0, 4).map(g => ({ ...g, items: g.items.slice(0, 7) })),
+    experience: [...plan.experience].sort((a, b) => b.weight - a.weight),
+    education: plan.education.filter(e => e.kind === 'education'),
+    other: [],
+  }];
+  for (const selected of variants) {
+    for (const size of [10.5, 10, 9.5, 9]) {
+      for (const maxBullets of (selected === plan ? [3, 2, 1] : [2, 1])) {
+        for (const maxProjects of [3, 2, 1]) {
+          const maxExperience = selected === plan ? [plan.experience.length] : [4, 3, 2, 1];
+          for (const max of maxExperience) {
+            const r = layoutResume({ ...selected, experience: selected.experience.slice(0, max) }, { size, maxBullets, maxProjects });
+            if (r.fits) return r.doc.build();
+          }
+        }
+      }
+    }
+  }
+  throw Object.assign(new Error('The selected resume content will not fit one readable page. Shorten the library entries and try again.'), { status: 422 });
 }
 
 function layoutResume(plan, { size, maxBullets, maxProjects }) {
@@ -155,7 +178,7 @@ function layoutResume(plan, { size, maxBullets, maxProjects }) {
     need(lead * 2);
     const datesW = e.dates ? textWidth(e.dates, size) + 12 : 0;
     const head = wrap(e.heading, size, width - datesW, true);
-    head.forEach((l, i) => { doc.text(left, y - size, l, { size, bold: true }); if (i === 0 && e.dates) rightText(e.dates, y - size); y -= lead; });
+    head.forEach((l, i) => { need(lead); doc.text(left, y - size, l, { size, bold: true }); if (i === 0 && e.dates) rightText(e.dates, y - size); y -= lead; });
     for (const d of (e.details || []).slice(0, 1)) para(d, { sz: size - 1 });
     for (const b of e.bullets.slice(0, n)) {
       wrapTokens(tokens(b.text), size, width - 14).forEach((l, i) => { need(lead); if (i === 0) doc.text(left + 4, y - size, '•', { size }); drawTokens(doc, left + 14, y - size, l, size); y -= lead; });

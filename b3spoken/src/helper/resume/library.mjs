@@ -1,3 +1,4 @@
+import { isMasterDocument, buildMasterLibrary } from './master.mjs';
 // The resume library: every job, project and bullet from the person's own resume, each with an ID.
 // Tailoring later only picks and orders these IDs, so nothing that isn't on the resume can appear.
 //
@@ -29,6 +30,7 @@ function sectionOf(line) {
 }
 
 export function buildLibrary(text) {
+  if (isMasterDocument(text)) return buildMasterLibrary(text);
   const lines = String(text).split('\n').map(l => l.replace(/\t+/g, '  ').trimEnd());
   const lib = { contact: { name: '', lines: [] }, summary: '', skills: [], entries: [], other: [], source: 'rules' };
   let section = 'contact', entry = null, n = 0;
@@ -122,4 +124,12 @@ export function parseAiJson(answer) {
   const start = s.indexOf('{'), end = s.lastIndexOf('}');
   if (start < 0 || end <= start) throw new Error('the AI did not return JSON');
   return JSON.parse(s.slice(start, end + 1));
+}
+
+// Readable words alone do not mean the importer found usable resume content.
+export function hasResumeContent(lib) {
+  return !!lib?.entries?.some(e => !e.flagged && ['experience', 'projects', 'education', 'certifications', 'volunteer', 'awards'].includes(e.kind) && (['education', 'certifications'].includes(e.kind) || e.bullets?.some(b => !b.flagged && b.text?.trim())));
+}
+export function requireResumeContent(lib) {
+  if (!hasResumeContent(lib)) throw Object.assign(new Error('No usable experience, projects or education were found. Check the imported sections or tidy the document with your AI before generating a resume.'), { status: 422 });
 }
