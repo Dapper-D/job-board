@@ -31,6 +31,7 @@ import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { findAiTrap, usesTrap } from './tailor/guard.mjs';
+import { checkJobBank } from './jobbankcheck.mjs';
 import { DRAFTS, cleanDraftInput, draftPrompt, cleanDraft } from './tailor/drafts.mjs';
 
 // Added to every AI prompt for a posting with an AI trap, so the AI never falls for it.
@@ -322,6 +323,12 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
 
   return {
     findKits: () => (deps.findKits || findKits)(), importKit,
+    // "Check Job Bank now": test the connection; if it works, fetch Job Bank's jobs straight away.
+    async checkJobBank() {
+      const r = await (deps.checkJobBank || checkJobBank)({ keyword: settings.keywords[0] || 'software developer' });
+      if (r.ok && !state.refreshing) refresh({ force: true }).catch(() => {});
+      return { ...r, refreshing: r.ok };
+    },
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
@@ -359,7 +366,7 @@ export function jobBankProblem(e, old) {
     : e?.status === 429 ? 'Job Bank asked us to slow down'
     : `Job Bank didn't answer (${msg.slice(0, 80)})`;
   const kept = old?.jobs?.length ? ` Showing the ${old.jobs.length} Job Bank jobs from ${new Date(old.fetchedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} instead.` : '';
-  return `${why}, so this refresh has no new Job Bank jobs; your other jobs are fine.${kept} Press Refresh to try again. If it keeps happening on a VPN or work network, try your home connection.`;
+  return `${why[0].toUpperCase()}${why.slice(1)}, so this refresh has no new Job Bank jobs; your other jobs are fine.${kept} Press Refresh to try again. If it keeps happening on a VPN or work network, try your home connection.`;
 }
 
 // Resume upload, the resume library, role checks and the onboarding answers.

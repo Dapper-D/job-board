@@ -169,3 +169,12 @@ test('Job Bank problems are explained in plain words, and a partial result is re
     assert.equal(calls, 1); // full result a minute ago: not asked again
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('Check Job Bank now: PASS/FAIL lines in plain words, with advice for a dropped connection', async () => {
+  const { checkJobBank } = await import('../src/helper/jobbankcheck.mjs');
+  const feed = readFileSync(new URL('./fixtures/jobbank.xml', import.meta.url), 'utf8');
+  const good = await checkJobBank({ wait: async () => {}, request: async url => ({ status: 200, text: /robots/.test(url) ? 'User-agent: *' : feed }) });
+  assert.equal(good.ok, true); assert.match(good.advice, /works from this computer/);
+  const bad = await checkJobBank({ wait: async () => {}, request: async () => { throw Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }); } });
+  assert.equal(bad.ok, false); assert.equal(bad.lines.length, 2); assert.match(bad.advice, /cut the connection.*VPN/);
+});

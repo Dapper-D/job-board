@@ -240,8 +240,31 @@ async function status() {
   else if (s.preparing?.total) parts.push(`Documents ready for ${s.preparing.total} new matches`);
   $('status').textContent = s.refreshing ? 'Updating jobs…' : parts.join(' · ');
   if (s.update?.available) { $('update').hidden = false; $('updateText').textContent = `B3spoken ${s.update.version} is available (you have ${s.version}). Your setup, tracker and documents are kept.`; }
-  $('problems').hidden = !s.problems.length; $('problems').textContent = s.problems.join(' ');
+  showProblems(s.problems);
   return s;
+}
+
+// Problems from the last refresh. A Job Bank problem gets a button that checks Job Bank from this computer.
+let shownProblems = '';
+function showProblems(list) {
+  const key = list.join(' ');
+  if (key === shownProblems) return; // don't redraw (and lose a check result) every few seconds
+  shownProblems = key;
+  const box = $('problems'); box.hidden = !list.length; box.replaceChildren(el('span', null, key));
+  if (!list.some(p => /Job Bank/.test(p))) return;
+  const btn = el('button', 'small', 'Check Job Bank now'); btn.type = 'button';
+  const out = el('div');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.textContent = 'Checking… (about 10 seconds)';
+    try {
+      const r = await api('/api/jobbank/check', { method: 'POST' });
+      const ul = el('ul', 'lines'); for (const l of r.lines) ul.append(el('li', null, `${l.ok ? 'PASS' : 'FAIL'}: ${l.text}`));
+      out.replaceChildren(ul, el('p', null, r.advice + (r.refreshing ? ' Getting Job Bank jobs now…' : '')));
+      if (r.refreshing) poll();
+    } catch (e) { out.replaceChildren(el('p', null, e.message)); }
+    finally { btn.disabled = false; btn.textContent = 'Check Job Bank again'; }
+  });
+  box.append(' ', btn, out);
 }
 
 async function update() {

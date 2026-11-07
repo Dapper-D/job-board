@@ -6,7 +6,7 @@
 - **Plain-English messages.** When Job Bank cuts the connection ("ECONNRESET"), the board now says so plainly, says your other jobs are fine, and shows the last Job Bank jobs it got, with their date.
 - **One failed search no longer loses the rest.** If some searches fail, the ones that worked are kept, and the failed ones are tried again in about an hour. After two failures in a row it stops asking, to be polite.
 - **Longer waits between retries** after a dropped connection: 10 and 20 seconds.
-- **A check you can run yourself.** `node b3spoken/scripts/jobbank-check.mjs` tests Job Bank from your computer and prints PASS or FAIL with the reason.
+- **A "Check Job Bank now" button** appears next to any Job Bank problem. It tests Job Bank from your computer, shows PASS or FAIL with the reason, and if Job Bank works, fetches its jobs straight away. You don't need a terminal. The same check also runs from the terminal: `node b3spoken/scripts/jobbank-check.mjs`.
 
 ### Embedded Carlito font, your name in the PDF details, clickable project links
 - **Resumes and cover letters use Carlito, embedded in the PDF.** Carlito has the same widths as Calibri. Before, they used Helvetica, which isn't embedded and looks different from computer to computer. Only the letters each document uses are embedded, so a resume is about 50 KB. The text is still real and selectable, and applicant tracking systems read it with a Unicode map.
