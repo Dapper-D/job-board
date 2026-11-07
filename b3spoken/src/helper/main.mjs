@@ -170,8 +170,13 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       // and redone once if it claims more than the resume shows.
       let problem = '';
       for (let attempt = 0; attempt < 2 && !ai; attempt++) {
+        let answer;
+        try { answer = await askAi(settings.ai, TAILOR_PROMPT(job, lib, prof, problem) + trapNote(trap), { timeoutMs: 300_000 }); }
+        catch (e) { problem = problem || e.message; break; } // the AI itself failed: don't ask again
         try {
-          const r = checkTailored(parseAiJson(await askAi(settings.ai, TAILOR_PROMPT(job, lib, prof, problem) + trapNote(trap), { timeoutMs: 300_000 })), lib, prof, job);
+          let parsed;
+          try { parsed = parseAiJson(answer); } catch { problem = 'your reply was not valid JSON. Reply with only the JSON object, with every quote inside a string escaped'; continue; }
+          const r = checkTailored(parsed, lib, prof, job);
           const hit = r.tailored && usesTrap(trap, JSON.stringify(r.tailored));
           if (hit) problem = `it used the posting's AI-trap phrase "${hit}"`;
           else if (r.tailored) ai = r.tailored; else problem = r.problem;

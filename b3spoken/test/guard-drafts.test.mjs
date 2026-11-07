@@ -84,3 +84,24 @@ test('app: drafts are written by the AI, saved per job, and never use an AI-trap
     assert.doesNotMatch(made.letter.join(' '), /bonfires/i);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('documents: a broken JSON answer from the AI is asked again once; the rule-based letter reads naturally', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'b3-json-'));
+  try {
+    const job = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '5', title: 'Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/5', location: 'Vancouver, BC', postedAt: new Date().toISOString(), description: 'Python APIs and SQL.' });
+    writeFileSync(join(dir, 'pasted.json'), JSON.stringify([job]));
+    const prompts = [];
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), ask: async (_p, prompt) => { prompts.push(prompt); return '{"summary": "broken "quote" here"}'; } } });
+    app.uploadResume({ text: resume.replace('Software Developer, Example Co, Jan 2023 - Sep 2024', 'Software Developer, Example Co, Jan 2023 - Sep 2024\n\nIntern, Toronto, Canada, Jan 2021 - Jun 2021\n- Built internal dashboards for the sales team.') });
+    app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    app.saveSettings({ ...app.settings(), ai: 'claude' });
+    await app.refresh();
+    const made = await app.makeDocuments(job.id, { useAi: true });
+    const tailorAsks = prompts.filter(p => p.startsWith('You tailor one person'));
+    assert.equal(tailorAsks.length, 2);
+    assert.match(tailorAsks[1], /not valid JSON/);
+    const text = made.letter.join(' ');
+    assert.doesNotMatch(text, /\(github|at Toronto/);
+    assert.match(text, /In my Budget Tracker project, I built/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

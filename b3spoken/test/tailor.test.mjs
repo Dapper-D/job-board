@@ -175,3 +175,18 @@ test('AI tailoring: work history is put newest first even if the AI returns it o
   assert.deepEqual(newestFirst([a, b, c]).map(e => e.id), ['c', 'b', 'a']);
   assert.deepEqual(newestFirst([a, { id: 'x', dates: '' }]).map(e => e.id), ['a', 'x']);
 });
+
+test('polish: brackets touch their links, the role sought drops the team name, and AI JSON slips are forgiven', async () => {
+  const { roleOnly } = await import('../src/helper/tailor/tailor.mjs');
+  const { parseAiJson } = await import('../src/helper/resume/library.mjs');
+  const t = tokens('Tool (github.com/a/tool | Python)');
+  assert.deepEqual(t.map(x => x.w), ['Tool', '(', 'github.com/a/tool', '|', 'Python)']);
+  assert.equal(t[2].glue, true); // "(" and the link touch: "(github.com/a/tool"
+  assert.equal(t[3].glue, undefined);
+  assert.equal(tokens('see (github.com/a/b)')[3].w, ')'); assert.equal(tokens('see (github.com/a/b)')[3].glue, true);
+  assert.equal(roleOnly('Software Engineer I, Fullstack (Search)'), 'Software Engineer I');
+  assert.equal(roleOnly('Backend Engineer, AI Engineering: Duo Chat'), 'Backend Engineer');
+  assert.equal(roleOnly('IT Security Analyst - Burnaby, BC'), 'IT Security Analyst');
+  assert.equal(withSeeking('Builds APIs.', 'Backend Engineer, AI Engineering: Duo Chat'), 'Builds APIs. Seeking a Backend Engineer role.');
+  assert.deepEqual(parseAiJson('```json\n{"a": [1, 2,], "b": “x”,}\n```'), { a: [1, 2], b: 'x' });
+});

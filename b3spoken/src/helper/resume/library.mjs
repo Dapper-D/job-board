@@ -123,7 +123,12 @@ export function parseAiJson(answer) {
   const s = String(answer || '');
   const start = s.indexOf('{'), end = s.lastIndexOf('}');
   if (start < 0 || end <= start) throw new Error('the AI did not return JSON');
-  return JSON.parse(s.slice(start, end + 1));
+  const body = s.slice(start, end + 1);
+  try { return JSON.parse(body); }
+  catch (e) {
+    // Common small slips: trailing commas, and "smart" quotes around keys or values.
+    try { return JSON.parse(body.replace(/,\s*([}\]])/g, '$1').replace(/[“”]/g, '"')); } catch { throw e; }
+  }
 }
 
 // Readable words alone do not mean the importer found usable resume content.

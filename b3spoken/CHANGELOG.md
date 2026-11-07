@@ -2,6 +2,14 @@
 
 ## 0.1.4 (with everything below up to 0.1.3)
 
+### Tailoring fixes from a real three-job test (security, IT and AI roles)
+- **A garbled AI answer is now asked for again once.** Before, one broken reply meant the documents fell back to your plain lines with a weaker letter. Small slips (trailing commas, curly quotes) are also forgiven.
+- **"Seeking a ___ role." names only the role**, for example "Seeking a Backend Engineer role." instead of "…Backend Engineer, AI Engineering: Duo Chat role."
+- **Brackets touch their links:** "(github.com/…)" instead of "( github.com/… )".
+- **The rule-based letter reads better:**
+  - project names are no longer cut off mid-link, as in "In my Automated Job Board (github.com/Dapper project"
+  - an entry like "Intern, Lagos, Nigeria" reads "in Lagos, Nigeria", not "at Lagos"
+
 ### Job Bank: clearer messages, and one failed search no longer loses the rest
 - **Plain-English messages.** When Job Bank cuts the connection ("ECONNRESET"), the board now says so plainly, says your other jobs are fine, and shows the last Job Bank jobs it got, with their date.
 - **One failed search no longer loses the rest.** If some searches fail, the ones that worked are kept, and the failed ones are tried again in about an hour. After two failures in a row it stops asking, to be polite.

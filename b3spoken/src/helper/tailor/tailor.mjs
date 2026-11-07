@@ -20,8 +20,10 @@ const article = t => (/^[aeiou]/i.test(t) ? 'an' : 'a');
 
 // Ends the summary with the role sought, so the job title never reads as a role already held.
 // Skipped when the summary already names the title.
+// "Software Engineer I, Fullstack (Search)" -> "Software Engineer I"; "Backend Engineer, AI Engineering: Duo Chat" -> "Backend Engineer".
+export const roleOnly = t => cleanTitle(t).split(/\s*(?:,|:|\(|\||\s[-–—]\s)\s*/)[0].trim() || cleanTitle(t);
 export function withSeeking(summary, title) {
-  const s = String(summary || '').trim(), t = cleanTitle(title);
+  const s = String(summary || '').trim(), t = roleOnly(title);
   if (!t || norm(s).includes(norm(t))) return s;
   return (s ? s.replace(/[.\s]*$/, '. ') : '') + `Seeking ${article(t)} ${t} role.`;
 }
@@ -112,22 +114,26 @@ const uriFor = (text, email) => (email ? `mailto:${text}` : /^https?:\/\//i.test
 export function tokens(text, { header = false } = {}) {
   const out = [], s = String(text || '');
   let last = 0;
-  const plain = t => t.split(/\s+/).filter(Boolean).forEach(w => out.push({ w, uri: null }));
+  let glueNext = false; // the next word touches the previous one (e.g. "(" + link, or link + ")")
+  const push = tok => { if (glueNext && out.length) tok.glue = true; glueNext = false; out.push(tok); };
+  const plain = t => { if (/^\s/.test(t)) glueNext = false; t.split(/\s+/).filter(Boolean).forEach(w => push({ w, uri: null })); if (t && !/\s$/.test(t)) glueNext = true; };
   for (const m of s.matchAll(URL_RE)) {
     const addr = m[0].replace(/[.:]+$/, ''), trail = m[0].slice(addr.length); // "…/Under50." links without the full stop
-    plain(s.slice(last, m.index));
+    if (m.index === last && last > 0) glueNext = true; else plain(s.slice(last, m.index));
     let shown = addr;
     if (header && !m[1] && !/linkedin\.com/i.test(addr)) shown = /git(hub|lab)\.com/i.test(addr) ? (/gitlab/i.test(addr) ? 'GitLab' : 'GitHub') : 'Portfolio';
-    out.push({ w: shown + trail, uri: uriFor(addr, !!m[1]) });
+    push({ w: shown + trail, uri: uriFor(addr, !!m[1]) });
     last = m.index + m[0].length;
+    glueNext = last < s.length && !/\s/.test(s[last]);
   }
   plain(s.slice(last));
   return out;
 }
 
+const joinTokens = l => l.map((t, i) => (i && !t.glue ? ' ' : '') + t.w).join('');
 function wrapTokens(toks, size, width, bold = false) {
   const lines = []; let line = [];
-  const w = l => textWidth(l.map(t => t.w).join(' '), size, bold);
+  const w = l => textWidth(joinTokens(l), size, bold);
   for (const t of toks) { const next = [...line, t]; if (!line.length || w(next) <= width) line = next; else { lines.push(line); line = [t]; } }
   if (line.length) lines.push(line);
   return lines;
@@ -136,11 +142,12 @@ function wrapTokens(toks, size, width, bold = false) {
 // Draws one wrapped line; runs of words with the same link are drawn in link colour, underlined and clickable.
 function drawTokens(doc, x, y, line, size, bold = false) {
   const runs = [];
-  for (const t of line) { const r = runs.at(-1); if (r && r.uri === t.uri) r.text += ' ' + t.w; else runs.push({ text: t.w, uri: t.uri }); }
+  line.forEach((t, i) => { const r = runs.at(-1); if (r && r.uri === t.uri) r.text += (t.glue ? '' : ' ') + t.w; else runs.push({ text: t.w, uri: t.uri, glue: !i || t.glue }); });
   let cx = x;
   runs.forEach((r, i) => {
-    const s = (i ? ' ' : '') + r.text;
-    const lead = i ? textWidth(' ', size, bold) : 0, w = textWidth(r.text, size, bold);
+    const gap = i && !r.glue ? ' ' : '';
+    const s = gap + r.text;
+    const lead = gap ? textWidth(' ', size, bold) : 0, w = textWidth(r.text, size, bold);
     doc.text(cx, y, s, { size, bold, color: r.uri ? LINK : null });
     if (r.uri) { doc.line(cx + lead, y - 1.2, cx + lead + w, y - 1.2, 0.4, LINK); doc.link(cx + lead, y - 2, cx + lead + w, y + size * 0.8, r.uri); }
     cx += textWidth(s, size, bold);
@@ -252,7 +259,9 @@ export function coverLetter(plan, job, match, profile = {}, today = new Date()) 
   for (const e of [...plan.experience, ...plan.projects]) {
     const b = e.bullets[0]; if (!b) continue;
     const [role, org] = splitHeading(e.heading);
-    points.push(e.kind === 'projects' ? `In my ${e.heading.replace(/\s*[—–-].*$/, '')} project, I ${lowerFirst(b.text)}.` : org ? `As ${article(role)} ${role} at ${org}, I ${lowerFirst(b.text)}.` : `In my work as ${role}, I ${lowerFirst(b.text)}.`);
+    const name = e.heading.split(/\s*(?:\(|\|| [—–-] )/)[0].trim(); // "Under50 - Restaurant Finder (github.com/…" -> "Under50"
+    const place = /,/.test(String(e.heading).split(/,\s*/).slice(1).join(',')) ? e.heading.split(/,\s*/).slice(1).join(', ') : ''; // "Intern, Lagos, Nigeria": a place, not an employer
+    points.push(e.kind === 'projects' ? `In my ${name} project, I ${lowerFirst(b.text)}.` : place ? `As ${article(role)} ${role} in ${place}, I ${lowerFirst(b.text)}.` : org ? `As ${article(role)} ${role} at ${org}, I ${lowerFirst(b.text)}.` : `In my work as ${role}, I ${lowerFirst(b.text)}.`);
     if (points.length === 3) break;
   }
   if (points.length) out.push(points.join(' '));
