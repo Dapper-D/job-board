@@ -65,7 +65,8 @@ test('pool and Job Bank are merged without duplicates; filters', async () => {
 });
 
 test('settings are cleaned', () => {
-  assert.deepEqual(cleanSettings({ keywords: [' dev ', 'dev', '', 'x'.repeat(99)], province: 'XX', remote: 'maybe', ai: 'rm -rf' }), { keywords: ['dev', 'x'.repeat(60)], province: '', remote: 'yes', ai: 'auto' });
+  assert.deepEqual(cleanSettings({ keywords: [' dev ', 'dev', '', 'x'.repeat(99)], province: 'XX', remote: 'maybe', ai: 'rm -rf' }), { keywords: ['dev', 'x'.repeat(60)], province: '', remote: 'yes', ai: 'auto', autostart: true });
+  assert.equal(cleanSettings({ autostart: false }).autostart, false);
 });
 
 test('local server: host check, token, origin, and the board works end to end', async () => {

@@ -7,7 +7,7 @@ param([switch]$RemoveData, [switch]$Quiet)
 $data = Join-Path $env:LOCALAPPDATA 'B3spoken'
 $rec = $null
 try { $rec = Get-Content -Raw (Join-Path $data 'source-install.json') | ConvertFrom-Json } catch {}
-$links = @((Join-Path ([Environment]::GetFolderPath('Programs')) 'B3spoken.lnk'), (Join-Path ([Environment]::GetFolderPath('Desktop')) 'B3spoken.lnk'))
+$links = @((Join-Path ([Environment]::GetFolderPath('Programs')) 'B3spoken.lnk'), (Join-Path ([Environment]::GetFolderPath('Desktop')) 'B3spoken.lnk'), (Join-Path ([Environment]::GetFolderPath('Startup')) 'B3spoken.lnk'))
 if ($rec) { $links += $rec.shortcuts }
 foreach ($l in ($links | Select-Object -Unique)) { if (Test-Path $l) { Remove-Item -Force $l; Write-Host "Removed $l" } }
 try {

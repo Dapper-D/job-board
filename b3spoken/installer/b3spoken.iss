@@ -38,5 +38,8 @@ Name: "{autodesktop}\B3spoken"; Filename: "{app}\B3spoken.exe"; Tasks: desktopic
 [Run]
 Filename: "{app}\B3spoken.exe"; Description: "Open B3spoken now"; Flags: nowait postinstall skipifsilent
 
+[UninstallDelete]
+Type: files; Name: "{userstartup}\B3spoken.lnk"
+
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/f /im B3spoken.exe"; Flags: runhidden; RunOnceId: "StopB3spoken"

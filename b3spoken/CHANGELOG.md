@@ -2,6 +2,17 @@
 
 ## 0.1.4 (with everything below up to 0.1.3)
 
+### Runs in the background and starts when you sign in
+- **Windows:** opening B3spoken no longer leaves a black window open. It restarts itself hidden and puts an icon by the clock.
+  - Click the icon to open the board; right-click for **Open B3spoken** and **Quit B3spoken**.
+  - The icon closes by itself if B3spoken stops.
+- **Starts when you sign in** (Windows, Mac and Linux), so the morning's new jobs and documents are ready without opening it.
+  - It starts quietly, without opening your browser.
+  - On by default; turn it off with the checkbox in the Health check. The Health check also shows whether it's on.
+- **Built-in tools only:** Windows Script Host and PowerShell on Windows, a LaunchAgent on Mac, and an autostart entry on Linux. Nothing extra is installed.
+- **Uninstalling removes the startup entry too**, for both the installer and the uninstall scripts.
+- Tested on GitHub's Windows machines on every push: hidden restart, the tray icon, the startup shortcut, and Quit closing the icon.
+
 ### Health check
 - **A Health check button** at the top of the board lists each part with PASS, WARN or FAIL, and says what to do about anything that isn't PASS. The parts:
   - your resume (including lines still waiting for you to check them)

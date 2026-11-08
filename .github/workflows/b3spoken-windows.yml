@@ -39,6 +39,8 @@ jobs:
           if ($t.Arguments -notmatch 'b3spoken\\src\\helper\\main\.mjs') { throw "shortcut points at $($t.Arguments)" }
           powershell -NoProfile -ExecutionPolicy Bypass -File ..\uninstall.ps1 -Quiet
           if (Test-Path $lnk) { throw 'uninstall.ps1 left the shortcut' }
+      - name: Background mode (no window, icon by the clock, start when I sign in)
+        run: node scripts/background-check.mjs
       - name: Build B3spoken.exe and the installer
         run: node scripts/build-exe.mjs
       - name: Install (silently, for this user only)

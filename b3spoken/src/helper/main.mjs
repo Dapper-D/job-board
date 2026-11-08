@@ -32,6 +32,7 @@ import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { findAiTrap, usesTrap } from './tailor/guard.mjs';
 import { checkJobBank } from './jobbankcheck.mjs';
+import { setAutostart, autostartOn, relaunchHidden, startTray } from './desktop.mjs';
 import { DRAFTS, cleanDraftInput, draftPrompt, cleanDraft } from './tailor/drafts.mjs';
 
 // Added to every AI prompt for a posting with an AI trap, so the AI never falls for it.
@@ -41,7 +42,7 @@ const withTrap = j => { const t = findAiTrap(j.description); return t ? { ...j, 
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT, TAILOR_PROMPT, checkTailored } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
-export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto' };
+export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto', autostart: true };
 
 export function cleanSettings(s = {}) {
   const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 10);
@@ -50,6 +51,7 @@ export function cleanSettings(s = {}) {
     province: PROVINCES.includes(s.province) ? s.province : '',
     remote: ['yes', 'no', 'only'].includes(s.remote) ? s.remote : 'yes',
     ai: AI_CHOICES.includes(s.ai) ? s.ai : 'auto',
+    autostart: s.autostart !== false, // start in the background when the person signs in to their computer
   };
 }
 
@@ -336,6 +338,14 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
 
   return {
     findKits: () => (deps.findKits || findKits)(), importKit,
+    // "Start B3spoken when I sign in": saved as a setting and applied to the system's startup entry.
+    autostart(on) {
+      const want = on !== false;
+      try { (deps.setAutostart || setAutostart)(dir, want); }
+      catch (e) { throw err(500, `Couldn't change that: ${e.message}`); }
+      settings = cleanSettings({ ...settings, autostart: want }); writeJson(settingsFile, settings);
+      return { on: want };
+    },
     // "Check Job Bank now": test the connection; if it works, fetch Job Bank's jobs straight away.
     async checkJobBank() {
       const r = await (deps.checkJobBank || checkJobBank)({ keyword: settings.keywords[0] || 'software developer' });
@@ -371,6 +381,10 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       }
       try { const f = join(dir, 'documents', '.write-test'); mkdirSync(join(dir, 'documents'), { recursive: true }); writeFileSync(f, 'ok'); add('PASS', 'Your files', `Saved on this computer in ${dir}.`); }
       catch (e) { add('FAIL', 'Your files', `Can't save files in ${dir} (${e.code || e.message}).`, 'Check that the folder exists and isn\'t read-only, or that your disk isn\'t full.'); }
+      if (!deps.skipAutostartCheck) {
+        const on = (deps.autostartOn || autostartOn)();
+        add(on ? 'PASS' : 'WARN', 'Starts when you sign in', on ? 'B3spoken starts in the background when you sign in, so new jobs and documents are ready each morning.' : 'B3spoken only runs when you open it.', on ? '' : 'Turn on "Start B3spoken when I sign in" in this health check.');
+      }
       const up = await checkUpdate();
       if (up?.available) add('WARN', 'Updates', `B3spoken ${up.version} is available; you have ${VERSION}.`, 'Click Update now at the top of the board.');
       else if (up?.error) add('WARN', 'Updates', `Couldn't check for updates (${up.error}).`, 'Check the internet connection; it tries again later.');
@@ -496,12 +510,21 @@ export async function start(argv = process.argv.slice(2)) {
       }
     } catch {}
   }
+  // Opened normally on Windows (shortcut, Start menu, setup): start again with no window, with an icon by the clock.
+  // Tests and the command line keep the window by passing options (or --console).
+  const plainStart = argv.length === 0;
+  const win = process.platform === 'win32';
+  if (win && plainStart && !process.env.B3SPOKEN_CONSOLE) { relaunchHidden(dir); return null; }
   const app = createApp(dir, { offline: flag('--offline') });
   const srv = createServer(app);
   const port = await srv.listen(portArg);
   writeJson(join(dir, 'helper.json'), { port, pid: process.pid, startedAt: new Date().toISOString() });
   const url = `http://127.0.0.1:${port}/`;
-  console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\nKeep this window open while you use B3spoken. Close it (or press Ctrl+C) to stop.`);
+  const hidden = flag('--hidden');
+  if (win && hidden) { try { startTray(dir, { port }); } catch (e) { console.error(`couldn't show the icon by the clock: ${e.message}`); } }
+  // Keep the "start when I sign in" entry matching the setting (only for real use, not tests or one-off command lines).
+  if (plainStart || hidden) { try { const want = app.settings().autostart !== false; if (want !== autostartOn()) setAutostart(dir, want); } catch (e) { console.error(`couldn't update the startup entry: ${e.message}`); } }
+  console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\n${hidden ? 'It runs in the background; use the icon by the clock to open or quit it.' : 'Keep this window open while you use B3spoken. Close it (or press Ctrl+C) to stop.'}`);
   if (!flag('--no-open')) openBrowser(url);
   app.refresh().catch(e => console.error('refresh failed:', e.message));
   setInterval(() => app.refresh().catch(() => {}), 6 * 3600e3).unref(); // picks up the next daily pool if left open

@@ -311,7 +311,11 @@ async function health() {
       ul.append(li);
     }
     const close = el('button', 'small', 'Close'); close.type = 'button'; close.addEventListener('click', () => { box.hidden = true; });
-    box.replaceChildren(el('h3', null, r.worst === 'PASS' ? 'Everything works' : r.worst === 'WARN' ? 'Working, with things to look at' : 'Something needs fixing'), ul, close);
+    const auto = el('label', 'mini'); const cb = el('input'); cb.type = 'checkbox';
+    const s = await api('/api/settings'); cb.checked = s.autostart !== false;
+    cb.addEventListener('change', async () => { try { await api('/api/autostart', { method: 'PUT', body: JSON.stringify({ on: cb.checked }) }); health(); health(); } catch (e) { cb.checked = !cb.checked; alert(e.message); } });
+    auto.append(cb, el('span', null, ' Start B3spoken when I sign in to this computer (it runs in the background, so new jobs and documents are ready each morning)'));
+    box.replaceChildren(el('h3', null, r.worst === 'PASS' ? 'Everything works' : r.worst === 'WARN' ? 'Working, with things to look at' : 'Something needs fixing'), ul, auto, close);
     box.dataset.done = '1';
   } catch (e) { box.replaceChildren(el('p', 'problems', `The health check didn't run: ${e.message}`)); }
 }

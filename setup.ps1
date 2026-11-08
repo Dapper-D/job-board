@@ -57,7 +57,7 @@ New-Item -ItemType Directory -Force -Path $data | Out-Null
 Write-Host "Your files will be kept in: $data"
 
 if (-not $NoLaunch) {
-  Write-Host 'Starting B3spoken. It opens in your browser; keep its window open while you use it.' -ForegroundColor Green
+  Write-Host 'Starting B3spoken. It opens in your browser and keeps running in the background, with an icon by the clock (right-click it to quit). It also starts by itself when you sign in; you can turn that off in its Health check.' -ForegroundColor Green
   Start-Process -FilePath $Node -ArgumentList "`"$Helper`"" -WorkingDirectory $Root
 }
 Write-Host "`nDone. Next time, open B3spoken from the Start menu." -ForegroundColor Green
