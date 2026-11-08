@@ -536,7 +536,7 @@ export async function start(argv = process.argv.slice(2)) {
   if (win && hidden) {
     const showTray = (announce, tries = 0) => {
       try {
-        const child = startTray(dir, { port, announce });
+        const child = startTray(dir, { port, announce, fresh: tries === 0 });
         app.desktop.tray = { running: true, startedAt: new Date().toISOString() };
         child.on?.('exit', code => {
           app.desktop.tray = { running: false, code, at: new Date().toISOString() };

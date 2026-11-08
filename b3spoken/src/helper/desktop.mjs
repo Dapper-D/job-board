@@ -144,12 +144,12 @@ export function relaunchHidden(dir, { argv = [], cmd = selfCommand(), env = proc
 
 // Windows: show the icon by the clock for this running B3spoken.
 // Returns the tray process (its 'exit' event tells B3spoken if the icon went away).
-export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false } = {}) {
+export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false, fresh = true } = {}) {
   const file = join(dir, 'tray.ps1');
   writeFileSync(file, trayPs1());
   // The icon script writes what it does (and any error) to tray.log, so a missing icon can be explained.
   const log = join(dir, 'tray.log');
-  try { writeFileSync(log, ''); } catch {}
+  if (fresh) try { writeFileSync(log, ''); } catch {} // a restart adds to the log instead of wiping the reason
   const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], '-Log', log, ...(announce ? ['-Announce'] : [])], { detached: true, stdio: 'ignore', windowsHide: true });
   child.on?.('error', () => {}); child.unref?.();
   return child;
