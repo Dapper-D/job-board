@@ -5,7 +5,7 @@
 // Everything uses what the system already has (Windows Script Host, PowerShell, launchd, XDG autostart): nothing to install.
 // The launcher and tray files live in B3spoken's own data folder; turning "start when I sign in" off removes the startup entry.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -150,7 +150,12 @@ export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), r
   // The icon script writes what it does (and any error) to tray.log, so a missing icon can be explained.
   const log = join(dir, 'tray.log');
   if (fresh) try { writeFileSync(log, ''); } catch {} // a restart adds to the log instead of wiping the reason
-  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], '-Log', log, ...(announce ? ['-Announce'] : [])], { detached: true, stdio: 'ignore', windowsHide: true });
+  const args = ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], '-Log', log, ...(announce ? ['-Announce'] : [])];
+  // PowerShell's own startup errors (before the script runs) go to tray-start.log.
+  let err = 'ignore';
+  try { err = openSync(join(dir, 'tray-start.log'), fresh ? 'w' : 'a'); writeSync(err, `${new Date().toISOString()} powershell.exe ${args.join(' ')}\n`); } catch {}
+  const child = run('powershell.exe', args, { detached: true, stdio: ['ignore', err, err], windowsHide: true });
+  if (typeof err === 'number') try { closeSync(err); } catch {}
   child.on?.('error', () => {}); child.unref?.();
   return child;
 }
