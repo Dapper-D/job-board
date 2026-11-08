@@ -117,7 +117,8 @@ export function scoreJob(job, ctx) {
   }
   const score = Math.round(100 * Math.max(0, Math.min(1, 0.45 * skillFit + 0.3 * titleFit + 0.15 * Math.max(0, seniority) + 0.1 * payFit)));
   let label = stops.length ? 'Skip' : score >= 70 ? 'Strong' : score >= 50 ? 'Good' : score >= 30 ? 'Stretch' : 'Skip';
-  if (tooSenior && (label === 'Strong' || label === 'Good')) label = 'Stretch'; // a senior title is a stretch with under 3 years
+  // Senior, lead, staff or manager titles are hidden for people with under 3 years on their resume (they can still paste or track one).
+  if (tooSenior) { label = 'Skip'; stops.push('Senior-level title; your resume shows under 3 years'); }
   if (!stops.length && label === 'Skip') stops.push('Too far from your resume and roles');
   return { score: stops.length ? Math.min(score, 29) : score, label, reasons, stops, have, missing, pay };
 }

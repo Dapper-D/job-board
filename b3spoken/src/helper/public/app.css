@@ -69,7 +69,10 @@ details { margin: 10px 0; }
 .files { display: inline-flex; gap: 6px; }
 button.link { color: var(--accent); }
 /* board: tabs, paste, tracker */
-.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs .n { color: var(--muted); font-weight: 400; }
+.badge.stage { color: var(--accent); border-color: var(--accent); font-weight: 600; flex: 0 0 auto; white-space: nowrap; align-self: center; }
+.job.leaving { opacity: .45; transition: opacity .3s; }
 .tabs button { font-weight: 600; }
 .tabs button.on { border-color: var(--accent); color: var(--accent); }
 .paste { display: flex; gap: 8px; margin-bottom: 8px; }
@@ -105,3 +108,4 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .drafts .out { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
 .drafts .inputs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .drafts .inputs textarea { min-height: 90px; }
+.top h2 { flex: 1; }

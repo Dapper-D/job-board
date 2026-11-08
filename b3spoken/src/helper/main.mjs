@@ -60,7 +60,12 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   let pool = null, jobBank = null, merged = [], byId = new Map(), ai = null;
   const state = { refreshing: false, lastRefresh: null, problems: [] };
   const pastedFile = join(dir, 'pasted.json');
-  const remerge = () => { merged = mergeJobs([...(pool?.pool.jobs || []), ...readJson(pastedFile, [])], jobBank?.jobs); byId = new Map(merged.map(j => [j.id, j])); };
+  // Jobs you've tracked are kept on this computer, so they stay in their tab after they leave the daily pool.
+  const keptFile = join(dir, 'tracked-jobs.json');
+  const remerge = () => {
+    const live = [...(pool?.pool.jobs || []), ...readJson(pastedFile, [])], liveIds = new Set(live.map(j => j.id));
+    merged = mergeJobs([...live, ...readJson(keptFile, []).filter(j => !liveIds.has(j.id))], jobBank?.jobs); byId = new Map(merged.map(j => [j.id, j]));
+  };
 
   async function refresh({ force = false } = {}) {
     if (state.refreshing) return { started: false, reason: 'already refreshing' };
@@ -222,6 +227,9 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     const next = cleanEntry(entry, all[id]);
     if (!next.status && !next.notes && !next.followUp) delete all[id]; else all[id] = { ...next, title: byId.get(id)?.title || all[id]?.title, company: byId.get(id)?.company || all[id]?.company };
     writeJson(trackerFile, all);
+    const kept = readJson(keptFile, []).filter(j => j.id !== id);
+    if (all[id] && byId.has(id)) kept.unshift({ ...byId.get(id), description: String(byId.get(id).description || '').slice(0, 20000) });
+    writeJson(keptFile, kept.slice(0, 1000));
     return all[id] || {};
   }
   // Paste a link

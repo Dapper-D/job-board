@@ -2,6 +2,15 @@
 
 ## 0.1.4 (with everything below up to 0.1.3)
 
+### Tabs for every stage, no senior jobs, fuller resumes
+- **A tab for each stage:** To apply, Applied, Interview, Offer, Rejected, Not interested and Follow-ups, each with a count.
+  - When you change a job's status, it moves out of To apply into its own tab.
+  - Each job shows its status as a badge.
+  - Saved jobs stay in To apply.
+- **Jobs you've tracked are kept on your computer**, so they stay in their tab after they drop out of the daily job list.
+- **Senior, lead, staff and manager titles are hidden** when your resume shows under 3 years of experience. You can still paste one in or track it.
+- **Resumes use the page better:** up to 3 projects, the AI's picks first, then the next most relevant from your library. A third project wins over a third bullet on every entry. Everything still fits on one page.
+
 ### Tailoring fixes from a real three-job test (security, IT and AI roles)
 - **A garbled AI answer is now asked for again once.** Before, one broken reply meant the documents fell back to your plain lines with a weaker letter. Small slips (trailing commas, curly quotes) are also forgiven.
 - **"Seeking a ___ role." names only the role**, for example "Seeking a Backend Engineer role." instead of "…Backend Engineer, AI Engineering: Duo Chat role."

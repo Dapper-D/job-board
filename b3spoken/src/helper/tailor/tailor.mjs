@@ -88,7 +88,10 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
     }).filter(Boolean);
     const exp = choose(ai.experience, 'experience'), proj = choose(ai.projects, 'projects');
     if (exp.length) experience = newestFirst(exp);
-    if (proj.length || ai.projects?.length === 0) projects = proj;
+    // Up to 3 projects: the AI's picks first, then the next most relevant ones from the library to use the page well
+    // (the layout drops the last ones again if they don't fit).
+    if (proj.length) projects = [...proj, ...projects.filter(p => !proj.some(x => x.id === p.id))].slice(0, Math.max(3, proj.length));
+    else if (ai.projects?.length === 0) projects = [];
     if (ai.skills?.length) skills = ai.skills;
     if (ai.summary) summary = ai.summary;
     if (typeof ai.expFirst === 'boolean') projectsFirst = !ai.expFirst;
@@ -171,8 +174,9 @@ export function renderResume(plan) {
   }];
   for (const selected of variants) {
     for (const size of [10.5, 10, 9.5, 9]) {
-      for (const maxBullets of (selected === plan ? [3, 2, 1] : [2, 1])) {
-        for (const maxProjects of [3, 2, 1]) {
+      // A third project is worth more than a third bullet on every entry, so fewer bullets are tried before fewer projects.
+      for (const maxProjects of [3, 2, 1]) {
+        for (const maxBullets of (selected === plan ? [3, 2, 1] : [2, 1])) {
           const maxExperience = selected === plan ? [plan.experience.length] : [4, 3, 2, 1];
           for (const max of maxExperience) {
             const r = layoutResume({ ...selected, experience: selected.experience.slice(0, max) }, { size, maxBullets, maxProjects });

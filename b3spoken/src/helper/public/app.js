@@ -25,6 +25,9 @@ function trackerControls(j) {
   const save = async () => {
     const r = await api(`/api/tracker/${encodeURIComponent(j.id)}`, { method: 'PUT', body: JSON.stringify({ status: sel.value, followUp: date.value, notes: notes.value }) });
     j.track = r; date.value = r.followUp || '';
+    drawStatusBadge(box.closest('li.job'), r.status);
+    if (!inView(r)) { const li = box.closest('li.job'); li?.classList.add('leaving'); li?.append(el('p', 'tip', `Moved to ${tabName(r.status)}.`)); setTimeout(() => li?.remove(), 1500); }
+    loadCounts();
     due.hidden = !(r.followUp && r.followUp <= today() && !['rejected', 'not-interested', 'offer'].includes(r.status));
     loadDue();
   };
@@ -39,6 +42,28 @@ async function loadDue() {
   docs = t.documents || {};
   $('dueCount').textContent = t.due ? `(${t.due})` : '';
 }
+
+// Which tab a job belongs in, and the tab names.
+const tabName = s => (STATUS.find(([v]) => v === s)?.[1] || 'To apply').replace('Not tracked', 'To apply').replace('Saved', 'To apply');
+function inView(t = {}) {
+  if (view === 'tracked') return !!(t.status || t.notes);
+  if (view === 'due') return !!(t.followUp && t.followUp <= today() && !['rejected', 'not-interested', 'offer'].includes(t.status));
+  if (view) return t.status === view;
+  return !t.status || t.status === 'saved';
+}
+function drawStatusBadge(li, status) {
+  if (!li) return;
+  li.querySelector('.badge.stage')?.remove();
+  if (status) li.querySelector('.top')?.append(el('span', 'badge stage', STATUS.find(([v]) => v === status)?.[1] || status));
+}
+async function loadCounts() {
+  try { const r = await api(`/api/jobs?${query('', 0, 1)}`); showCounts(r.counts, r.total); } catch {}
+}
+function showCounts(c = {}, toApply = null) {
+  for (const s of document.querySelectorAll('.tabs .n')) { const k = s.dataset.count; if (k) s.textContent = c[k] ? `(${c[k]})` : ''; else if (toApply != null) s.textContent = `(${toApply})`; }
+}
+// The list query: the filters on screen, for one tab.
+const query = (v, off, limit) => new URLSearchParams({ q: $('q').value, province: $('province').value, remote: $('remote').value, maxAgeDays: $('age').value, minLabel: $('minLabel').value, sort: $('sort').value, view: v, offset: off, limit });
 
 function card(j) {
   const li = el('li', 'job');
@@ -102,6 +127,7 @@ function card(j) {
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
   li.append(row, prepBox, conBox, helpBox, trackerControls(j));
+  drawStatusBadge(li, j.track?.status);
   return li;
 }
 
@@ -220,11 +246,11 @@ function drawPrep(box, p) {
 
 async function load(reset = true) {
   if (reset) { offset = 0; $('list').replaceChildren(); }
-  const p = new URLSearchParams({ q: $('q').value, province: $('province').value, remote: $('remote').value, maxAgeDays: $('age').value, minLabel: $('minLabel').value, sort: $('sort').value, view, offset, limit: 50 });
-  const r = await api(`/api/jobs?${p}`);
+  const r = await api(`/api/jobs?${query(view, offset, 50)}`);
   r.jobs.forEach(j => $('list').append(card(j)));
   offset += r.jobs.length;
-  $('count').textContent = `${r.total.toLocaleString()} jobs`;
+  $('count').textContent = `${r.total.toLocaleString()} ${r.total === 1 ? 'job' : 'jobs'}`;
+  if (view) loadCounts(); else showCounts(r.counts, r.total);
   $('more').hidden = offset >= r.total;
 }
 

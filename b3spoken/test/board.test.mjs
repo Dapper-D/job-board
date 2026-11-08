@@ -13,20 +13,28 @@ test('tracker: applying sets a follow-up a week later; due dates', () => {
   assert.equal(dueToday({ followUp: '2026-11-01', status: 'rejected' }, '2026-11-05'), false);
 });
 
-test('board views: tracked, follow-ups due, and not-interested hidden', () => {
+test('board tabs: To apply holds only jobs not acted on; each status has its own tab, with counts', async () => {
+  const { viewCounts } = await import('../src/helper/jobs.mjs');
   const jobs = [
     { id: 'a', title: 'A', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 60 } },
+    { id: 's', title: 'S', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 55 }, track: { status: 'saved' } },
     { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-20T00:00:00Z', match: { label: 'Strong', score: 90 } },
     { id: 'nodate', title: 'No date', location: 'Vancouver, BC', match: { label: 'Strong', score: 90 } },
     { id: 'b', title: 'B', location: 'Vancouver, BC', match: { label: 'Strong', score: 80 }, track: { status: 'not-interested' } },
     { id: 'c', title: 'C', location: 'Toronto, ON', match: { label: 'Skip', score: 10 }, track: { status: 'applied', followUp: '2026-11-01' } },
+    { id: 'r', title: 'R', location: 'Vancouver, BC', match: { label: 'Good', score: 50 }, track: { status: 'rejected' } },
   ];
   const now = Date.parse('2026-11-05T12:00:00Z');
-  assert.deepEqual(queryJobs(jobs, { now }).jobs.map(j => j.id), ['a', 'c']); // tracked Skip still shows; not-interested, old and undated jobs hidden
-  assert.deepEqual(queryJobs(jobs, { now, maxAgeDays: 30 }).jobs.map(j => j.id), ['a', 'c']); // never more than 3 days
-  assert.deepEqual(queryJobs(jobs, { now, maxAgeDays: 1 }).jobs.map(j => j.id), ['c']); // last 24 hours
-  assert.deepEqual(queryJobs(jobs, { view: 'tracked', now }).jobs.map(j => j.id).sort(), ['b', 'c']);
-  assert.deepEqual(queryJobs(jobs, { view: 'due', now }).jobs.map(j => j.id), ['c']);
+  const ids = o => queryJobs(jobs, { now, ...o }).jobs.map(j => j.id);
+  assert.deepEqual(ids({}), ['a', 's']); // applied, rejected and not-interested jobs leave To apply; old and undated jobs hidden
+  assert.deepEqual(ids({ maxAgeDays: 30 }), ['a', 's']); // never more than 3 days
+  assert.deepEqual(ids({ maxAgeDays: 1 }), ['s']); // a saved job stays even when older than the window
+  assert.deepEqual(ids({ view: 'applied' }), ['c']); // tracked jobs show in their tab whatever their age or score
+  assert.deepEqual(ids({ view: 'rejected' }), ['r']);
+  assert.deepEqual(ids({ view: 'not-interested' }), ['b']);
+  assert.deepEqual(ids({ view: 'tracked' }).sort(), ['b', 'c', 'r', 's']);
+  assert.deepEqual(ids({ view: 'due' }), ['c']);
+  assert.deepEqual(viewCounts(jobs, now), { tracked: 4, due: 1, applied: 1, interview: 0, offer: 0, rejected: 1, 'not-interested': 1 });
 });
 
 test('paste a link: checked on the employer’s live list; job boards and stale postings refused', async () => {

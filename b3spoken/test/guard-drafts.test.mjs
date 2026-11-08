@@ -105,3 +105,24 @@ test('documents: a broken JSON answer from the AI is asked again once; the rule-
     assert.match(text, /In my Budget Tracker project, I built/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('senior titles are hidden for under 3 years; tracked jobs stay in their tab after leaving the pool', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'b3-tabs-'));
+  try {
+    const now = new Date().toISOString();
+    const junior = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '1', title: 'Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/1', location: 'Vancouver, BC', postedAt: now, description: 'Python APIs and SQL.' });
+    const senior = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '2', title: 'Senior Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/2', location: 'Vancouver, BC', postedAt: now, description: 'Python APIs and SQL.' });
+    writeFileSync(join(dir, 'pasted.json'), JSON.stringify([junior, senior]));
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}) } });
+    app.uploadResume({ text: resume });
+    app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    await app.refresh();
+    const label = id => app.jobs().find(j => j.id === id).match.label;
+    assert.equal(label(senior.id), 'Skip');
+    assert.notEqual(label(junior.id), 'Skip');
+    app.track(junior.id, { status: 'applied' });
+    writeFileSync(join(dir, 'pasted.json'), '[]'); // the job leaves the list
+    await app.refresh();
+    assert.equal(app.jobs().find(j => j.id === junior.id)?.track?.status, 'applied');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

@@ -39,6 +39,22 @@ export function inProvince(job, code) {
 // Only fresh jobs: posted in the last 3 days at most (the board's choice is 1, 2 or 3 days).
 // Jobs with no posting date can't be shown to be fresh, so they're left out too.
 export const MAX_AGE_DAYS = 3;
+// Board tabs: '' is "To apply" (not tracked yet, or saved); each status has its own tab; 'due' is follow-ups; 'tracked' is all of them.
+export const STATUS_VIEWS = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
+export const VIEWS = ['', 'tracked', 'due', ...STATUS_VIEWS];
+const isDue = (t, today) => !!(t?.followUp && t.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(t.status));
+// How many jobs are in each tab (tracked tabs only; the To apply count comes with the list).
+export function viewCounts(jobs, now = Date.now()) {
+  const today = new Date(now).toISOString().slice(0, 10);
+  const out = { tracked: 0, due: 0, ...Object.fromEntries(STATUS_VIEWS.map(v => [v, 0])) };
+  for (const j of jobs) {
+    const t = j.track; if (!t) continue;
+    if (t.status || t.notes) out.tracked++;
+    if (STATUS_VIEWS.includes(t.status)) out[t.status]++;
+    if (isDue(t, today)) out.due++;
+  }
+  return out;
+}
 export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = MAX_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
   const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
@@ -47,8 +63,9 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
   const cutoff = now - days * 864e5;
   const hits = jobs.filter(j => {
     if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
-    else if (view === 'due') { if (!(j.track?.followUp && j.track.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(j.track.status))) return false; }
-    else if (j.track?.status === 'not-interested') return false;
+    else if (view === 'due') { if (!isDue(j.track, today)) return false; }
+    else if (STATUS_VIEWS.includes(view)) { if (j.track?.status !== view) return false; }
+    else if (j.track?.status && j.track.status !== 'saved') return false; // To apply: jobs you've acted on move to their own tab
     if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
     if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
     if (view) return true;
