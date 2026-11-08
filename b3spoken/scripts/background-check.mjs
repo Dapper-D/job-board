@@ -32,7 +32,17 @@ for (let i = 0; i < 20 && !tray; i++) { await sleep(1000); tray = ps(`(Get-CimIn
 if (!tray) fail('no tray icon process');
 let trayLog = '';
 for (let i = 0; i < 15 && !/icon shown/.test(trayLog); i++) { await sleep(1000); try { trayLog = readFileSync(join(home, 'tray.log'), 'utf8'); } catch {} }
-if (!/icon shown/.test(trayLog)) fail(`the icon script didn't show the icon; tray.log: ${trayLog.trim().slice(0, 300) || '(empty)'}`);
+if (!/icon shown/.test(trayLog)) {
+  // Explain: show the tray process's command line, then run the same script in the foreground (it stops by itself
+  // within a few seconds because the B3spoken it watches doesn't exist) and print everything it says.
+  console.log('tray command line:', ps(`(Get-CimInstance Win32_Process -Filter "ProcessId=${tray}").CommandLine`) || '(process gone)');
+  try {
+    const out = execFileSync('powershell.exe', ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', join(home, 'tray.ps1'), '-Port', '1', '-HelperPid', '999999', '-IconFrom', process.execPath, '-Log', join(home, 'tray-debug.log')], { encoding: 'utf8', timeout: 30000 });
+    console.log('foreground run output:', out.trim() || '(none)');
+  } catch (e) { console.log('foreground run failed:', e.status, String(e.stdout || '').trim(), String(e.stderr || '').trim().slice(0, 1500)); }
+  try { console.log('tray-debug.log:', readFileSync(join(home, 'tray-debug.log'), 'utf8')); } catch { console.log('tray-debug.log: (none)'); }
+  fail(`the icon script didn't show the icon; tray.log: ${trayLog.trim().slice(0, 300) || '(empty)'}`);
+}
 ok(`tray icon shown (pid ${tray})`);
 
 // 3. Start when I sign in: the Startup shortcut points at wscript and the hidden launcher.
