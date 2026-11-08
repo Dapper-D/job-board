@@ -17,6 +17,7 @@
 - **Why:** recruiter guides agree that Education goes first only for students and very recent graduates without relevant work. With a few years since the degree, a year of relevant work and strong projects, your proof of skill should come first.
 
 ### The icon by the clock: easier to find, and checked
+- **Fixed: the icon never appeared.** Started in the background, its PowerShell script had no console and quit within seconds. It now starts through Windows Script Host with its window hidden. GitHub's Windows check now confirms the icon actually shows.
 - **A notification when B3spoken opens** says it's running and that the icon may be under the **^** arrow (Windows 11 hides new icons there). It isn't shown when B3spoken starts quietly at sign-in.
 - **If the icon script stops, it's restarted** (up to twice). Anything it reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
 - **The Health check reports on the icon:** running, started with a window (so no icon), or closed with the reason. A failed "start when I sign in" now shows as FAIL with the reason, instead of passing silently.
