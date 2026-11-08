@@ -61,7 +61,21 @@ export function yearsOfExperience(lib, now = new Date()) {
   return Math.round((months / 12) * 10) / 10;
 }
 
-const SENIOR = /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp)\b/i;
+// Job families, judged from job titles. A job outside every family the person's roles belong to is a different field
+// (for example a mechanical engineer or a lab technician that happens to mention Python), and never shows.
+const FAMILIES = {
+  software: /\b(software|developer|programmer|full[- ]?stack|front[- ]?end|back[- ]?end|web|mobile|ios|android|sdet|qa|quality assurance|test automation|(software|web|application|applications|platform|solutions|systems|data|ml|ai|devops|qa|test|integration|automation|cloud|security|support|backend|frontend) engineer(ing)?)\b/,
+  security: /\b(security|cyber|cybersecurity|soc (analyst|specialist|operator|tier)|siem|vulnerability|penetration|pen ?test(er)?|incident response|threat|iam|identity and access|access management|grc|(it|security|cyber|information|technology|data) (governance|compliance|risk)|privacy engineer|infosec)\b/,
+  it: /\b(it|help ?desk|service ?desk|desktop support|technical support|tech support|support (analyst|specialist|technician|engineer)|systems? (administrator|analyst|specialist)|sysadmin|network (administrator|analyst|engineer|technician)|infrastructure|endpoint|it (analyst|specialist|technician|coordinator))\b/,
+  ai: /\b(ai|machine learning|ml|llm|artificial intelligence|nlp|prompt|data scien(ce|tist)|genai|generative)\b/,
+  data: /\b(data (analyst|engineer|specialist)|analytics|business intelligence|bi (analyst|developer)|database|dba|reporting analyst)\b/,
+  cloud: /\b(cloud|devops|sre|site reliability|platform engineer|aws|azure|gcp)\b/,
+  business: /\b(business (systems )?analyst|product analyst|systems analyst|technical analyst|solutions (analyst|consultant)|implementation (specialist|consultant))\b/,
+};
+// Teaching posts name a subject, not a field to work in.
+export const familiesOf = text => (/\b(lecturer|professor|instructor|teacher|faculty)\b/.test(norm(text)) ? [] : Object.keys(FAMILIES).filter(f => FAMILIES[f].test(norm(text))));
+
+export const SENIOR = /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
 const NO_SPONSOR = /\b(no|not|unable to|cannot|can't|will not|won't)\s+(provide\s+|offer\s+)?(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|sponsorship is not (available|provided)/i;
 const CITIZEN_ONLY = /\b(canadian citizenship (is )?required|must be a canadian citizen|citizens only)\b/i;
 const CLEARANCE = /\b(secret|top secret|enhanced reliability)\s+(security\s+)?clearance\b|\bclearance (is )?required\b/i;
@@ -98,8 +112,12 @@ export function scoreJob(job, ctx) {
   // Title vs the roles they're searching for
   const titleN = norm(job.title);
   const titleWords = new Set(titleN.split(' '));
+  // Field: the job's title has to belong to one of the families the person's roles are in (or closely match a role).
+  const mine = [...new Set(ctx.roles.flatMap(familiesOf))];
   const titleFit = Math.max(0, ...ctx.roles.map(r => { const w = norm(r).split(' ').filter(x => x.length > 1 && !['and', 'the', 'of'].includes(x)); return w.length ? (w.filter(x => titleWords.has(x) || titleWords.has(x.replace(/s$/, ''))).length / w.length) ** 2 : 0; }));
   if (titleFit >= 0.99) reasons.push('Title matches a role you picked');
+  const fields = familiesOf(`${job.title} ${job.department || ''}`);
+  if (mine.length && titleFit < 0.3 && !fields.some(f => mine.includes(f))) stops.push('A different field from the roles you picked');
   // Seniority and years
   let seniority = 1;
   const req = (job.description || '').match(YEARS_REQ);

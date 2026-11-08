@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
+import { CAREER_PROMPT, cleanCareer, withMarket } from './tailor/career.mjs';
 import { findAiTrap, usesTrap } from './tailor/guard.mjs';
 import { checkJobBank } from './jobbankcheck.mjs';
 import { REVIEW_PROMPT, cleanReview } from './tailor/review.mjs';
@@ -46,7 +47,7 @@ const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
 export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto', autostart: true };
 
 export function cleanSettings(s = {}) {
-  const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 10);
+  const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 12);
   return {
     keywords: [...new Set(keywords)],
     province: PROVINCES.includes(s.province) ? s.province : '',
@@ -283,6 +284,43 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return all[id];
   }
 
+  // Career ideas from the resume (strengths, titles, roles not yet considered, industries, better-paid paths),
+  // each title checked against today's real postings for job counts and pay.
+  const careerFile = join(dir, 'career.json');
+  // Ideas follow the resume only, so adding a suggested title to the searches doesn't throw them away.
+  const careerStamp = () => createHash('sha256').update('career-v1|' + JSON.stringify(ob.library())).digest('hex');
+  async function career({ again = false } = {}) {
+    let c = readJson(careerFile, null);
+    if (again || !c || c.stamp !== careerStamp()) {
+      if (!['codex', 'claude'].includes(settings.ai)) throw err(409, 'Connect ChatGPT (Codex) or Claude (Claude Code) in setup to get career ideas.');
+      const resume = existsSync(join(dir, 'resume.txt')) ? readFileSync(join(dir, 'resume.txt'), 'utf8') : '';
+      if (!resume.trim()) throw err(409, 'finish setup first: upload your resume');
+      let ideas = null;
+      for (let attempt = 0; attempt < 2 && !ideas; attempt++) {
+        let raw;
+        try { raw = await (deps.ask || ask)(settings.ai, CAREER_PROMPT(resume, ob.profile()), { timeoutMs: 240_000 }); }
+        catch (e) { throw err(502, `Your AI didn't answer: ${e.message}`); }
+        try { ideas = cleanCareer(parseAiJson(raw)); } catch { ideas = null; }
+      }
+      if (!ideas) throw err(502, 'The AI\'s career ideas couldn\'t be read. Try again.');
+      c = { ...ideas, at: new Date().toISOString(), by: settings.ai, stamp: careerStamp() };
+      writeJson(careerFile, c);
+    }
+    const prof = ob.profile();
+    return { ...withMarket(c, merged), searching: searchRoles(prof) };
+  }
+  const careerSaved = () => { const c = readJson(careerFile, null); return c && c.stamp === careerStamp() ? { ...withMarket(c, merged), searching: searchRoles(ob.profile()) } : null; };
+  // Adds a suggested title to the searches (or takes it off), then fetches jobs for it.
+  function searchFor(title, on = true) {
+    const prof = ob.profile(); const t = String(title || '').trim().slice(0, 80); if (!t) throw err(400, 'no title');
+    const has = x => x.toLowerCase() === t.toLowerCase();
+    let extra = (prof.extraRoles || []).filter(x => !has(x));
+    if (on) { if (searchRoles(prof).some(has)) return { searching: searchRoles(prof) }; if (searchRoles(prof).length >= 12) throw err(409, 'You already search for 12 roles. Remove one in Edit setup first.'); extra = [...extra, t]; }
+    const saved = ob.saveProfile({ ...prof, extraRoles: extra });
+    refresh().catch(() => {});
+    return { searching: searchRoles(saved) };
+  }
+
   // One-click writing help (LinkedIn note, interview debrief, negotiation plan, offer letter review) by the person's AI.
   const draftsFile = join(dir, 'drafts.json');
   async function draft(id, kind, values = {}) {
@@ -425,7 +463,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       else add('PASS', 'Updates', 'You have the newest version.');
       return { at: new Date().toISOString(), items, worst: items.some(i => i.status === 'FAIL') ? 'FAIL' : items.some(i => i.status === 'WARN') ? 'WARN' : 'PASS' };
     },
-    review, reviewOf,
+    review, reviewOf, career, careerSaved, searchFor,
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },

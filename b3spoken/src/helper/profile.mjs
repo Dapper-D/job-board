@@ -29,4 +29,4 @@ export function cleanProfile(p = {}) {
 export const yearly = (amount, unit) => (amount == null ? null : unit === 'hour' ? Math.round(amount * 2080) : amount);
 
 // The roles the search uses: the person's targets plus the extra roles they switched on.
-export const searchRoles = p => [...new Set([...(p.targetRoles || []), ...(p.extraRoles || [])])].slice(0, 10);
+export const searchRoles = p => [...new Set([...(p.targetRoles || []), ...(p.extraRoles || [])])].slice(0, 12);

@@ -185,3 +185,36 @@ test('AI review: scores out of 10, requirements matched to evidence, checked and
     assert.equal(app.reviewOf(j.id).fitScore, 6);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('career ideas: checked, priced from real postings, and one click adds a title to the searches; off-field jobs are skipped', async () => {
+  const { cleanCareer, marketFor } = await import('../src/helper/tailor/career.mjs');
+  const { familiesOf, makeContext, scoreJob } = await import('../src/helper/tailor/match.mjs');
+  assert.equal(cleanCareer({ strengths: [] }), null);
+  const c = cleanCareer({ strengths: [{ skill: 'Python', evidence: 'Built a Python API' }], titles: [{ title: 'QA Analyst / Tester', level: 'junior', why: 'tests' }], unexpected: [{ title: 'Technical Support Analyst', why: 'support' }], industries: [{ name: 'Fintech', why: 'x' }], higherPay: [] });
+  assert.equal(c.titles[0].title, 'QA Analyst'); assert.equal(c.titles[0].level, 'Junior');
+  const jobs = [{ id: 'a', title: 'Junior QA Analyst', salary: '$70,000 - $80,000 per year' }, { id: 'b', title: 'QA Analysts II', salary: '$40 - $44 an hour' }, { id: 'c', title: 'Data Analyst' }];
+  const m = marketFor('QA Analyst', jobs);
+  assert.equal(m.count, 2); assert.equal(m.paid, 2); assert.equal(m.median, 87360);
+  assert.deepEqual(familiesOf('Registered Nurse'), []);
+  assert.ok(familiesOf('Junior Security Analyst').includes('security'));
+
+  const dir = mkdtempSync(join(tmpdir(), 'b3-career-'));
+  try {
+    const now = new Date().toISOString();
+    const nurse = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '9', title: 'Registered Nurse', url: 'https://boards.greenhouse.io/acme/jobs/9', location: 'Vancouver, BC', postedAt: now, description: 'Python reports and SQL for patient care.' });
+    const qa = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '10', title: 'QA Analyst', url: 'https://boards.greenhouse.io/acme/jobs/10', location: 'Vancouver, BC', postedAt: now, salary: '$70,000 - $80,000 per year', description: 'Python test automation.' });
+    writeFileSync(join(dir, 'pasted.json'), JSON.stringify([nurse, qa]));
+    let asks = 0;
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), ask: async () => { asks++; return JSON.stringify(c); } } });
+    app.uploadResume({ text: resume }); app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    app.saveSettings({ ...app.settings(), ai: 'claude' });
+    await app.refresh();
+    assert.equal(app.jobs().find(j => j.id === nurse.id).match.label, 'Skip');
+    const got = await app.career();
+    assert.equal(got.titles[0].market.count, 1); assert.equal(got.titles[0].market.median, 75000);
+    await app.career(); assert.equal(asks, 1);
+    assert.deepEqual(app.searchFor('QA Analyst').searching, ['Software Developer', 'QA Analyst']);
+    assert.ok(app.careerSaved().searching.includes('QA Analyst'));
+    assert.deepEqual(app.searchFor('QA Analyst', false).searching, ['Software Developer']);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

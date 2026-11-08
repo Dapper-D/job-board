@@ -349,6 +349,56 @@ async function health() {
   } catch (e) { box.replaceChildren(el('p', 'problems', `The health check didn't run: ${e.message}`)); }
 }
 
+// Career ideas: strengths, titles to search, roles not considered, industries and better-paid paths, with real counts and pay.
+const money = n => (n == null ? '' : `$${Math.round(n / 1000)}k`);
+async function career(again = false) {
+  const box = $('career');
+  if (!again && !box.hidden && box.dataset.done) { box.hidden = true; return; }
+  box.hidden = false; box.dataset.done = '';
+  let c = again ? null : await api('/api/career').catch(() => null);
+  if (!c?.titles) {
+    box.replaceChildren(el('p', null, 'Your AI is reading your resume for career ideas (about a minute)…'));
+    try { c = await api('/api/career', { method: 'POST', body: JSON.stringify({ again }) }); }
+    catch (e) { box.replaceChildren(el('p', 'problems', e.message)); box.dataset.done = '1'; return; }
+  }
+  drawCareer(box, c); box.dataset.done = '1';
+}
+function drawCareer(box, c) {
+  const searching = new Set((c.searching || []).map(x => x.toLowerCase()));
+  const market = m => !m ? '' : m.count ? `${m.count} posting${m.count === 1 ? '' : 's'} on the board now${m.median ? `, typical pay ${money(m.median)}${m.top && m.top > m.median ? ` (up to ${money(m.top)})` : ''} from ${m.paid} that list pay` : ''}` : 'no postings on the board right now';
+  const row = (t, extra) => {
+    const li = el('li', 'idea');
+    const head = el('div', 'idea-head'); head.append(el('strong', null, t.title));
+    if (t.level) head.append(el('span', 'tag', t.level));
+    const on = searching.has(t.title.toLowerCase());
+    const add = el('button', 'small', on ? 'Searching ✓' : 'Add to my searches'); add.type = 'button';
+    add.addEventListener('click', async () => {
+      add.disabled = true;
+      try { const r = await api('/api/career/search', { method: 'POST', body: JSON.stringify({ title: t.title, on: !searching.has(t.title.toLowerCase()) }) }); c.searching = r.searching; drawCareer(box, c); load(); }
+      catch (e) { alert(e.message); add.disabled = false; }
+    });
+    head.append(add);
+    if (t.market?.count) { const see = el('button', 'small', 'Show these jobs'); see.type = 'button'; see.addEventListener('click', () => { $('q').value = t.title; box.hidden = true; load(); }); head.append(see); }
+    li.append(head, el('span', null, t.why || ''));
+    if (extra) li.append(el('span', 'fix', extra));
+    li.append(el('span', 'fix', market(t.market)));
+    return li;
+  };
+  const section = (title, items) => { if (!items.length) return []; const ul = el('ul'); ul.append(...items); return [el('h4', null, title), ul]; };
+  const again = el('button', 'small', 'Ask again'); again.type = 'button'; again.addEventListener('click', () => career(true));
+  const close = el('button', 'small', 'Close'); close.type = 'button'; close.addEventListener('click', () => { box.hidden = true; });
+  box.replaceChildren(
+    el('h3', null, 'Career ideas from your resume'),
+    el('p', 'fix', 'Your AI read only your resume. Job counts and pay come from the real postings on your board today (entry and junior level; pay as posted, so US jobs show US dollars). "Add to my searches" makes B3spoken look for that title from now on.'),
+    ...section('Your strongest skills', c.strengths.map(s => { const li = el('li', 'idea'); li.append(el('strong', null, s.skill), el('span', 'fix', s.evidence)); return li; })),
+    ...section('Jobs you qualify for now', c.titles.map(t => row(t))),
+    ...section('Roles you may not have considered', c.unexpected.map(t => row(t))),
+    ...section('Industries that value your background', c.industries.map(i => { const li = el('li', 'idea'); li.append(el('strong', null, i.name), el('span', null, i.why)); return li; })),
+    ...section('Better-paid paths', c.higherPay.map(t => row(t, t.gap ? `To get there: ${t.gap}` : ''))),
+  );
+  const btns = el('div', 'row-btns'); btns.append(again, close); box.append(btns);
+}
+
 async function update() {
   $('updateGo').disabled = true; $('updateGo').textContent = 'Downloading and checking…';
   try {
@@ -378,6 +428,7 @@ async function init() {
   $('more').addEventListener('click', () => load(false));
   $('updateGo').addEventListener('click', update);
   $('healthGo').addEventListener('click', health);
+  $('careerGo').addEventListener('click', () => career());
   $('checkUpdate').addEventListener('click', async () => {
     const b = $('checkUpdate'); b.disabled = true; b.textContent = 'Checking…';
     try {

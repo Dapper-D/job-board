@@ -105,6 +105,9 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/library') return send(res, 200, app.library() || {});
       if (req.method === 'PUT' && url.pathname.startsWith('/api/library/bullets/')) return send(res, 200, app.updateBullet(decodeURIComponent(url.pathname.slice('/api/library/bullets/'.length)), await readBody(req)));
       if (route === 'POST /api/roles/check') return send(res, 200, app.checkRole((await readBody(req)).target));
+      if (route === 'GET /api/career') return send(res, 200, app.careerSaved() || {});
+      if (route === 'POST /api/career') return send(res, 200, await app.career({ again: (await readBody(req)).again === true }));
+      if (route === 'POST /api/career/search') { const b = await readBody(req); return send(res, 200, app.searchFor(b.title, b.on !== false)); }
       if (route === 'GET /api/profile') return send(res, 200, app.profile());
       if (route === 'PUT /api/profile') return send(res, 200, app.saveProfile(await readBody(req)));
       return send(res, 404, { error: 'not found' });

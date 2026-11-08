@@ -116,3 +116,9 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .drafts .inputs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .drafts .inputs textarea { min-height: 90px; }
 .top h2 { flex: 1; }
+.career h4 { margin: 14px 0 4px; font-size: 14px; }
+.career li.idea { display: flex; flex-direction: column; gap: 3px; padding: 8px 0; border-top: 1px solid var(--line); }
+.career li.idea > span { display: block; }
+.career li.idea > strong { display: block; }
+.career .idea-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.career .row-btns { display: flex; gap: 8px; margin-top: 12px; }
