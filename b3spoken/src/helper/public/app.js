@@ -63,14 +63,15 @@ function showCounts(c = {}, toApply = null) {
   for (const s of document.querySelectorAll('.tabs .n')) { const k = s.dataset.count; if (k) s.textContent = c[k] ? `(${c[k]})` : ''; else if (toApply != null) s.textContent = `(${toApply})`; }
 }
 // The list query: the filters on screen, for one tab.
+let aiOn = false;
 const query = (v, off, limit) => new URLSearchParams({ q: $('q').value, province: $('province').value, remote: $('remote').value, maxAgeDays: $('age').value, minLabel: $('minLabel').value, sort: $('sort').value, view: v, offset: off, limit });
 
 function card(j) {
   const li = el('li', 'job');
   const top = el('div', 'top');
   top.append(el('h2', null, j.title));
-  if (j.match) top.append(el('span', `score ${j.match.label.toLowerCase()}`, `${j.match.label} · ${j.match.score}`));
-  if (j.review) top.append(el('span', `score ${j.review.call === 'Apply' ? 'strong' : j.review.call === 'Stretch' ? 'good' : 'stretch'}`, `AI: ${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`));
+  if (j.review) top.append(el('span', `score ${j.match?.label.toLowerCase() || 'good'}`, `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`));
+  else if (j.match) top.append(el('span', `score ${j.match.label.toLowerCase()}`, `${j.match.label} · ${j.match.score}`));
   li.append(top);
   const meta = el('div', 'meta');
   meta.append(el('span', null, j.company), el('span', null, j.location || ''));
@@ -85,7 +86,16 @@ function card(j) {
   const sc = j.match?.scam;
   if (sc?.stop?.length) li.append(el('p', 'trap', `Possible scam: this posting ${sc.stop.join('; it ')}. Real employers don't ask for this. Don't send money or banking details.`));
   else if (sc?.warn?.length) li.append(el('p', 'problems', `Be careful: this posting ${sc.warn.join('; it ')}. Check the job on the employer's own careers page before you reply.`));
-  if (j.match?.reasons?.length) li.append(el('p', 'reasons', j.match.reasons.join(' · ')));
+  // The AI review comes with the card (like the Job Hunt Kit): its summary and how each requirement matches.
+  if (j.review) {
+    const r = j.review, sum = el('div', 'aisum');
+    if (r.summary) sum.append(el('p', null, r.summary));
+    const by = m => r.requirements.filter(q => q.match === m).map(q => q.requirement);
+    const cut = t => (t.length > 60 ? `${t.slice(0, 57).trimEnd()}…` : t);
+    for (const m of ['Strong', 'Partial', 'Gap']) if (by(m).length) { const line = el('p', 'reasons'); line.append(el('strong', `m-${m.toLowerCase()}`, `${m}: `), el('span', null, by(m).slice(0, 3).map(cut).join(' · ') + (by(m).length > 3 ? ` (+${by(m).length - 3} more)` : ''))); sum.append(line); }
+    if (r.leadWith.length) sum.append(el('p', 'reasons', `Lead with: ${r.leadWith.join(', ')}`));
+    li.append(sum);
+  } else if (j.match?.reasons?.length) li.append(el('p', 'reasons', j.match.reasons.join(' · ')));
   else if (j.snippet) li.append(el('p', 'snippet', j.snippet + (j.snippet.length >= 280 ? '…' : '')));
   const row = el('div', 'row');
   const href = safeLink(j.applyUrl || j.url);
@@ -93,7 +103,7 @@ function card(j) {
   if (j.source === 'jobbank') row.append(el('span', 'badge ok', 'Job Bank (Government of Canada)'));
   else if (j.employerVerified !== false) row.append(el('span', 'badge ok', 'On the employer’s own site'));
   else if (j.employerUrl) row.append(el('span', 'badge ok', 'Confirmed on the employer’s site'));
-  if (j.via) row.append(el('span', 'badge', `via ${j.via}`));
+  if (j.via) row.append(el('span', 'badge', `via ${j.via.name || j.via}`));
   if (j.aiTrap) row.append(el('span', 'badge bad', 'AI trap'));
   const make = el('button', 'small', 'Make my resume and cover letter'); make.type = 'button';
   const files = el('span', 'files');
@@ -121,15 +131,15 @@ function card(j) {
     finally { conBtn.disabled = false; conBtn.textContent = 'Recruiter contacts'; }
   };
   conBtn.addEventListener('click', () => { if (!conBox.hidden) { conBox.hidden = true; return; } loadContacts(); });
-  const revBtn = el('button', 'small', j.review ? 'AI review' : 'Get an AI review'); revBtn.type = 'button';
+  const revBtn = el('button', 'small', j.review ? 'Full AI review' : 'Get an AI review now'); revBtn.type = 'button';
   const revBox = el('div', 'prep'); revBox.hidden = true;
-  const showReview = r => { j.review = r; drawReview(revBox, r); revBox.hidden = false; revBtn.textContent = 'AI review'; };
+  const showReview = r => { j.review = r; drawReview(revBox, r); revBox.hidden = false; revBtn.textContent = 'Full AI review'; };
   revBtn.addEventListener('click', async () => {
     if (!revBox.hidden) { revBox.hidden = true; return; }
     if (j.review) return showReview(j.review);
     revBtn.disabled = true; revBtn.textContent = 'Reviewing… (about a minute)';
     try { showReview(await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, { method: 'POST', body: '{}' })); }
-    catch (e) { revBox.hidden = false; revBox.replaceChildren(el('p', 'problems', e.message)); revBtn.textContent = 'Get an AI review'; }
+    catch (e) { revBox.hidden = false; revBox.replaceChildren(el('p', 'problems', e.message)); revBtn.textContent = 'Get an AI review now'; }
     finally { revBtn.disabled = false; }
   });
   const helpBtn = el('button', 'small', 'Writing help'); helpBtn.type = 'button';
@@ -293,7 +303,9 @@ async function status() {
   const chosen = s.settings?.ai;
   const ai = chosen === 'none' ? { label: 'none (rule-based)' } : chosen === 'chrome' ? { label: 'Chrome built-in AI' } : (s.ai && (s.ai[chosen] || Object.values(s.ai).find(a => a.working)));
   parts.push(ai ? `AI: ${ai.label}` : 'AI: none found yet');
-  if (s.preparing?.running) parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
+  aiOn = ['codex', 'claude'].includes(s.settings?.ai);
+  if (s.preparing?.running && s.preparing.reviews && s.preparing.reviews.done < s.preparing.reviews.total) parts.push(`AI reviewing new jobs ${s.preparing.reviews.done}/${s.preparing.reviews.total}`);
+  else if (s.preparing?.running) parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
   else if (s.preparing?.total) parts.push(`Documents ready for ${s.preparing.total} new matches`);
   $('status').textContent = s.refreshing ? 'Updating jobs…' : parts.join(' · ');
   if (s.version) $('version').textContent = s.version;
@@ -344,7 +356,10 @@ async function health() {
     const s = await api('/api/settings'); cb.checked = s.autostart !== false;
     cb.addEventListener('change', async () => { try { await api('/api/autostart', { method: 'PUT', body: JSON.stringify({ on: cb.checked }) }); health(); health(); } catch (e) { cb.checked = !cb.checked; alert(e.message); } });
     auto.append(cb, el('span', null, ' Start B3spoken when I sign in to this computer (it runs in the background, so new jobs and documents are ready each morning)'));
-    box.replaceChildren(el('h3', null, r.worst === 'PASS' ? 'Everything works' : r.worst === 'WARN' ? 'Working, with things to look at' : 'Something needs fixing'), ul, auto, close);
+    const per = el('label', 'mini'); const n = el('input'); n.type = 'number'; n.min = '0'; n.max = '200'; n.value = String(s.reviewsPerDay ?? 30); n.style.width = '5em';
+    n.addEventListener('change', async () => { try { await api('/api/settings', { method: 'PUT', body: JSON.stringify({ reviewsPerDay: Number(n.value) }) }); } catch (e) { alert(e.message); } });
+    per.append(el('span', null, 'New jobs your AI reviews each day, best first (each job once; 0 turns it off): '), n);
+    box.replaceChildren(el('h3', null, r.worst === 'PASS' ? 'Everything works' : r.worst === 'WARN' ? 'Working, with things to look at' : 'Something needs fixing'), ul, auto, per, close);
     box.dataset.done = '1';
   } catch (e) { box.replaceChildren(el('p', 'problems', `The health check didn't run: ${e.message}`)); }
 }
@@ -399,6 +414,47 @@ function drawCareer(box, c) {
   const btns = el('div', 'row-btns'); btns.append(again, close); box.append(btns);
 }
 
+// New role ideas from the automatic career check: asked once, each off until the person turns it on.
+async function ideasBanner(force = false) {
+  const box = $('ideas');
+  let c; try { c = await api('/api/career'); } catch { return; }
+  if (!c?.titles) { box.hidden = true; return; }
+  const searching = new Set((c.searching || []).map(x => x.toLowerCase())), answered = c.answered || {};
+  const seen = new Set();
+  const pending = [...c.titles, ...c.unexpected, ...c.higherPay].filter(t => { const k = t.title.toLowerCase(); if (seen.has(k) || searching.has(k) || answered[k]) return false; seen.add(k); return true; });
+  if (!pending.length) { box.hidden = true; box.dataset.key = ''; return; }
+  const shown = pending.slice(0, 6); // the strongest few; the rest are under Career ideas
+  const key = pending.map(t => t.title).join('|');
+  if (!force && key === box.dataset.key && !box.hidden) return; // don't wipe ticks while they're choosing
+  box.dataset.key = key;
+  const ul = el('ul');
+  for (const t of shown) {
+    const li = el('li'); const lab = el('label', 'pick'); const cb = el('input'); cb.type = 'checkbox'; cb.value = t.title;
+    lab.append(cb, el('strong', null, ` ${t.title}`), el('span', null, ` ${t.why || ''}`));
+    li.append(lab);
+    const m = t.market; li.append(el('span', 'fix', m?.count ? `${m.count} on the board now${m.median ? `, typical pay ${money(m.median)}` : ''}${t.gap ? ` · To get there: ${t.gap}` : ''}` : `none on the board right now${t.gap ? ` · To get there: ${t.gap}` : ''}`));
+    ul.append(li);
+  }
+  const add = el('button', 'small primary', 'Add selected to my searches'); add.type = 'button';
+  const no = el('button', 'small', 'Not now'); no.type = 'button';
+  const all = el('button', 'small link', 'See all career ideas'); all.type = 'button'; all.addEventListener('click', () => career());
+  const send = async body => {
+    add.disabled = no.disabled = true;
+    try { const r = await api('/api/career/answer', { method: 'POST', body: JSON.stringify(body) }); if (r.problem) alert(r.problem); }
+    catch (e) { alert(e.message); }
+    ideasBanner(true); load();
+  };
+  add.addEventListener('click', () => {
+    const picked = [...ul.querySelectorAll('input:checked')].map(x => x.value);
+    if (!picked.length) return alert('Tick the roles you want first, or press Not now.');
+    send({ add: picked, dismiss: pending.map(t => t.title).filter(x => !picked.includes(x)) });
+  });
+  no.addEventListener('click', () => send({ dismiss: pending.map(t => t.title) }));
+  const btns = el('div', 'row-btns'); btns.append(add, no, all);
+  box.replaceChildren(el('h3', null, `Your AI found ${pending.length} role${pending.length === 1 ? '' : 's'} that fit your resume. Add any to your searches?`), el('p', 'fix', `From your resume only. Each is off until you tick it; B3spoken then looks for that title every morning.${pending.length > shown.length ? ` Showing the ${shown.length} strongest; see all career ideas for the rest.` : ''}`), ul, btns);
+  box.hidden = false;
+}
+
 async function update() {
   $('updateGo').disabled = true; $('updateGo').textContent = 'Downloading and checking…';
   try {
@@ -410,6 +466,7 @@ async function update() {
 
 // Keeps the status line (and document progress) current.
 setInterval(() => status().catch(() => {}), 5000);
+setInterval(() => ideasBanner().catch(() => {}), 60000);
 
 async function poll() {
   const s = await status().catch(() => null);
@@ -429,6 +486,7 @@ async function init() {
   $('updateGo').addEventListener('click', update);
   $('healthGo').addEventListener('click', health);
   $('careerGo').addEventListener('click', () => career());
+  ideasBanner().catch(() => {});
   $('checkUpdate').addEventListener('click', async () => {
     const b = $('checkUpdate'); b.disabled = true; b.textContent = 'Checking…';
     try {

@@ -31,6 +31,7 @@ import { queryJobs as queryList } from './jobs.mjs';
 import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { CAREER_PROMPT, cleanCareer, withMarket } from './tailor/career.mjs';
+import { fromReview } from './tailor/review.mjs';
 import { findAiTrap, usesTrap } from './tailor/guard.mjs';
 import { checkJobBank } from './jobbankcheck.mjs';
 import { REVIEW_PROMPT, cleanReview } from './tailor/review.mjs';
@@ -44,7 +45,7 @@ const withTrap = j => { const t = findAiTrap(j.description); return t ? { ...j, 
 import { planResume, renderResume, coverLetter, renderCoverLetter, fileSafe, PICK_PROMPT, TAILOR_PROMPT, checkTailored } from './tailor/tailor.mjs';
 
 const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
-export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto', autostart: true };
+export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto', autostart: true, reviewsPerDay: 30 };
 
 export function cleanSettings(s = {}) {
   const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 12);
@@ -54,6 +55,8 @@ export function cleanSettings(s = {}) {
     remote: ['yes', 'no', 'only'].includes(s.remote) ? s.remote : 'yes',
     ai: AI_CHOICES.includes(s.ai) ? s.ai : 'auto',
     autostart: s.autostart !== false, // start in the background when the person signs in to their computer
+    // New jobs the AI reviews on its own each day (like the Job Hunt Kit's 30 per refresh): each job once, best first.
+    reviewsPerDay: Number.isFinite(Number(s.reviewsPerDay)) && s.reviewsPerDay !== '' && s.reviewsPerDay != null ? Math.max(0, Math.min(200, Math.round(Number(s.reviewsPerDay)))) : 30,
   };
 }
 
@@ -100,7 +103,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   // so they're ready on the board. Quick rule-based versions first for all of them, then (with an AI connected)
   // the AI picks the order for the best ones, one at a time.
   let preparing = null;
-  const AI_PREP_LIMIT = 12, AI_REVIEW_LIMIT = 8;
+  const AI_PREP_LIMIT = 12;
   const documentStamp = () => createHash('sha256').update('resume-layout-v2|' + JSON.stringify(ob.library()) + '|' + JSON.stringify(ob.profile())).digest('hex');
   async function prepareAll() {
     if (preparing?.running || offline && !deps.allowOfflinePrep) return;
@@ -108,16 +111,29 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     if (!lib?.entries || !prof.done) return;
     const libStamp = documentStamp();
     const t = tracker();
-    const list = queryList(scoredJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)), { province: settings.province, remote: settings.remote, minLabel: 'Good', limit: 200 }).jobs;
+    const board = () => reviewedJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j));
+    const list = queryList(board(), { province: settings.province, remote: settings.remote, minLabel: 'Good', limit: 200 }).jobs;
     const index = readJson(join(dir, 'documents', 'index.json'), {});
     const todo = list.filter(j => !index[j.id] || index[j.id].stamp !== libStamp);
     preparing = { running: true, done: 0, total: todo.length, ai: 0 };
     for (const j of todo) { try { await makeDocuments(j.id, { useAi: false, stamp: libStamp }); } catch {} preparing.done++; }
     if (['codex', 'claude'].includes(settings.ai)) {
-      const best = list.slice(0, AI_PREP_LIMIT).filter(j => readJson(join(dir, 'documents', 'index.json'), {})[j.id]?.picker === 'rules');
+      // 1. AI reviews come with the job cards, like the Job Hunt Kit: every new job is reviewed once, best rule score
+      //    first, up to the daily number (30 unless changed). Reviews last until the resume changes.
+      const tried = readJson(reviewTriesFile, {});
+      const left = Math.max(0, settings.reviewsPerDay - reviewsToday());
+      const queue = queryList(board(), { province: settings.province, remote: settings.remote, minLabel: 'Stretch', limit: 200 }).jobs
+        .filter(j => !reviewOf(j.id) && (tried[j.id] || 0) < 2).slice(0, left);
+      preparing.reviews = { done: 0, total: queue.length };
+      for (const j of queue) {
+        try { await review(j.id, { auto: true }); } catch { tried[j.id] = (tried[j.id] || 0) + 1; writeJson(reviewTriesFile, tried); }
+        preparing.reviews.done++;
+      }
+      // 2. AI-picked documents for the best jobs, skipping any the AI review said to Skip.
+      const best = queryList(board(), { province: settings.province, remote: settings.remote, minLabel: 'Good', limit: AI_PREP_LIMIT }).jobs.filter(j => readJson(join(dir, 'documents', 'index.json'), {})[j.id]?.picker === 'rules');
       for (const j of best) { try { await makeDocuments(j.id, { useAi: true, stamp: libStamp }); preparing.ai++; } catch {} }
-      // A deeper AI review for the best few each day (once per job; the button on a job does any other).
-      for (const j of list.slice(0, AI_REVIEW_LIMIT)) { if (reviewOf(j.id)) continue; try { await review(j.id); } catch {} }
+      // 3. Career ideas on their own when the resume changes, and again each week.
+      try { if (careerDue()) await career({ again: true }); } catch (e) { log(`career ideas: ${e.message}`); }
     }
     preparing.running = false;
   }
@@ -164,6 +180,13 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     scored = merged.map(j => withTrap({ ...j, match: scoreJob(j, ctx) }));
     scoredKey = key;
     return scored;
+  }
+
+  // Once a job has an AI review, its call decides the label (like the Job Hunt Kit): Apply is Strong or Good, Stretch
+  // stays Stretch, and Skip hides it (unless it's tracked). Jobs without a review keep the quick rule-based score.
+  function reviewedJobs() {
+    const all = readJson(reviewFile, {}), stamp = reviewStamp();
+    return scoredJobs().map(j => { const r = all[j.id]; return r && r.stamp === stamp && j.match ? { ...j, match: fromReview(j.match, r) } : j; });
   }
 
   // One job's tailored resume and cover letter, saved under documents/ on this computer.
@@ -265,9 +288,12 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   }
 
   // AI review of one job: scores out of 10, requirements matched to evidence, gaps and an Apply / Stretch / Skip call.
-  const reviewFile = join(dir, 'reviews.json');
-  const reviewOf = id => { const r = readJson(reviewFile, {})[id]; return r && r.stamp === documentStamp() ? r : null; };
-  async function review(id, { again = false } = {}) {
+  const reviewFile = join(dir, 'reviews.json'), reviewTriesFile = join(dir, 'review-tries.json');
+  // Reviews follow the resume only, so changing an answer (or adding a role to the searches) doesn't redo them all.
+  const reviewStamp = () => createHash('sha256').update('review-v1|' + JSON.stringify(ob.library())).digest('hex');
+  const reviewOf = id => { const r = readJson(reviewFile, {})[id]; return r && r.stamp === reviewStamp() ? r : null; };
+  const reviewsToday = () => { const d = new Date().toDateString(); return Object.values(readJson(reviewFile, {})).filter(r => r.auto === true && new Date(r.at).toDateString() === d).length; };
+  async function review(id, { again = false, auto = false } = {}) {
     const job = byId.get(id); if (!job) throw err(404, 'no such job');
     if (!again) { const have = reviewOf(id); if (have) return have; }
     if (!['codex', 'claude'].includes(settings.ai)) throw err(409, 'Connect ChatGPT (Codex) or Claude (Claude Code) in setup to use AI reviews.');
@@ -280,7 +306,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       try { r = cleanReview(parseAiJson(raw)); } catch { r = null; }
     }
     if (!r) throw err(502, 'The AI\'s review couldn\'t be read. Try again.');
-    const all = readJson(reviewFile, {}); all[id] = { ...r, at: new Date().toISOString(), by: settings.ai, stamp: documentStamp() }; writeJson(reviewFile, all);
+    const all = readJson(reviewFile, {}); all[id] = { ...r, at: new Date().toISOString(), by: settings.ai, stamp: reviewStamp(), auto }; writeJson(reviewFile, all);
     return all[id];
   }
 
@@ -303,21 +329,37 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
         try { ideas = cleanCareer(parseAiJson(raw), yearsOfExperience(ob.library())); } catch { ideas = null; }
       }
       if (!ideas) throw err(502, 'The AI\'s career ideas couldn\'t be read. Try again.');
-      c = { ...ideas, at: new Date().toISOString(), by: settings.ai, stamp: careerStamp() };
+      c = { ...ideas, at: new Date().toISOString(), by: settings.ai, stamp: careerStamp(), answered: c?.answered || {} };
       writeJson(careerFile, c);
     }
     const prof = ob.profile();
     return { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(prof), years: yearsOfExperience(ob.library()) };
   }
+  const careerDue = () => { const c = readJson(careerFile, null); return !c || c.stamp !== careerStamp() || Date.now() - Date.parse(c.at || 0) > 7 * 864e5; };
+  // The person's yes / no on each suggested role, kept across weekly re-runs so they're only asked about new ones.
+  function answerCareer({ add = [], dismiss = [] } = {}) {
+    const c = readJson(careerFile, null); if (!c) throw err(409, 'no career ideas yet');
+    const clean = l => (Array.isArray(l) ? l : []).map(t => String(t || '').trim().slice(0, 80)).filter(Boolean).slice(0, 20);
+    c.answered = { ...(c.answered || {}) };
+    for (const t of clean(dismiss)) c.answered[t.toLowerCase()] = 'no';
+    let searching = searchRoles(ob.profile()), problem = '';
+    for (const t of clean(add)) {
+      try { searching = searchFor(t, true, { refreshAfter: false }).searching; c.answered[t.toLowerCase()] = 'yes'; }
+      catch (e) { problem = e.message; break; }
+    }
+    writeJson(careerFile, c);
+    if (clean(add).length) setTimeout(() => refresh().catch(() => {}), 50); // answer first, then fetch jobs for the new roles
+    return { searching, problem };
+  }
   const careerSaved = () => { const c = readJson(careerFile, null); return c && c.stamp === careerStamp() ? { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(ob.profile()), years: yearsOfExperience(ob.library()) } : null; };
   // Adds a suggested title to the searches (or takes it off), then fetches jobs for it.
-  function searchFor(title, on = true) {
+  function searchFor(title, on = true, { refreshAfter = true } = {}) {
     const prof = ob.profile(); const t = String(title || '').trim().slice(0, 80); if (!t) throw err(400, 'no title');
     const has = x => x.toLowerCase() === t.toLowerCase();
     let extra = (prof.extraRoles || []).filter(x => !has(x));
     if (on) { if (searchRoles(prof).some(has)) return { searching: searchRoles(prof) }; if (searchRoles(prof).length >= 12) throw err(409, 'You already search for 12 roles. Remove one in Edit setup first.'); extra = [...extra, t]; }
     const saved = ob.saveProfile({ ...prof, extraRoles: extra });
-    refresh().catch(() => {});
+    if (refreshAfter) refresh().catch(() => {});
     return { searching: searchRoles(saved) };
   }
 
@@ -463,7 +505,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       else add('PASS', 'Updates', 'You have the newest version.');
       return { at: new Date().toISOString(), items, worst: items.some(i => i.status === 'FAIL') ? 'FAIL' : items.some(i => i.status === 'WARN') ? 'WARN' : 'PASS' };
     },
-    review, reviewOf, career, careerSaved, searchFor,
+    review, reviewOf, career, careerSaved, searchFor, answerCareer,
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
@@ -480,11 +522,11 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,
     }),
-    jobs: () => { const t = tracker(); return scoredJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)); },
+    jobs: () => { const t = tracker(); return reviewedJobs().map(j => (t[j.id] ? { ...j, track: t[j.id] } : j)); },
     ...ob,
-    job: id => { const j = byId.get(id); return j ? withTrap({ ...j, match: scoredJobs().find(x => x.id === id)?.match || null }) : null; },
+    job: id => { const j = byId.get(id); return j ? withTrap({ ...j, match: reviewedJobs().find(x => x.id === id)?.match || null }) : null; },
     settings: () => settings,
-    saveSettings(s) { settings = cleanSettings(s); writeJson(settingsFile, settings); scored = null; return settings; },
+    saveSettings(s) { settings = cleanSettings({ ...settings, ...s }); writeJson(settingsFile, settings); scored = null; return settings; },
   };
 }
 

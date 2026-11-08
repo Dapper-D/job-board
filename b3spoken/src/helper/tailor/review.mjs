@@ -53,3 +53,13 @@ export function cleanReview(raw) {
   const list = (v, n, len) => (Array.isArray(v) ? v : []).map(x => str(x, len)).filter(Boolean).slice(0, n);
   return { techScore, fitScore, call, summary: str(raw.summary, 600), requirements, gaps: list(raw.gaps, 5, 160), leadWith: list(raw.leadWith, 3, 100), eligibility: str(raw.eligibility, 240) };
 }
+
+// A job's label once it has a review: the AI's call decides (Apply is Strong at a fit of 8 or more, else Good).
+// The quick rule-based label and score stay alongside, and a Skip says why.
+export function fromReview(match, r) {
+  const label = r.call === 'Skip' ? 'Skip' : r.call === 'Stretch' ? 'Stretch' : r.fitScore >= 8 ? 'Strong' : 'Good';
+  return {
+    ...match, label, score: r.fitScore * 10, ruleLabel: match.label, ruleScore: match.score, byAi: true,
+    stops: r.call === 'Skip' ? [...(match.stops || []), `AI review: ${r.summary || 'not a good fit'}`] : match.stops,
+  };
+}

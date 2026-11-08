@@ -225,3 +225,38 @@ test('career ideas: checked, priced from real postings, and one click adds a tit
     assert.deepEqual(app.searchFor('QA Analyst', false).searching, ['Software Developer']);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('AI reviews come with the job cards: new jobs reviewed on their own (daily limit, once each), the AI call sets the label; career ideas run on their own and ask before adding', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'b3-auto-'));
+  try {
+    const now = new Date().toISOString();
+    const jobs = [1, 2, 3].map(n => makeJob({ source: 'greenhouse', company: 'Acme', nativeId: String(n), title: ['Software Developer', 'Python Developer', 'Junior Software Developer'][n - 1], url: `https://boards.greenhouse.io/acme/jobs/${n}`, location: 'Vancouver, BC', postedAt: now, description: 'Python APIs, automated tests and SQL reports.' }));
+    writeFileSync(join(dir, 'pasted.json'), JSON.stringify(jobs));
+    const asked = { review: 0, career: 0 };
+    const ask = async (_, prompt) => {
+      if (prompt.startsWith('You are a careful career adviser')) { asked.career++; return JSON.stringify({ strengths: [], titles: [{ title: 'QA Analyst', level: 'Junior', why: 'tests' }, { title: 'Python Developer', level: 'Junior', why: 'python' }], unexpected: [], industries: [], higherPay: [] }); }
+      if (prompt.startsWith('You review one job')) { asked.review++; return JSON.stringify({ call: asked.review === 1 ? 'Skip' : 'Apply', techScore: 7, fitScore: 8, summary: asked.review === 1 ? 'Needs a clearance.' : 'Good fit.', requirements: [] }); }
+      return '{}';
+    };
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), ask, allowOfflinePrep: true } });
+    app.uploadResume({ text: resume }); app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    app.saveSettings({ ai: 'claude', reviewsPerDay: 2 });
+    assert.equal(app.settings().remote, 'yes'); // a partial save keeps the other settings
+    await app.refresh();
+    while (app.status && (await app.status()).preparing?.running) await new Promise(r => setTimeout(r, 20));
+    assert.equal(asked.review, 2); // the daily limit
+    const labels = app.jobs().filter(j => app.reviewOf(j.id)).map(j => j.match.label).sort();
+    assert.deepEqual(labels, ['Skip', 'Strong']);
+    const skipped = app.jobs().find(j => j.match.label === 'Skip');
+    assert.match(skipped.match.stops.join(' '), /AI review: Needs a clearance/);
+    // Changing an answer doesn't redo the reviews.
+    app.saveProfile({ ...app.profile(), payGoal: 90000 });
+    assert.equal(app.jobs().filter(j => app.reviewOf(j.id)).length, 2);
+    // Career ideas ran on their own; nothing was added until asked.
+    assert.equal(asked.career, 1);
+    assert.deepEqual(app.careerSaved().searching, ['Software Developer']);
+    const r = app.answerCareer({ add: ['QA Analyst'], dismiss: ['Python Developer'] });
+    assert.deepEqual(r.searching, ['Software Developer', 'QA Analyst']);
+    assert.deepEqual(app.careerSaved().answered, { 'qa analyst': 'yes', 'python developer': 'no' });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

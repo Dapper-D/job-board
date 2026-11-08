@@ -122,3 +122,11 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .career li.idea > strong { display: block; }
 .career .idea-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .career .row-btns { display: flex; gap: 8px; margin-top: 12px; }
+.ideas ul { list-style: none; padding: 0; }
+.ideas li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--line); }
+.aisum p { margin: 4px 0; }
+.m-strong { color: var(--ok); } .m-partial { color: var(--warn); } .m-gap { color: var(--bad); }
+.ideas label.pick { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: start; cursor: pointer; }
+.ideas label.pick input { margin-top: 3px; grid-row: span 2; }
+.ideas label.pick span { grid-column: 2; }
+.ideas li > .fix { padding-left: 24px; }

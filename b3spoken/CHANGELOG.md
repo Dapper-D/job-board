@@ -1,5 +1,18 @@
 # B3spoken changelog
 
+## 0.1.9
+
+### AI reviews come with the job cards (like the Job Hunt Kit)
+- **New jobs are reviewed on their own.** After each morning's refresh, your AI reviews up to 30 new jobs a day, best rule score first, each job only once (the same approach as the Job Hunt Kit's 30 per refresh, which is why it stays well inside AI plan limits). Change the number, or set 0 to turn it off, in the Health check. A review lasts until your resume changes; changing an answer in setup no longer redoes them.
+- **The review is on the card.** Its call and scores replace the quick score (Apply, Stretch or Skip; tech and fit out of 10), with the summary, what's Strong, Partial or a Gap, and what to lead with. "Full AI review" opens the rest. A job the AI says to Skip leaves To apply (tracked jobs stay in their tabs). Jobs not reviewed yet keep the quick score.
+- Reviews run before the AI writes documents, so documents aren't made for jobs the AI said to Skip.
+
+### Career ideas run on their own and ask first
+- When your resume changes, and again each week, your AI looks for roles that fit it. New ideas show at the top of the board, each off until you tick it: **Add selected to my searches** or **Not now**. You're only asked about roles you haven't answered before. All ideas, with job counts and pay, are still under Career ideas.
+
+### Fixes
+- "via [object Object]" on jobs from Himalayas and Jobicy now shows the site's name.
+
 ## 0.1.8
 
 - **Works for any resume, not only tech.** The field check knows healthcare, finance, sales, marketing, HR, customer service, design, operations, legal, education, trades, engineering, science, hospitality and admin as well as tech; a role that fits none of them needs a shared word with the job title. Career ideas pick levels from the years your resume shows (new grads get entry and junior; ten years gets intermediate to lead). Tested with a nurse's resume: nursing jobs only, and nursing career ideas.

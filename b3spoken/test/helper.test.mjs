@@ -65,7 +65,8 @@ test('pool and Job Bank are merged without duplicates; filters', async () => {
 });
 
 test('settings are cleaned', () => {
-  assert.deepEqual(cleanSettings({ keywords: [' dev ', 'dev', '', 'x'.repeat(99)], province: 'XX', remote: 'maybe', ai: 'rm -rf' }), { keywords: ['dev', 'x'.repeat(60)], province: '', remote: 'yes', ai: 'auto', autostart: true });
+  assert.deepEqual(cleanSettings({ keywords: [' dev ', 'dev', '', 'x'.repeat(99)], province: 'XX', remote: 'maybe', ai: 'rm -rf' }), { keywords: ['dev', 'x'.repeat(60)], province: '', remote: 'yes', ai: 'auto', autostart: true, reviewsPerDay: 30 });
+  assert.equal(cleanSettings({ reviewsPerDay: '0' }).reviewsPerDay, 0); assert.equal(cleanSettings({ reviewsPerDay: 9999 }).reviewsPerDay, 200);
   assert.equal(cleanSettings({ autostart: false }).autostart, false);
 });
 
