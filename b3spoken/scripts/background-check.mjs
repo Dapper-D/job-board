@@ -12,7 +12,8 @@ const ok = m => console.log(`PASS  ${m}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const home = mkdtempSync(join(tmpdir(), 'b3-bg-'));
 const env = { ...process.env, B3SPOKEN_HOME: home, B3SPOKEN_SKIP_JOBBANK: '1' };
-const ps = cmd => execFileSync('powershell.exe', ['-NoProfile', '-Command', cmd], { encoding: 'utf8' }).trim();
+// PowerShell exits with 1 when a lookup finds nothing (e.g. the process is already gone): that's an empty answer here.
+const ps = cmd => { try { return execFileSync('powershell.exe', ['-NoProfile', '-Command', cmd], { encoding: 'utf8' }).trim(); } catch (e) { return String(e.stdout || '').trim(); } };
 
 // 1. A plain start (like the Start menu shortcut) hands over to a hidden copy and exits.
 const first = spawn(process.execPath, ['src/helper/main.mjs'], { env, stdio: 'ignore' });
