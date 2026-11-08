@@ -190,3 +190,14 @@ test('polish: brackets touch their links, the role sought drops the team name, a
   assert.equal(withSeeking('Builds APIs.', 'Backend Engineer, AI Engineering: Duo Chat'), 'Builds APIs. Seeking a Backend Engineer role.');
   assert.deepEqual(parseAiJson('```json\n{"a": [1, 2,], "b": “x”,}\n```'), { a: [1, 2], b: 'x' });
 });
+
+test('resume: as many projects as fit on one page, best fit first, at most 2 bullets each', async () => {
+  const many = structuredClone(lib);
+  for (let i = 0; i < 6; i++) many.entries.push({ id: `p${i}`, kind: 'projects', heading: `Project ${i} (github.com/x/p${i} | Python)`, dates: '', details: [], bullets: [0, 1, 2].map(k => ({ id: `p${i}b${k}`, text: `Built part ${k} of project ${i} in Python with tests.`, flagged: false })) });
+  const pdf = renderResume(planResume(many, job('Developer', 'Python')));
+  const text = extractText(pdf, 'r.pdf').text;
+  assert.match(pdf.toString('latin1'), /\/Count 1 /);
+  const shown = [0, 1, 2, 3, 4, 5].filter(i => text.includes(`Project ${i} (`));
+  assert.ok(shown.length >= 4, `expected most projects on the page, got ${shown.length}`);
+  for (const i of shown) assert.doesNotMatch(text, new RegExp(`Built part 2 of project ${i} `)); // never a third bullet
+});

@@ -9,7 +9,12 @@
   - Saved jobs stay in To apply.
 - **Jobs you've tracked are kept on your computer**, so they stay in their tab after they drop out of the daily job list.
 - **Senior, lead, staff and manager titles are hidden** when your resume shows under 3 years of experience. You can still paste one in or track it.
-- **Resumes use the page better:** up to 3 projects, the AI's picks first, then the next most relevant from your library. A third project wins over a third bullet on every entry. Everything still fits on one page.
+- **Resumes fill the page with as many projects as fit.**
+  - Projects are ordered by fit: the AI's picks first, then the rest of your library from most to least relevant.
+  - Each job and project has at most 2 bullets.
+  - When space is short, the top projects keep 2 bullets and the later ones get 1, before any project is dropped.
+  - Text stays at 10 pt or larger, and the resume is always one page.
+  - With your resume, all 5 of your projects fit.
 
 ### Tailoring fixes from a real three-job test (security, IT and AI roles)
 - **A garbled AI answer is now asked for again once.** Before, one broken reply meant the documents fell back to your plain lines with a weaker letter. Small slips (trailing commas, curly quotes) are also forgiven.

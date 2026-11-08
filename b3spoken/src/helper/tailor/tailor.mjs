@@ -88,9 +88,9 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
     }).filter(Boolean);
     const exp = choose(ai.experience, 'experience'), proj = choose(ai.projects, 'projects');
     if (exp.length) experience = newestFirst(exp);
-    // Up to 3 projects: the AI's picks first, then the next most relevant ones from the library to use the page well
-    // (the layout drops the last ones again if they don't fit).
-    if (proj.length) projects = [...proj, ...projects.filter(p => !proj.some(x => x.id === p.id))].slice(0, Math.max(3, proj.length));
+    // Every project: the AI's picks first (best fit), then the rest of the library from most to least relevant.
+    // The layout keeps as many as fit on the one page.
+    if (proj.length) projects = [...proj, ...projects.filter(p => !proj.some(x => x.id === p.id))];
     else if (ai.projects?.length === 0) projects = [];
     if (ai.skills?.length) skills = ai.skills;
     if (ai.summary) summary = ai.summary;
@@ -172,14 +172,16 @@ export function renderResume(plan) {
     education: plan.education.filter(e => e.kind === 'education'),
     other: [],
   }];
-  for (const selected of variants) {
-    for (const size of [10.5, 10, 9.5, 9]) {
-      // A third project is worth more than a third bullet on every entry, so fewer bullets are tried before fewer projects.
-      for (const maxProjects of [3, 2, 1]) {
-        for (const maxBullets of (selected === plan ? [3, 2, 1] : [2, 1])) {
+  // At most 2 bullets per job and per project. As many projects as fit, best fit first: the best projects keep 2 bullets
+  // and the later ones 1 when space is short, before any project is dropped. Text stays at 10 pt or more when it can; smaller only if nothing else fits.
+  const most = Math.max(1, plan.projects.length);
+  for (const sizes of [[10.5, 10], [9.5, 9]]) for (const selected of variants) {
+    for (let maxProjects = most; maxProjects >= (plan.projects.length ? 1 : 0); maxProjects--) {
+      for (const size of sizes) {
+        for (let projBullets = maxProjects; projBullets >= 0; projBullets--) { // how many of the top projects keep 2 bullets
           const maxExperience = selected === plan ? [plan.experience.length] : [4, 3, 2, 1];
           for (const max of maxExperience) {
-            const r = layoutResume({ ...selected, experience: selected.experience.slice(0, max) }, { size, maxBullets, maxProjects });
+            const r = layoutResume({ ...selected, experience: selected.experience.slice(0, max) }, { size, maxBullets: 2, maxProjects, projBullets });
             if (r.fits) return r.doc.build();
           }
         }
@@ -189,7 +191,8 @@ export function renderResume(plan) {
   throw Object.assign(new Error('The selected resume content will not fit one readable page. Shorten the library entries and try again.'), { status: 422 });
 }
 
-function layoutResume(plan, { size, maxBullets, maxProjects }) {
+// projBullets: how many of the projects (best fit first) get 2 bullets; the rest get 1.
+function layoutResume(plan, { size, maxBullets, maxProjects, projBullets = maxProjects }) {
   const doc = new Doc({ width: PAGE.w, height: PAGE.h, title: plan.name ? `${plan.name} - Resume` : '', author: plan.name || '' });
   const left = PAGE.margin, width = PAGE.w - 2 * PAGE.margin;
   let y = PAGE.h - PAGE.margin, fits = true;
@@ -221,7 +224,7 @@ function layoutResume(plan, { size, maxBullets, maxProjects }) {
   if (plan.skills.length) { heading('Skills'); for (const g of plan.skills) para(`${g.label ? g.label + ': ' : ''}${g.items.join(', ')}`); }
   if (plan.education.length) { heading('Education'); plan.education.forEach(e => entry(e, 2)); }
   const exp = () => { if (plan.experience.length) { heading('Professional Experience'); plan.experience.forEach(e => entry(e, maxBullets)); } };
-  const proj = () => { if (plan.projects.length) { heading('Key Projects'); plan.projects.slice(0, maxProjects).forEach(e => entry(e, Math.min(maxBullets, 3))); } };
+  const proj = () => { if (plan.projects.length) { heading('Key Projects'); plan.projects.slice(0, maxProjects).forEach((e, i) => entry(e, i < projBullets ? Math.min(2, maxBullets) : 1)); } };
   if (plan.projectsFirst) { proj(); exp(); } else { exp(); proj(); }
   if (plan.other.length) { heading('Other'); plan.other.forEach(e => entry(e, 2)); }
   return { doc, fits };
