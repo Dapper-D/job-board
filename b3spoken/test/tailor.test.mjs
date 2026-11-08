@@ -125,7 +125,7 @@ test('AI tailoring: only real IDs and skills are kept, in the AI’s order, with
   assert.equal(plan.projectsFirst, false);
   const back = extractText(renderResume(plan), 'r.pdf').text;
   for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'KEY PROJECTS']) assert.match(back, new RegExp(h));
-  assert.ok(back.indexOf('EDUCATION') < back.indexOf('PROFESSIONAL EXPERIENCE')); // same order as the kit
+  assert.ok(back.indexOf('PROFESSIONAL EXPERIENCE') < back.indexOf('EDUCATION')); // strongest evidence first, education last
   assert.doesNotMatch(back, /Contoso/); // the AI left it out
   assert.ok(TAILOR_PROMPT(j, lib, { missingSkills: ['Kafka'] }).includes('Never claim these (the person said they don\'t have them): Kafka'));
 });

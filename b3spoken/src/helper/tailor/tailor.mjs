@@ -219,13 +219,14 @@ function layoutResume(plan, { size, maxBullets, maxProjects, projBullets = maxPr
   // Name and contact line (links clickable).
   doc.text(left, y - 20, plan.name || 'Your Name', { size: 20, bold: true }); y -= 26;
   if (plan.contact.length) para(plan.contact.join(' | '), { sz: size - 0.5, header: true });
-  // Same order and headings as the Job Hunt Kit: summary, skills, education, then experience and projects.
+  // Summary and skills, then projects or experience (per job), then education.
   if (plan.summary) { heading('Professional Summary'); para(plan.summary); }
   if (plan.skills.length) { heading('Skills'); for (const g of plan.skills) para(`${g.label ? g.label + ': ' : ''}${g.items.join(', ')}`); }
-  if (plan.education.length) { heading('Education'); plan.education.forEach(e => entry(e, 2)); }
   const exp = () => { if (plan.experience.length) { heading('Professional Experience'); plan.experience.forEach(e => entry(e, maxBullets)); } };
   const proj = () => { if (plan.projects.length) { heading('Key Projects'); plan.projects.slice(0, maxProjects).forEach((e, i) => entry(e, i < projBullets ? Math.min(2, maxBullets) : 1)); } };
+  // Your strongest evidence first: projects or work experience (whichever fits this job better), then education.
   if (plan.projectsFirst) { proj(); exp(); } else { exp(); proj(); }
+  if (plan.education.length) { heading('Education'); plan.education.forEach(e => entry(e, 2)); }
   if (plan.other.length) { heading('Other'); plan.other.forEach(e => entry(e, 2)); }
   return { doc, fits };
 }
@@ -376,7 +377,7 @@ Return:
 - skills: 3-5 groups; items MUST be copied exactly from the library skills, most relevant first; group names may be renamed to match the posting's language.
 - experience: every library experience entry that is relevant, most relevant first, each with 2-6 bullet ids, the bullets that best show what this job needs first.
 - projects: the 2-4 most relevant library projects, most relevant first, each with 1-3 bullet ids. [] if the library has none.
-- expFirst: true unless the projects are clearly more relevant to this job than the work history.
+- expFirst: true only when the work history shows this job's day-to-day work more directly than the projects do (for example IT support or compliance work for an IT or compliance role). When the projects are the closer match, for example software, AI or engineering work for a developer role while the jobs were in another area, use false so projects come first.
 - cover.hook: 1-2 sentences tied to what this company or team actually does. Never open with "I am applying", "I'm applying" or "I am excited to apply".
 - cover.proof: 1-2 sentences naming the most relevant real project or job.
 - cover.bullets: exactly 3, each {label: 2-5 words ending with ":", text: one sentence of real evidence}.

@@ -10,6 +10,12 @@
 - **When a site resets the connection, B3spoken now connects again straight away offering only the classic key exchanges** that every browser supports, and remembers that for the site. That first message is about 360 bytes. B3spoken's name and request stay exactly the same.
 - The Job Bank diagnostic (`node b3spoken/scripts/jobbank-diagnose.mjs`) has a sixth test for this.
 
+### Resume order: strongest evidence first, education last
+- **New order:** Professional Summary, Skills, then Key Projects or Professional Experience, then Education.
+  - Projects or Experience comes first per job, whichever fits better. Projects lead for developer and AI roles; Experience leads for IT, security-operations and compliance roles.
+  - Education moves to the bottom, still showing the diploma's expected date.
+- **Why:** recruiter guides agree that Education goes first only for students and very recent graduates without relevant work. With a few years since the degree, a year of relevant work and strong projects, your proof of skill should come first.
+
 ### The icon by the clock explains itself if it doesn't appear
 - Anything the icon script reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
 
