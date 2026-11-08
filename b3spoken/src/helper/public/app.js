@@ -268,6 +268,7 @@ async function status() {
   if (s.preparing?.running) parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
   else if (s.preparing?.total) parts.push(`Documents ready for ${s.preparing.total} new matches`);
   $('status').textContent = s.refreshing ? 'Updating jobs…' : parts.join(' · ');
+  if (s.version) $('version').textContent = s.version;
   if (s.update?.available) { $('update').hidden = false; $('updateText').textContent = `B3spoken ${s.update.version} is available (you have ${s.version}). Your setup, tracker and documents are kept.`; }
   showProblems(s.problems);
   return s;
@@ -349,6 +350,15 @@ async function init() {
   $('more').addEventListener('click', () => load(false));
   $('updateGo').addEventListener('click', update);
   $('healthGo').addEventListener('click', health);
+  $('checkUpdate').addEventListener('click', async () => {
+    const b = $('checkUpdate'); b.disabled = true; b.textContent = 'Checking…';
+    try {
+      const u = await api('/api/update?force=1');
+      if (u?.available) { await status(); b.textContent = `Version ${u.version} is ready`; }
+      else b.textContent = u?.error ? 'Couldn’t check (try later)' : 'You have the newest version';
+    } catch { b.textContent = 'Couldn’t check (try later)'; }
+    finally { setTimeout(() => { b.disabled = false; b.textContent = 'Check for updates'; }, 6000); }
+  });
   for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => {
     view = b.dataset.view; for (const x of document.querySelectorAll('.tabs button')) x.classList.toggle('on', x === b);
     document.querySelector('.filters').hidden = !!view; load();

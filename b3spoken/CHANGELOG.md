@@ -1,6 +1,10 @@
 # B3spoken changelog
 
-## 0.1.4 (with everything below up to 0.1.3)
+## 0.1.5
+
+### You can always see your version and check for updates
+- **The version is shown at the top of the board**, for example "B3spoken 0.1.5".
+- **A "Check for updates" button** checks GitHub straight away. It either shows **Update now** or says you already have the newest version. Before, the update bar only appeared when a newer version existed, so there was no way to tell whether you were up to date.
 
 ### Runs in the background and starts when you sign in
 - **Windows:** opening B3spoken no longer leaves a black window open. It restarts itself hidden and puts an icon by the clock.
@@ -55,6 +59,8 @@
 - **One failed search no longer loses the rest.** If some searches fail, the ones that worked are kept, and the failed ones are tried again in about an hour. After two failures in a row it stops asking, to be polite.
 - **Longer waits between retries** after a dropped connection: 10 and 20 seconds.
 - **A "Check Job Bank now" button** appears next to any Job Bank problem. It tests Job Bank from your computer, shows PASS or FAIL with the reason, and if Job Bank works, fetches its jobs straight away. You don't need a terminal. The same check also runs from the terminal: `node b3spoken/scripts/jobbank-check.mjs`.
+
+## 0.1.4 (with everything below up to 0.1.3)
 
 ### Embedded Carlito font, your name in the PDF details, clickable project links
 - **Resumes and cover letters use Carlito, embedded in the PDF.** Carlito has the same widths as Calibri. Before, they used Helvetica, which isn't embedded and looks different from computer to computer. Only the letters each document uses are embedded, so a resume is about 50 KB. The text is still real and selectable, and applicant tracking systems read it with a Unicode map.
