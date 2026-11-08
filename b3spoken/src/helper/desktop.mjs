@@ -5,7 +5,7 @@
 // Everything uses what the system already has (Windows Script Host, PowerShell, launchd, XDG autostart): nothing to install.
 // The launcher and tray files live in B3spoken's own data folder; turning "start when I sign in" off removes the startup entry.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,10 +35,13 @@ export function launcherVbs(cmd) {
 // The icon by the clock (PowerShell with Windows Forms, both built into Windows). It closes itself when B3spoken stops.
 export function trayPs1() {
   return `# The B3spoken icon by the clock. Made by B3spoken; it's safe to delete (B3spoken makes it again).
-param([int]$Port, [int]$HelperPid, [string]$IconFrom, [switch]$Announce)
+param([int]$Port, [int]$HelperPid, [string]$IconFrom, [string]$Log, [switch]$Announce)
 $ErrorActionPreference = 'Stop'
+function Note($m) { if ($Log) { try { Add-Content -LiteralPath $Log -Value "$(Get-Date -Format s) $m" } catch {} } }
+Note "starting (PowerShell $($PSVersionTable.PSVersion), pid $PID)"
 try {
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+Note 'Windows Forms loaded'
 $url = "http://127.0.0.1:$Port/"
 $icon = New-Object System.Windows.Forms.NotifyIcon
 try { $icon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($IconFrom) } catch { $icon.Icon = [System.Drawing.SystemIcons]::Application }
@@ -59,13 +62,14 @@ $icon.add_MouseClick({ param($s, $e) if ($e.Button -eq [System.Windows.Forms.Mou
 $icon.Visible = $true
 # Windows 11 tucks new icons under the ^ arrow, so say once where to find it.
 if ($Announce) { $icon.ShowBalloonTip(8000, 'B3spoken is running', 'Find B3spoken here by the clock (it may be under the ^ arrow). Click it to open your job board.', [System.Windows.Forms.ToolTipIcon]::Info) }
-Write-Output "icon shown for B3spoken (pid $HelperPid)"
+Note "icon shown for B3spoken (pid $HelperPid)"
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.add_Tick({ if (-not (Get-Process -Id $HelperPid -ErrorAction SilentlyContinue)) { $icon.Visible = $false; [System.Windows.Forms.Application]::Exit() } })
 $timer.Start()
 [System.Windows.Forms.Application]::Run()
-} catch { Write-Output "tray error: $($_.Exception.Message)"; exit 1 }
+Note 'closing'
+} catch { Note "tray error: $($_.Exception.Message)"; exit 1 }
 `;
 }
 
@@ -143,11 +147,10 @@ export function relaunchHidden(dir, { argv = [], cmd = selfCommand(), env = proc
 export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false } = {}) {
   const file = join(dir, 'tray.ps1');
   writeFileSync(file, trayPs1());
-  // Anything the icon script prints (for example an error) goes to tray.log, so a missing icon can be explained.
-  let out = 'ignore';
-  try { out = openSync(join(dir, 'tray.log'), 'w'); } catch {}
-  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], ...(announce ? ['-Announce'] : [])], { detached: true, stdio: ['ignore', out, out], windowsHide: true });
-  if (typeof out === 'number') try { closeSync(out); } catch {}
+  // The icon script writes what it does (and any error) to tray.log, so a missing icon can be explained.
+  const log = join(dir, 'tray.log');
+  try { writeFileSync(log, ''); } catch {}
+  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], '-Log', log, ...(announce ? ['-Announce'] : [])], { detached: true, stdio: 'ignore', windowsHide: true });
   child.on?.('error', () => {}); child.unref?.();
   return child;
 }
