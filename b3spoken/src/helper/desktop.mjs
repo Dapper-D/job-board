@@ -5,7 +5,7 @@
 // Everything uses what the system already has (Windows Script Host, PowerShell, launchd, XDG autostart): nothing to install.
 // The launcher and tray files live in B3spoken's own data folder; turning "start when I sign in" off removes the startup entry.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -136,7 +136,11 @@ export function relaunchHidden(dir, { argv = [], cmd = selfCommand(), env = proc
 export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn } = {}) {
   const file = join(dir, 'tray.ps1');
   writeFileSync(file, trayPs1());
-  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0]], { detached: true, stdio: 'ignore', windowsHide: true });
+  // Anything the icon script prints (for example an error) goes to tray.log, so a missing icon can be explained.
+  let out = 'ignore';
+  try { out = openSync(join(dir, 'tray.log'), 'w'); } catch {}
+  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0]], { detached: true, stdio: ['ignore', out, out], windowsHide: true });
+  if (typeof out === 'number') try { closeSync(out); } catch {}
   child.on?.('error', () => {}); child.unref?.();
   return file;
 }

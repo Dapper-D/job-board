@@ -1,5 +1,18 @@
 # B3spoken changelog
 
+## 0.1.6
+
+### Job Bank works on home networks that dropped its connection
+- **Found the cause on a real Windows PC.**
+  - Newer Node.js versions open secure connections with a large first message (about 1.6 KB, because it includes a post-quantum key share).
+  - Some home routers and networks drop that message, so Job Bank looked like it "reset the connection".
+  - Windows' own web client, which sends a smaller first message, got through on the same computer.
+- **When a site resets the connection, B3spoken now connects again straight away offering only the classic key exchanges** that every browser supports, and remembers that for the site. That first message is about 360 bytes. B3spoken's name and request stay exactly the same.
+- The Job Bank diagnostic (`node b3spoken/scripts/jobbank-diagnose.mjs`) has a sixth test for this.
+
+### The icon by the clock explains itself if it doesn't appear
+- Anything the icon script reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
+
 ## 0.1.5
 
 ### Windows source install: double-click setup.cmd

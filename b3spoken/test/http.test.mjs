@@ -21,3 +21,16 @@ test('request refuses http, other hosts and local addresses before connecting', 
   await assert.rejects(request('https://example.com/x', { allow: ['api.lever.co'] }), /not allowed/);
   await assert.rejects(request('https://localhost/x', { allow: ['localhost'], retries: 0 }), /private or reserved/);
 });
+
+test('a host that resets the connection is tried again straight away with a smaller first TLS message', async () => {
+  const { request, CLASSIC_CURVES, resetCompat } = await import('../src/scan/http.mjs');
+  resetCompat();
+  const seen = [];
+  const send = async (_u, o) => { seen.push(o.ecdhCurve || 'default'); if (!o.ecdhCurve) throw Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }); return { status: 200, headers: {}, buffer: Buffer.from('ok'), text: 'ok' }; };
+  const r = await request('https://www.jobbank.gc.ca/x', { allow: ['www.jobbank.gc.ca'], parse: 'text', gapMs: 0, send });
+  assert.equal(r.text, 'ok');
+  assert.deepEqual(seen, ['default', CLASSIC_CURVES]);
+  await request('https://www.jobbank.gc.ca/y', { allow: ['www.jobbank.gc.ca'], parse: 'text', gapMs: 0, send });
+  assert.deepEqual(seen.slice(2), [CLASSIC_CURVES]); // remembered for that host
+  resetCompat();
+});

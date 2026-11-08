@@ -11,6 +11,13 @@ export const USER_AGENT = 'B3spokenBot/0.1 (+https://github.com/Dapper-D/job-boa
 const MAX_BYTES = 15 * 1024 * 1024;
 const TIMEOUT_MS = 30_000;
 const MAX_REDIRECTS = 3;
+// Some home networks and routers drop the large first TLS message that newer Node.js versions send (it carries a
+// post-quantum key share and no longer fits in one packet); the site then looks like it "reset the connection".
+// When a host resets us, we connect to it again offering only the classic key exchanges, a normal, smaller message
+// every browser also supports. Nothing about who we are changes: same name, same request.
+export const CLASSIC_CURVES = 'X25519:prime256v1:secp384r1';
+const compatHosts = new Set();
+export const resetCompat = () => compatHosts.clear(); // for tests
 
 // Private, loopback, link-local, carrier-grade NAT, multicast and reserved ranges.
 const BLOCKED_V4 = [
@@ -57,9 +64,9 @@ async function polite(host, gapMs) {
 }
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = MAX_BYTES }) {
+function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = MAX_BYTES, ecdhCurve }) {
   return new Promise((resolve, reject) => {
-    const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs }, res => {
+    const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs, ...(ecdhCurve ? { ecdhCurve } : {}) }, res => {
       const chunks = []; let size = 0;
       res.on('data', c => {
         size += c.length;
@@ -94,8 +101,10 @@ export async function request(url, o = {}) {
     if (!hostAllowed(u.hostname, allow)) throw Object.assign(new Error(`refused host not allowed for this source: ${u.hostname}`), { code: 'EHOST', url: u.href });
     await polite(u.hostname, o.gapMs ?? 500);
     let r;
-    try { r = await once(u, { method, headers, body, timeoutMs: o.timeoutMs, maxBytes: o.maxBytes }); }
+    const compat = compatHosts.has(u.hostname);
+    try { r = await (o.send || once)(u, { method, headers, body, timeoutMs: o.timeoutMs, maxBytes: o.maxBytes, ...(compat ? { ecdhCurve: CLASSIC_CURVES } : {}) }); }
     catch (e) {
+      if (e.code === 'ECONNRESET' && !compat) { compatHosts.add(u.hostname); continue; } // try the smaller first message once, straight away
       if (e.code === 'EBLOCKED' || attempt >= retries) throw e;
       attempt++; await sleep((o.netWaitMs ?? 1500) * attempt); continue; // e.g. the server cut the connection
     }
