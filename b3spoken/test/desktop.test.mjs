@@ -46,11 +46,10 @@ test('background: relaunching hidden and starting the tray use wscript and a hid
     const run = (exe, args, opts) => { calls.push({ exe, args, opts }); return { on() {}, unref() {} }; };
     relaunchHidden(dir, { cmd: ['C:\\B3spoken.exe'], env: { SystemRoot: 'C:\\Windows' }, run });
     assert.match(calls[0].exe, /wscript\.exe$/); assert.deepEqual(calls[0].args.slice(1), ['--hidden']); assert.equal(calls[0].opts.detached, true);
-    startTray(dir, { port: 4747, pid: 123, cmd: ['C:\\B3spoken.exe'], run });
-    assert.equal(calls[1].exe, 'powershell.exe');
-    assert.deepEqual(calls[1].args.slice(-8, -2), ['-Port', '4747', '-HelperPid', '123', '-IconFrom', 'C:\\B3spoken.exe']);
-    assert.equal(calls[1].args.at(-2), '-Log');
-    assert.ok(calls[1].args.includes('-STA') && calls[1].args.includes('Hidden'));
+    startTray(dir, { port: 4747, pid: 123, cmd: ['C:\\B3spoken.exe'], env: { SystemRoot: 'C:\\Windows' }, run });
+    assert.match(calls[1].exe, /wscript\.exe$/);
+    const vbs = readFileSync(calls[1].args[0], 'utf8');
+    assert.match(vbs, /Run\("powershell\.exe -NoProfile -STA -ExecutionPolicy Bypass -File ""[^"]+tray\.ps1"" -Port 4747 -HelperPid 123 -IconFrom ""C:\\B3spoken\.exe"" -Log ""[^"]+tray\.log"" -Announce", 0, True\)|Run\("powershell\.exe -NoProfile -STA -ExecutionPolicy Bypass -File ""[^"]+tray\.ps1"" -Port 4747 -HelperPid 123 -IconFrom ""C:\\B3spoken\.exe"" -Log ""[^"]+tray\.log""", 0, True\)/);
     assert.ok(existsSync(join(dir, 'tray.ps1')));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -5,7 +5,7 @@
 // Everything uses what the system already has (Windows Script Host, PowerShell, launchd, XDG autostart): nothing to install.
 // The launcher and tray files live in B3spoken's own data folder; turning "start when I sign in" off removes the startup entry.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -144,18 +144,21 @@ export function relaunchHidden(dir, { argv = [], cmd = selfCommand(), env = proc
 
 // Windows: show the icon by the clock for this running B3spoken.
 // Returns the tray process (its 'exit' event tells B3spoken if the icon went away).
-export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false, fresh = true } = {}) {
+export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false, fresh = true, env = process.env } = {}) {
   const file = join(dir, 'tray.ps1');
   writeFileSync(file, trayPs1());
   // The icon script writes what it does (and any error) to tray.log, so a missing icon can be explained.
   const log = join(dir, 'tray.log');
   if (fresh) try { writeFileSync(log, ''); } catch {} // a restart adds to the log instead of wiping the reason
-  const args = ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], '-Log', log, ...(announce ? ['-Announce'] : [])];
-  // PowerShell's own startup errors (before the script runs) go to tray-start.log.
-  let err = 'ignore';
-  try { err = openSync(join(dir, 'tray-start.log'), fresh ? 'w' : 'a'); writeSync(err, `${new Date().toISOString()} powershell.exe ${args.join(' ')}\n`); } catch {}
-  const child = run('powershell.exe', args, { detached: true, stdio: ['ignore', err, err], windowsHide: true });
-  if (typeof err === 'number') try { closeSync(err); } catch {}
+  // PowerShell needs a console of its own to run Windows Forms. Started "detached" from B3spoken it had none, so it
+  // quit within seconds and the icon never showed. Windows Script Host starts it the normal way with its window
+  // hidden (style 0) and waits for it, so when the launcher ends, the icon has ended too.
+  const q = v => `""${String(v).replace(/"/g, '')}""`;
+  const line = ['powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File', q(file), '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', q(cmd[0]), '-Log', q(log), ...(announce ? ['-Announce'] : [])].join(' ');
+  const vbs = join(dir, 'tray.vbs');
+  writeFileSync(vbs, ["' Shows the B3spoken icon by the clock. Made by B3spoken; it's safe to delete (B3spoken makes it again).", `WScript.Quit CreateObject("WScript.Shell").Run("${line}", 0, True)`, ''].join('\r\n'));
+  const wscript = join(env.SystemRoot || 'C:\\Windows', 'System32', 'wscript.exe');
+  const child = run(wscript, [vbs], { detached: true, stdio: 'ignore', windowsHide: true });
   child.on?.('error', () => {}); child.unref?.();
   return child;
 }

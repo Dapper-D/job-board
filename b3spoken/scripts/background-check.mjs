@@ -41,7 +41,6 @@ if (!/icon shown/.test(trayLog)) {
     console.log('foreground run output:', out.trim() || '(none)');
   } catch (e) { console.log('foreground run failed:', e.status, String(e.stdout || '').trim(), String(e.stderr || '').trim().slice(0, 1500)); }
   try { console.log('tray-debug.log:', readFileSync(join(home, 'tray-debug.log'), 'utf8')); } catch { console.log('tray-debug.log: (none)'); }
-  try { console.log('tray-start.log:', readFileSync(join(home, 'tray-start.log'), 'utf8')); } catch { console.log('tray-start.log: (none)'); }
   fail(`the icon script didn't show the icon; tray.log: ${trayLog.trim().slice(0, 300) || '(empty)'}`);
 }
 ok(`tray icon shown (pid ${tray})`);
