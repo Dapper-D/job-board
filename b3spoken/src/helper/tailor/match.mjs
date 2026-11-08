@@ -70,10 +70,26 @@ const FAMILIES = {
   ai: /\b(ai|machine learning|ml|llm|artificial intelligence|nlp|prompt|data scien(ce|tist)|genai|generative)\b/,
   data: /\b(data (analyst|engineer|specialist)|analytics|business intelligence|bi (analyst|developer)|database|dba|reporting analyst)\b/,
   cloud: /\b(cloud|devops|sre|site reliability|platform engineer|aws|azure|gcp)\b/,
-  business: /\b(business (systems )?analyst|product analyst|systems analyst|technical analyst|solutions (analyst|consultant)|implementation (specialist|consultant))\b/,
+  business: /\b(business (systems )?analyst|product analyst|systems analyst|technical analyst|solutions (analyst|consultant)|implementation (specialist|consultant)|product (manager|owner)|project (manager|coordinator)|program (manager|coordinator)|scrum master)\b/,
+  // Fields outside tech, so the same check works for anyone's resume.
+  healthcare: /\b(nurse|nursing|rn|lpn|physician|doctor|pharmac(y|ist)|dental|dentist|hygienist|therapist|physiotherap(y|ist)|care aide|health care|healthcare|clinical|medical|patient|paramedic|caregiver|personal support worker|psw|radiolog|sonograph|optometr|veterinar)\w*\b/,
+  finance: /\b(accountant|accounting|bookkeep(er|ing)|payroll|audit(or)?|tax|financial (analyst|advisor|planner)|finance|controller|accounts (payable|receivable)|credit analyst|underwrit(er|ing)|actuar(y|ial)|investment|banking|bank teller|teller|treasury)\b/,
+  sales: /\b(sales|account (executive|manager)|business development|bdr|sdr|retail (associate|sales)|cashier|store (associate|manager)|merchandis(er|ing))\b/,
+  marketing: /\b(marketing|seo|content (writer|strategist|creator|marketing)|copywriter|social media|brand|communications|public relations|pr (specialist|coordinator)|growth)\b/,
+  people: /\b(human resources|hr|recruit(er|ing|ment)|talent acquisition|people (partner|operations)|benefits|compensation)\b/,
+  customer: /\b(customer (service|support|success|care|experience)|call cent(er|re)|client (service|support)s?|contact cent(er|re))\b/,
+  design: /\b(designer|design|ux|ui|graphic|illustrat(or|ion)|animator|video editor|photographer|art director)\b/,
+  operations: /\b(warehouse|logistics|supply chain|procurement|purchasing|inventory|shipping|receiving|forklift|driver|delivery|dispatch(er)?|fleet|operations (associate|coordinator|manager|specialist)|buyer)\b/,
+  legal: /\b(lawyer|legal|paralegal|counsel|attorney|law clerk|compliance (officer|advisor|specialist|analyst)|regulatory)\b/,
+  education: /\b(teacher|lecturer|professor|instructor|tutor|educator|faculty|early childhood|ece|education assistant|teaching)\b/,
+  trades: /\b(electrician|plumber|carpenter|welder|mechanic|technician|millwright|hvac|machinist|labourer|laborer|construction|apprentice|journeyman|installer|maintenance)\b/,
+  engineering: /\b((mechanical|electrical|civil|chemical|structural|manufacturing|process|industrial|hardware|mechatronics|environmental|geotechnical|mining|aerospace) engineer(ing)?|drafter|cad)\b/,
+  science: /\b(scientist|laborator(y|ies)|lab (technician|assistant)|research (assistant|associate)|chemist|biolog(y|ist)|microbiolog)\w*\b/,
+  hospitality: /\b(chef|cook|kitchen|server|bartender|barista|host(ess)?|housekeep(er|ing)|hotel|restaurant|food service|dishwasher|front desk)\b/,
+  admin: /\b(administrative|admin assistant|office (manager|assistant|administrator)|receptionist|executive assistant|data entry|clerk|coordinator)\b/,
 };
-// Teaching posts name a subject, not a field to work in.
-export const familiesOf = text => (/\b(lecturer|professor|instructor|teacher|faculty)\b/.test(norm(text)) ? [] : Object.keys(FAMILIES).filter(f => FAMILIES[f].test(norm(text))));
+// A teaching post names a subject ("Lecturer, Cybersecurity") but the job is teaching.
+export const familiesOf = text => (FAMILIES.education.test(norm(text)) ? ['education'] : Object.keys(FAMILIES).filter(f => FAMILIES[f].test(norm(text))));
 
 export const SENIOR = /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
 const NO_SPONSOR = /\b(no|not|unable to|cannot|can't|will not|won't)\s+(provide\s+|offer\s+)?(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|sponsorship is not (available|provided)/i;
@@ -117,7 +133,8 @@ export function scoreJob(job, ctx) {
   const titleFit = Math.max(0, ...ctx.roles.map(r => { const w = norm(r).split(' ').filter(x => x.length > 1 && !['and', 'the', 'of'].includes(x)); return w.length ? (w.filter(x => titleWords.has(x) || titleWords.has(x.replace(/s$/, ''))).length / w.length) ** 2 : 0; }));
   if (titleFit >= 0.99) reasons.push('Title matches a role you picked');
   const fields = familiesOf(`${job.title} ${job.department || ''}`);
-  if (mine.length && titleFit < 0.3 && !fields.some(f => mine.includes(f))) stops.push('A different field from the roles you picked');
+  // Roles that fit no known field (an unusual job title) fall back to sharing a word with the job's title.
+  if (titleFit < 0.3 && (mine.length ? !fields.some(f => mine.includes(f)) : titleFit === 0)) stops.push('A different field from the roles you picked');
   // Seniority and years
   let seniority = 1;
   const req = (job.description || '').match(YEARS_REQ);

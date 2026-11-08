@@ -19,7 +19,7 @@ import { suggestRoles, checkTarget } from './roles.mjs';
 import { cleanProfile, searchRoles } from './profile.mjs';
 import { ask } from './ai.mjs';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { makeContext, scoreJob } from './tailor/match.mjs';
+import { makeContext, scoreJob, yearsOfExperience } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
 import { VERSION } from './version.mjs';
 import { findContacts, draftEmail } from './contacts.mjs';
@@ -298,18 +298,18 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       let ideas = null;
       for (let attempt = 0; attempt < 2 && !ideas; attempt++) {
         let raw;
-        try { raw = await (deps.ask || ask)(settings.ai, CAREER_PROMPT(resume, ob.profile()), { timeoutMs: 240_000 }); }
+        try { raw = await (deps.ask || ask)(settings.ai, CAREER_PROMPT(resume, ob.profile(), yearsOfExperience(ob.library())), { timeoutMs: 240_000 }); }
         catch (e) { throw err(502, `Your AI didn't answer: ${e.message}`); }
-        try { ideas = cleanCareer(parseAiJson(raw)); } catch { ideas = null; }
+        try { ideas = cleanCareer(parseAiJson(raw), yearsOfExperience(ob.library())); } catch { ideas = null; }
       }
       if (!ideas) throw err(502, 'The AI\'s career ideas couldn\'t be read. Try again.');
       c = { ...ideas, at: new Date().toISOString(), by: settings.ai, stamp: careerStamp() };
       writeJson(careerFile, c);
     }
     const prof = ob.profile();
-    return { ...withMarket(c, merged), searching: searchRoles(prof) };
+    return { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(prof), years: yearsOfExperience(ob.library()) };
   }
-  const careerSaved = () => { const c = readJson(careerFile, null); return c && c.stamp === careerStamp() ? { ...withMarket(c, merged), searching: searchRoles(ob.profile()) } : null; };
+  const careerSaved = () => { const c = readJson(careerFile, null); return c && c.stamp === careerStamp() ? { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(ob.profile()), years: yearsOfExperience(ob.library()) } : null; };
   // Adds a suggested title to the searches (or takes it off), then fetches jobs for it.
   function searchFor(title, on = true) {
     const prof = ob.profile(); const t = String(title || '').trim().slice(0, 80); if (!t) throw err(400, 'no title');

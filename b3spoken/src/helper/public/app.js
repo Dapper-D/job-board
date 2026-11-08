@@ -389,7 +389,7 @@ function drawCareer(box, c) {
   const close = el('button', 'small', 'Close'); close.type = 'button'; close.addEventListener('click', () => { box.hidden = true; });
   box.replaceChildren(
     el('h3', null, 'Career ideas from your resume'),
-    el('p', 'fix', 'Your AI read only your resume. Job counts and pay come from the real postings on your board today (entry and junior level; pay as posted, so US jobs show US dollars). "Add to my searches" makes B3spoken look for that title from now on.'),
+    el('p', 'fix', `Your AI read only your resume. Job counts and pay come from the real postings on your board today${(c.years || 0) < 5 ? ' (senior and manager postings left out)' : ''}; pay is as posted, so US jobs show US dollars. "Add to my searches" makes B3spoken look for that title from now on.`),
     ...section('Your strongest skills', c.strengths.map(s => { const li = el('li', 'idea'); li.append(el('strong', null, s.skill), el('span', 'fix', s.evidence)); return li; })),
     ...section('Jobs you qualify for now', c.titles.map(t => row(t))),
     ...section('Roles you may not have considered', c.unexpected.map(t => row(t))),

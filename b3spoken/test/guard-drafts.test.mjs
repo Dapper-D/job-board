@@ -195,7 +195,14 @@ test('career ideas: checked, priced from real postings, and one click adds a tit
   const jobs = [{ id: 'a', title: 'Junior QA Analyst', salary: '$70,000 - $80,000 per year' }, { id: 'b', title: 'QA Analysts II', salary: '$40 - $44 an hour' }, { id: 'c', title: 'Data Analyst' }];
   const m = marketFor('QA Analyst', jobs);
   assert.equal(m.count, 2); assert.equal(m.paid, 2); assert.equal(m.median, 87360);
-  assert.deepEqual(familiesOf('Registered Nurse'), []);
+  assert.deepEqual(familiesOf('Registered Nurse'), ['healthcare']);
+  assert.deepEqual(familiesOf('Sessional Lecturer, Cybersecurity'), ['education']);
+  // Works for any resume, not only tech: a nurse sees nursing jobs, not software ones; unknown roles need a shared title word.
+  const ctxOf = roles => makeContext({ entries: [], skills: [] }, 'patient care charting python', {}, roles);
+  const quick = (title, roles) => scoreJob({ title, description: 'Patient care and charting. Python a plus.', location: 'Vancouver, BC' }, ctxOf(roles)).label;
+  assert.equal(quick('Software Developer', ['Registered Nurse']), 'Skip');
+  assert.notEqual(quick('Licensed Practical Nurse', ['Registered Nurse']), 'Skip');
+  assert.equal(quick('Accountant', ['Beekeeper']), 'Skip');
   assert.ok(familiesOf('Junior Security Analyst').includes('security'));
 
   const dir = mkdtempSync(join(tmpdir(), 'b3-career-'));

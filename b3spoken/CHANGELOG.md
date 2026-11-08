@@ -5,6 +5,7 @@
 ### Career ideas and a cleaner Stretch list
 - **Career ideas** (new link at the top). Your AI reads only your resume and lists your strongest skills (each with the resume line that shows it), jobs you qualify for now, roles you may not have considered, industries that value your background, and better-paid paths with an honest note on what's missing to get there. Each title shows how many entry/junior postings are on your board today and what the ones that list pay offer. **Add to my searches** makes B3spoken look for that title from now on (up to 12 roles); **Show these jobs** filters the board to it.
 - **Stretch no longer fills up with unrelated jobs.** A job whose title is in a different field from the roles you search for (nursing, legal, sales and so on) is now Skip. On a test with today's pool, Stretch went from about 1,200 jobs to 35, all security, IT or software. VP, chief and "expert" titles count as senior.
+- **Works for any resume, not only tech.** The field check knows healthcare, finance, sales, marketing, HR, customer service, design, operations, legal, education, trades, engineering, science, hospitality and admin as well as tech; a role that fits none of them needs a shared word with the job title. Career ideas pick levels from the years your resume shows (new grads get entry and junior; ten years gets intermediate to lead). Tested with a nurse's resume: nursing jobs only, and nursing career ideas.
 
 ### AI review of a job (like the Job Hunt Kit)
 - **An "AI review" button on each job.** Your AI gives:
