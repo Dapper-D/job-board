@@ -128,3 +128,6 @@ label.mini select, label.mini input { font-size: 13px; padding: 4px 8px; }
 .roles-box::backdrop { background: rgba(0,0,0,.45); }
 .roles-box .nav { display: flex; justify-content: flex-end; gap: 8px; margin: 12px -20px -18px; padding: 10px 20px; position: sticky; bottom: -18px; background: var(--bg); border-top: 1px solid var(--line); }
 .ideas-note { font: inherit; }
+.answers .ans-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.answers .ans { margin: 4px 0 10px; white-space: pre-wrap; }
+.answers mark { background: color-mix(in srgb, var(--warn) 25%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }

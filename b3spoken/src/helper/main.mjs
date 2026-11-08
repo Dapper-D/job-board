@@ -306,6 +306,9 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       try { r = cleanReview(parseAiJson(raw)); } catch { r = null; }
     }
     if (!r) throw err(502, 'The AI\'s review couldn\'t be read. Try again.');
+    // An answer that uses an AI trap's phrase is dropped, so nothing pasted into an application gives it away.
+    const trap = findAiTrap(job.description);
+    if (trap) r.answers = r.answers.filter(x => !usesTrap(trap, x.a));
     const all = readJson(reviewFile, {}); all[id] = { ...r, at: new Date().toISOString(), by: settings.ai, stamp: reviewStamp(), auto }; writeJson(reviewFile, all);
     return all[id];
   }

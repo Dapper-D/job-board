@@ -1,5 +1,12 @@
 # B3spoken changelog
 
+## 0.1.11
+
+### Application answers on every card
+- **New "Application answers" button on each job.** The AI review now also drafts the answers applications usually ask, in the same AI call (so nothing extra is used): work authorization and sponsorship, start date, salary expectation (inside the posted range and never below your floor), "Why this company?", every screening question the posting mentions, "Tell us about yourself", "Why are you a good fit?", years with the main skill (projects aren't counted as paid years), and relocation or on-site, if asked.
+- Written in your voice from your resume only, with a **Copy** button on each. Anything only you can confirm is left in highlighted [square brackets]. Jobs the AI says to skip get none, and an answer that uses an AI trap's phrase is dropped.
+- Jobs reviewed before this version get theirs with one click (it re-runs that job's review).
+
 ## 0.1.10
 
 ### One place for role ideas: setup, right after the resume

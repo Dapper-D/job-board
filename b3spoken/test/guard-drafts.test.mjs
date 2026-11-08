@@ -166,6 +166,9 @@ test('AI review: scores out of 10, requirements matched to evidence, checked and
   const r = cleanReview({ call: 'stretch', techScore: 12, fitScore: '6', summary: 'x'.repeat(900), requirements: [{ requirement: 'Python', match: 'strong', evidence: 'Built a Python API' }, { requirement: '' }], gaps: ['Kafka'], leadWith: ['Budget Tracker'] });
   assert.equal(r.call, 'Stretch'); assert.equal(r.techScore, 10); assert.equal(r.fitScore, 6); assert.equal(r.summary.length, 600);
   assert.deepEqual(r.requirements, [{ requirement: 'Python', required: true, match: 'Strong', evidence: 'Built a Python API' }]);
+  // Application answers come with Apply and Stretch reviews; Skip has none.
+  assert.deepEqual(cleanReview({ call: 'Apply', techScore: 7, fitScore: 7, answers: [{ q: 'Start date?', a: 'I can start [date].' }, { q: '', a: 'x' }] }).answers, [{ q: 'Start date?', a: 'I can start [date].' }]);
+  assert.deepEqual(cleanReview({ call: 'Skip', techScore: 2, fitScore: 2, answers: [{ q: 'Start date?', a: 'Now.' }] }).answers, []);
   assert.deepEqual(namedContacts('Recruiter: Jane Smith. Contact Priya Patel, Talent Acquisition Partner.').map(p => p.name), ['Jane Smith', 'Priya Patel']);
   const job = { source: 'jobbank', company: 'Acme', title: 'Developer', url: 'https://www.jobbank.gc.ca/jobsearch/jobposting/123', description: 'Recruiter: Jane Smith' };
   const got = await findContacts(job, { robots: async () => true, get: async url => ({ text: /jobbank/.test(url) ? 'How to apply: By email hiring@acme-dev.ca or noreply@jobbank.gc.ca' : '' }) });

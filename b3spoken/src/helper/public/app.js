@@ -148,10 +148,22 @@ function card(j) {
     if (!helpBox.hidden) { helpBox.hidden = true; return; }
     helpBox.hidden = false; await drawDrafts(helpBox, j);
   });
-  row.append(make, files, revBtn, prepBtn, conBtn, helpBtn);
+  // Application answers: written with the AI review (Apply and Stretch jobs), ready to copy into the form.
+  const ansBtn = el('button', 'small', 'Application answers'); ansBtn.type = 'button';
+  const ansBox = el('div', 'prep'); ansBox.hidden = true;
+  ansBtn.addEventListener('click', async () => {
+    if (!ansBox.hidden) { ansBox.hidden = true; return; }
+    ansBox.hidden = false;
+    if (j.review?.answers?.length || j.review?.call === 'Skip') return drawAnswers(ansBox, j.review);
+    ansBtn.disabled = true; ansBtn.textContent = 'Writing answers… (about a minute)';
+    try { const r = await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, { method: 'POST', body: JSON.stringify({ again: !!j.review }) }); j.review = r; drawAnswers(ansBox, r); }
+    catch (e) { ansBox.replaceChildren(el('p', 'problems', e.message)); }
+    finally { ansBtn.disabled = false; ansBtn.textContent = 'Application answers'; }
+  });
+  row.append(make, files, revBtn, ansBtn, prepBtn, conBtn, helpBtn);
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
-  li.append(row, revBox, prepBox, conBox, helpBox, trackerControls(j));
+  li.append(row, revBox, ansBox, prepBox, conBox, helpBox, trackerControls(j));
   drawStatusBadge(li, j.track?.status);
   return li;
 }
@@ -268,6 +280,21 @@ function drawReview(box, r) {
   if (r.leadWith.length) box.append(el('p', null, `Lead with: ${r.leadWith.join(', ')}`));
   if (r.eligibility) box.append(el('p', 'tip', `Eligibility: ${r.eligibility}`));
   box.append(el('p', 'tip', `Reviewed by your AI ${ago(r.at)}. A judgement from your resume, not a promise.`));
+}
+
+function drawAnswers(box, r) {
+  if (r?.call === 'Skip') return box.replaceChildren(el('p', 'tip', 'Your AI said to skip this job, so it didn\u2019t write application answers.'));
+  if (!r?.answers?.length) return box.replaceChildren(el('p', 'tip', 'No answers came back for this job. Try "Get an AI review now" again later.'));
+  box.replaceChildren(el('h3', null, 'Answers to the questions applications usually ask'), el('p', 'tip', 'From your resume only. Fill in anything in [square brackets] yourself before you paste it.'));
+  const ol = el('ol', 'qs answers');
+  for (const x of r.answers) {
+    const li = el('li'); const copy = el('button', 'small', 'Copy'); copy.type = 'button';
+    copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(x.a); copy.textContent = 'Copied'; } catch { copy.textContent = 'Select and copy it'; } setTimeout(() => { copy.textContent = 'Copy'; }, 2000); });
+    const head = el('div', 'ans-head'); head.append(el('strong', null, x.q), copy);
+    const a = el('p', 'ans'); for (const part of x.a.split(/(\[[^\]]+\])/)) a.append(/^\[.*\]$/.test(part) ? el('mark', null, part) : document.createTextNode(part));
+    li.append(head, a); ol.append(li);
+  }
+  box.append(ol);
 }
 
 function drawPrep(box, p) {

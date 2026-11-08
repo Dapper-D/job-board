@@ -1,6 +1,6 @@
 {
   "name": "b3spoken",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
   "description": "B3spoken: verified jobs matched to your resume, tailored with your own AI, on your own computer.",
   "type": "module",
