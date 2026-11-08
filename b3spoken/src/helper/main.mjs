@@ -336,7 +336,10 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return { imported: done };
   }
 
+  const desktop = {}; // how this copy is running (filled in by start())
   return {
+    desktop,
+    lastRefresh: () => state.lastRefresh,
     findKits: () => (deps.findKits || findKits)(), importKit,
     // "Start B3spoken when I sign in": saved as a setting and applied to the system's startup entry.
     autostart(on) {
@@ -383,7 +386,15 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       catch (e) { add('FAIL', 'Your files', `Can't save files in ${dir} (${e.code || e.message}).`, 'Check that the folder exists and isn\'t read-only, or that your disk isn\'t full.'); }
       if (!deps.skipAutostartCheck) {
         const on = (deps.autostartOn || autostartOn)();
-        add(on ? 'PASS' : 'WARN', 'Starts when you sign in', on ? 'B3spoken starts in the background when you sign in, so new jobs and documents are ready each morning.' : 'B3spoken only runs when you open it.', on ? '' : 'Turn on "Start B3spoken when I sign in" in this health check.');
+        if (desktop.autostartError) add('FAIL', 'Starts when you sign in', `Couldn't add B3spoken to your startup apps (${desktop.autostartError}).`, 'Untick and tick "Start B3spoken when I sign in" below to try again, and send this message to the maintainer if it stays.');
+        else add(on ? 'PASS' : 'WARN', 'Starts when you sign in', on ? 'B3spoken starts in the background when you sign in, then gets the new jobs and makes documents for your best matches, so they\'re ready each morning.' : 'B3spoken only runs when you open it, so it won\'t get new jobs in the morning by itself.', on ? '' : 'Tick "Start B3spoken when I sign in" below.');
+      }
+      if (desktop.mode === 'window') add('WARN', 'Icon by the clock', 'This copy of B3spoken was started with a window (from a terminal or an older shortcut), so it has no icon by the clock.', 'Close that window, then open B3spoken from the Start menu.');
+      else if (desktop.mode === 'background') {
+        const t = desktop.tray || {};
+        let log = ''; try { log = readFileSync(join(dir, 'tray.log'), 'utf8').trim().split('\n').slice(-3).join(' ').slice(0, 300); } catch {}
+        if (t.running) add('PASS', 'Icon by the clock', 'Running. Windows 11 puts new icons under the ^ arrow next to the clock; you can drag it onto the taskbar to keep it in view.');
+        else add('FAIL', 'Icon by the clock', `The icon closed${t.code != null ? ` (code ${t.code})` : ''}${t.error ? ` (${t.error})` : ''}${log ? `. Its log says: ${log}` : ''}.`, 'B3spoken itself still works. Send this line to the maintainer.');
       }
       const up = await checkUpdate();
       if (up?.available) add('WARN', 'Updates', `B3spoken ${up.version} is available; you have ${VERSION}.`, 'Click Update now at the top of the board.');
@@ -521,13 +532,28 @@ export async function start(argv = process.argv.slice(2)) {
   writeJson(join(dir, 'helper.json'), { port, pid: process.pid, startedAt: new Date().toISOString() });
   const url = `http://127.0.0.1:${port}/`;
   const hidden = flag('--hidden');
-  if (win && hidden) { try { startTray(dir, { port }); } catch (e) { console.error(`couldn't show the icon by the clock: ${e.message}`); } }
+  app.desktop.mode = !win ? 'other' : hidden ? 'background' : 'window';
+  if (win && hidden) {
+    const showTray = (announce, tries = 0) => {
+      try {
+        const child = startTray(dir, { port, announce });
+        app.desktop.tray = { running: true, startedAt: new Date().toISOString() };
+        child.on?.('exit', code => {
+          app.desktop.tray = { running: false, code, at: new Date().toISOString() };
+          if (tries < 2) setTimeout(() => showTray(false, tries + 1), 5000); // came back on its own, up to twice
+        });
+      } catch (e) { app.desktop.tray = { running: false, error: e.message }; }
+    };
+    showTray(!flag('--no-open'));
+  }
   // Keep the "start when I sign in" entry matching the setting (only for real use, not tests or one-off command lines).
-  if (plainStart || hidden) { try { const want = app.settings().autostart !== false; if (want !== autostartOn()) setAutostart(dir, want); } catch (e) { console.error(`couldn't update the startup entry: ${e.message}`); } }
+  if (plainStart || hidden) { try { const want = app.settings().autostart !== false; if (want !== autostartOn()) setAutostart(dir, want); } catch (e) { app.desktop.autostartError = e.message; console.error(`couldn't update the startup entry: ${e.message}`); } }
   console.log(`B3spoken is running at ${url}\nYour files are in ${dir}\n${hidden ? 'It runs in the background; use the icon by the clock to open or quit it.' : 'Keep this window open while you use B3spoken. Close it (or press Ctrl+C) to stop.'}`);
   if (!flag('--no-open')) openBrowser(url);
   app.refresh().catch(e => console.error('refresh failed:', e.message));
-  setInterval(() => app.refresh().catch(() => {}), 6 * 3600e3).unref(); // picks up the next daily pool if left open
+  // Left running (or the computer woke from sleep): every 15 minutes, refresh if the last one is over 4 hours old,
+  // so the new morning's jobs arrive even if the computer slept through the night.
+  setInterval(() => { const last = Date.parse(app.lastRefresh?.() || 0) || 0; if (Date.now() - last > 4 * 3600e3) app.refresh().catch(() => {}); }, 15 * 60e3).unref();
   app.checkUpdate().catch(() => {});
   process.on('SIGINT', () => srv.close().then(() => process.exit(0)));
   return srv;

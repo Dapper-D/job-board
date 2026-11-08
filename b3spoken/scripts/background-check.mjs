@@ -30,7 +30,10 @@ ok(`hidden copy running (pid ${helper.pid}, port ${helper.port}), first window c
 let tray = '';
 for (let i = 0; i < 20 && !tray; i++) { await sleep(1000); tray = ps(`(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like '*tray.ps1*' -and $_.CommandLine -like '*-HelperPid ${helper.pid}*' } | Select-Object -First 1).ProcessId`); }
 if (!tray) fail('no tray icon process');
-ok(`tray icon process running (pid ${tray})`);
+let trayLog = '';
+for (let i = 0; i < 15 && !/icon shown/.test(trayLog); i++) { await sleep(1000); try { trayLog = readFileSync(join(home, 'tray.log'), 'utf8'); } catch {} }
+if (!/icon shown/.test(trayLog)) fail(`the icon script didn't show the icon; tray.log: ${trayLog.trim().slice(0, 300) || '(empty)'}`);
+ok(`tray icon shown (pid ${tray})`);
 
 // 3. Start when I sign in: the Startup shortcut points at wscript and the hidden launcher.
 const lnk = startupPath();

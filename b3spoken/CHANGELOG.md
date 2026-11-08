@@ -16,8 +16,13 @@
   - Education moves to the bottom, still showing the diploma's expected date.
 - **Why:** recruiter guides agree that Education goes first only for students and very recent graduates without relevant work. With a few years since the degree, a year of relevant work and strong projects, your proof of skill should come first.
 
-### The icon by the clock explains itself if it doesn't appear
-- Anything the icon script reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
+### The icon by the clock: easier to find, and checked
+- **A notification when B3spoken opens** says it's running and that the icon may be under the **^** arrow (Windows 11 hides new icons there). It isn't shown when B3spoken starts quietly at sign-in.
+- **If the icon script stops, it's restarted** (up to twice). Anything it reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
+- **The Health check reports on the icon:** running, started with a window (so no icon), or closed with the reason. A failed "start when I sign in" now shows as FAIL with the reason, instead of passing silently.
+
+### New jobs arrive even after the computer sleeps overnight
+- **Every 15 minutes, B3spoken refreshes if the last refresh is over 4 hours old.** Before, it waited a fixed 6 hours, which could slip when the computer slept, so a laptop that slept overnight still gets the morning's jobs soon after it wakes.
 
 ## 0.1.5
 

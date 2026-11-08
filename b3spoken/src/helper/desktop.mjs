@@ -35,7 +35,9 @@ export function launcherVbs(cmd) {
 // The icon by the clock (PowerShell with Windows Forms, both built into Windows). It closes itself when B3spoken stops.
 export function trayPs1() {
   return `# The B3spoken icon by the clock. Made by B3spoken; it's safe to delete (B3spoken makes it again).
-param([int]$Port, [int]$HelperPid, [string]$IconFrom)
+param([int]$Port, [int]$HelperPid, [string]$IconFrom, [switch]$Announce)
+$ErrorActionPreference = 'Stop'
+try {
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $url = "http://127.0.0.1:$Port/"
 $icon = New-Object System.Windows.Forms.NotifyIcon
@@ -55,11 +57,15 @@ $quit.add_Click({
 $icon.ContextMenuStrip = $menu
 $icon.add_MouseClick({ param($s, $e) if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) { Start-Process $url } })
 $icon.Visible = $true
+# Windows 11 tucks new icons under the ^ arrow, so say once where to find it.
+if ($Announce) { $icon.ShowBalloonTip(8000, 'B3spoken is running', 'Find B3spoken here by the clock (it may be under the ^ arrow). Click it to open your job board.', [System.Windows.Forms.ToolTipIcon]::Info) }
+Write-Output "icon shown for B3spoken (pid $HelperPid)"
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.add_Tick({ if (-not (Get-Process -Id $HelperPid -ErrorAction SilentlyContinue)) { $icon.Visible = $false; [System.Windows.Forms.Application]::Exit() } })
 $timer.Start()
 [System.Windows.Forms.Application]::Run()
+} catch { Write-Output "tray error: $($_.Exception.Message)"; exit 1 }
 `;
 }
 
@@ -133,14 +139,15 @@ export function relaunchHidden(dir, { argv = [], cmd = selfCommand(), env = proc
 }
 
 // Windows: show the icon by the clock for this running B3spoken.
-export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn } = {}) {
+// Returns the tray process (its 'exit' event tells B3spoken if the icon went away).
+export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), run = spawn, announce = false } = {}) {
   const file = join(dir, 'tray.ps1');
   writeFileSync(file, trayPs1());
   // Anything the icon script prints (for example an error) goes to tray.log, so a missing icon can be explained.
   let out = 'ignore';
   try { out = openSync(join(dir, 'tray.log'), 'w'); } catch {}
-  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0]], { detached: true, stdio: ['ignore', out, out], windowsHide: true });
+  const child = run('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', file, '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', cmd[0], ...(announce ? ['-Announce'] : [])], { detached: true, stdio: ['ignore', out, out], windowsHide: true });
   if (typeof out === 'number') try { closeSync(out); } catch {}
   child.on?.('error', () => {}); child.unref?.();
-  return file;
+  return child;
 }
