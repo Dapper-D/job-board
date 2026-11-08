@@ -138,3 +138,23 @@ test('scam checks: money, cheques, gift cards and reshipping hide a job; chat-ap
   const fine = scamSigns('We cover the cost of your certification exam fees. Benefits include a home-office allowance. Interviews on Microsoft Teams. Apply on our careers page.');
   assert.deepEqual(fine, { stop: [], warn: [] });
 });
+
+test('health check: plain PASS / WARN / FAIL items, each with a fix', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'b3-health-'));
+  try {
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({ claude: { label: 'Claude (Claude Code)', installed: false, working: false } }), checkForUpdate: async () => null } });
+    let h = await app.healthCheck();
+    const item = name => h.items.find(i => i.name === name);
+    assert.equal(h.worst, 'FAIL');
+    assert.equal(item('Your resume').status, 'FAIL'); assert.match(item('Your resume').fix, /Edit setup/);
+    assert.equal(item('Updates').status, 'PASS');
+    app.uploadResume({ text: resume });
+    app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    app.saveSettings({ ...app.settings(), ai: 'claude' });
+    h = await app.healthCheck();
+    assert.equal(item('Your resume').status, 'PASS');
+    assert.equal(item('Your answers').status, 'PASS');
+    assert.equal(item('Your AI').status, 'FAIL'); assert.match(item('Your AI').fix, /Install it for me/);
+    assert.equal(item('Your files').status, 'PASS');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

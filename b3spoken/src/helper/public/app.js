@@ -296,6 +296,26 @@ function showProblems(list) {
   box.append(' ', btn, out);
 }
 
+// Health check: what works, what needs attention, and what to do about it.
+async function health() {
+  const box = $('health');
+  if (!box.hidden && box.dataset.done) { box.hidden = true; return; }
+  box.hidden = false; box.dataset.done = ''; box.replaceChildren(el('p', null, 'Checking…'));
+  try {
+    const r = await api('/api/health');
+    const ul = el('ul');
+    for (const i of r.items) {
+      const li = el('li');
+      li.append(el('span', `st ${i.status}`, i.status), el('span', null, `${i.name}: ${i.text}`));
+      if (i.fix && i.status !== 'PASS') li.append(el('span', 'fix', i.fix));
+      ul.append(li);
+    }
+    const close = el('button', 'small', 'Close'); close.type = 'button'; close.addEventListener('click', () => { box.hidden = true; });
+    box.replaceChildren(el('h3', null, r.worst === 'PASS' ? 'Everything works' : r.worst === 'WARN' ? 'Working, with things to look at' : 'Something needs fixing'), ul, close);
+    box.dataset.done = '1';
+  } catch (e) { box.replaceChildren(el('p', 'problems', `The health check didn't run: ${e.message}`)); }
+}
+
 async function update() {
   $('updateGo').disabled = true; $('updateGo').textContent = 'Downloading and checking…';
   try {
@@ -324,6 +344,7 @@ async function init() {
   for (const id of ['province', 'remote', 'age', 'minLabel', 'sort']) $(id).addEventListener('change', () => load());
   $('more').addEventListener('click', () => load(false));
   $('updateGo').addEventListener('click', update);
+  $('healthGo').addEventListener('click', health);
   for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => {
     view = b.dataset.view; for (const x of document.querySelectorAll('.tabs button')) x.classList.toggle('on', x === b);
     document.querySelector('.filters').hidden = !!view; load();

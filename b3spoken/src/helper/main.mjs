@@ -342,6 +342,41 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       if (r.ok && !state.refreshing) refresh({ force: true }).catch(() => {});
       return { ...r, refreshing: r.ok };
     },
+    // Health check: a plain PASS / WARN / FAIL list, each with what to do about it.
+    async healthCheck() {
+      const items = [], add = (status, name, text, fix = '') => items.push({ status, name, text, ...(fix ? { fix } : {}) });
+      const major = Number(process.versions.node.split('.')[0]);
+      add(major >= 22 ? 'PASS' : 'FAIL', 'B3spoken', `Version ${VERSION}, running on Node.js ${process.versions.node}.`, major >= 22 ? '' : 'Install Node.js 22 or newer from nodejs.org, then start B3spoken again.');
+      const lib = ob.library(), prof = ob.profile();
+      const lines = lib?.entries ? lib.entries.reduce((n, e) => n + e.bullets.filter(b => !b.flagged).length, 0) : 0;
+      if (!lib?.entries || !lines) add('FAIL', 'Your resume', 'No usable resume lines yet, so documents can\'t be made.', 'Open Edit setup and upload your resume (Word, PDF or pasted text).');
+      else { const flagged = lib.entries.reduce((n, e) => n + e.bullets.filter(b => b.flagged).length, 0); add(flagged ? 'WARN' : 'PASS', 'Your resume', `${lib.entries.length} entries and ${lines} lines ready to use${flagged ? `; ${flagged} lines are waiting for you to check them and won't be used until you do` : ''}.`, flagged ? 'Open Edit setup and confirm or fix the flagged lines.' : ''); }
+      add(prof.done ? 'PASS' : 'FAIL', 'Your answers', prof.done ? `Looking for ${searchRoles(prof).join(', ') || 'the roles your resume supports'}.` : 'Setup isn\'t finished.', prof.done ? '' : 'Open Edit setup and finish the questions.');
+      if (!pool) add('FAIL', 'Today\'s job list', 'No job list on this computer yet.', 'Check the internet connection, then press Refresh.');
+      else { const hours = (Date.now() - Date.parse(pool.meta.generatedAt)) / 3600e3; add(hours <= 36 ? 'PASS' : 'WARN', 'Today\'s job list', `${pool.meta.count.toLocaleString()} jobs, built ${Math.max(0, Math.round(hours))} hours ago and checked against its SHA-256.`, hours <= 36 ? '' : 'Press Refresh to get the newest list. If it stays old, the daily scan may have failed on GitHub.'); }
+      const jbProblem = state.problems.find(p => /Job Bank/.test(p));
+      if (offline || process.env.B3SPOKEN_SKIP_JOBBANK) add('WARN', 'Job Bank', 'Job Bank is switched off for this run.');
+      else if (jbProblem) add('WARN', 'Job Bank', jbProblem, 'Use "Check Job Bank now" on the board, with any VPN turned off.');
+      else if (jobBank) add('PASS', 'Job Bank', `${jobBank.jobs.length} postings from the last 3 days, fetched ${new Date(jobBank.fetchedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}.`);
+      else add('WARN', 'Job Bank', 'Not fetched yet.', 'Press Refresh.');
+      const pick = settings.ai;
+      if (pick === 'none') add('WARN', 'Your AI', 'No AI: documents use your own lines in the best order, without a written summary or letter.', 'For full tailoring, open Edit setup and connect Claude (Claude Code) or ChatGPT (Codex).');
+      else if (pick === 'chrome') add('WARN', 'Your AI', 'Chrome\'s built-in AI isn\'t used for tailoring yet, so documents use your own lines in the best order.', 'Connect Claude (Claude Code) or ChatGPT (Codex) in Edit setup for full tailoring.');
+      else {
+        const found = ai || await (deps.detect || detect)();
+        const id = pick === 'auto' ? Object.keys(found).find(k => found[k].working) : pick;
+        const a = id && found[id];
+        if (a?.working) add('PASS', 'Your AI', `${a.label} is installed (version ${String(a.version).replace(/\s*\(.*\)\s*$/, '')}).`, 'If documents come out without a written summary, open Edit setup and use "Check it works" to sign in again.');
+        else add('FAIL', 'Your AI', a ? `${a.label} ${a.installed ? 'is installed but didn\'t start' : 'isn\'t installed'}.` : 'No AI found on this computer.', 'Open Edit setup and use "Install it for me", then "Sign in".');
+      }
+      try { const f = join(dir, 'documents', '.write-test'); mkdirSync(join(dir, 'documents'), { recursive: true }); writeFileSync(f, 'ok'); add('PASS', 'Your files', `Saved on this computer in ${dir}.`); }
+      catch (e) { add('FAIL', 'Your files', `Can't save files in ${dir} (${e.code || e.message}).`, 'Check that the folder exists and isn\'t read-only, or that your disk isn\'t full.'); }
+      const up = await checkUpdate();
+      if (up?.available) add('WARN', 'Updates', `B3spoken ${up.version} is available; you have ${VERSION}.`, 'Click Update now at the top of the board.');
+      else if (up?.error) add('WARN', 'Updates', `Couldn't check for updates (${up.error}).`, 'Check the internet connection; it tries again later.');
+      else add('PASS', 'Updates', 'You have the newest version.');
+      return { at: new Date().toISOString(), items, worst: items.some(i => i.status === 'FAIL') ? 'FAIL' : items.some(i => i.status === 'WARN') ? 'WARN' : 'PASS' };
+    },
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },

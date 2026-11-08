@@ -2,6 +2,16 @@
 
 ## 0.1.4 (with everything below up to 0.1.3)
 
+### Health check
+- **A Health check button** at the top of the board lists each part with PASS, WARN or FAIL, and says what to do about anything that isn't PASS. The parts:
+  - your resume (including lines still waiting for you to check them)
+  - your answers
+  - today's job list (how old it is, checked against its checksum)
+  - Job Bank
+  - your AI
+  - whether your files can be saved
+  - updates
+
 ### Scam checks
 - **Postings that ask you for money are hidden**, along with ones that ask for banking details or your SIN before hiring, gift cards, cryptocurrency, cheque deposits or package reshipping. If you paste one in yourself, it shows a red "Possible scam" note.
 - **A softer warning** shows for postings that ask you to interview over Telegram or WhatsApp, apply to a personal Gmail-style address, or promise unusually high pay for little work.
