@@ -1,6 +1,6 @@
 # B3spoken changelog
 
-## 0.1.6
+## 0.1.7
 
 ### Career ideas and a cleaner Stretch list
 - **Career ideas** (new link at the top). Your AI reads only your resume and lists your strongest skills (each with the resume line that shows it), jobs you qualify for now, roles you may not have considered, industries that value your background, and better-paid paths with an honest note on what's missing to get there. Each title shows how many entry/junior postings are on your board today and what the ones that list pay offer. **Add to my searches** makes B3spoken look for that title from now on (up to 12 roles); **Show these jobs** filters the board to it.
@@ -19,6 +19,17 @@
 - **Job Bank jobs:** the Job Bank posting page is read for the employer's email (many list it under "How to apply"). Job Bank's own addresses are left out.
 - **Named recruiters or hiring managers in the posting** (for example "Recruiter: Jane Smith") are listed too, without an email, so you know whom to look for on the company's own site.
 
+### The icon by the clock: easier to find, and checked
+- **Fixed: the icon never appeared.** Started in the background, its PowerShell script had no console and quit within seconds. It now starts through Windows Script Host with its window hidden. GitHub's Windows check now confirms the icon actually shows.
+- **A notification when B3spoken opens** says it's running and that the icon may be under the **^** arrow (Windows 11 hides new icons there). It isn't shown when B3spoken starts quietly at sign-in.
+- **If the icon script stops, it's restarted** (up to twice). Anything it reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
+- **The Health check reports on the icon:** running, started with a window (so no icon), or closed with the reason. A failed "start when I sign in" now shows as FAIL with the reason, instead of passing silently.
+
+### New jobs arrive even after the computer sleeps overnight
+- **Every 15 minutes, B3spoken refreshes if the last refresh is over 4 hours old.** Before, it waited a fixed 6 hours, which could slip when the computer slept, so a laptop that slept overnight still gets the morning's jobs soon after it wakes.
+
+## 0.1.6
+
 ### Job Bank works on home networks that dropped its connection
 - **Found the cause on a real Windows PC.**
   - Newer Node.js versions open secure connections with a large first message (about 1.6 KB, because it includes a post-quantum key share).
@@ -32,15 +43,6 @@
   - Projects or Experience comes first per job, whichever fits better. Projects lead for developer and AI roles; Experience leads for IT, security-operations and compliance roles.
   - Education moves to the bottom, still showing the diploma's expected date.
 - **Why:** recruiter guides agree that Education goes first only for students and very recent graduates without relevant work. With a few years since the degree, a year of relevant work and strong projects, your proof of skill should come first.
-
-### The icon by the clock: easier to find, and checked
-- **Fixed: the icon never appeared.** Started in the background, its PowerShell script had no console and quit within seconds. It now starts through Windows Script Host with its window hidden. GitHub's Windows check now confirms the icon actually shows.
-- **A notification when B3spoken opens** says it's running and that the icon may be under the **^** arrow (Windows 11 hides new icons there). It isn't shown when B3spoken starts quietly at sign-in.
-- **If the icon script stops, it's restarted** (up to twice). Anything it reports is saved to `tray.log` in your B3spoken folder (`%LOCALAPPDATA%\B3spoken`).
-- **The Health check reports on the icon:** running, started with a window (so no icon), or closed with the reason. A failed "start when I sign in" now shows as FAIL with the reason, instead of passing silently.
-
-### New jobs arrive even after the computer sleeps overnight
-- **Every 15 minutes, B3spoken refreshes if the last refresh is over 4 hours old.** Before, it waited a fixed 6 hours, which could slip when the computer slept, so a laptop that slept overnight still gets the morning's jobs soon after it wakes.
 
 ## 0.1.5
 
