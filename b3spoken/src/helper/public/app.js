@@ -308,6 +308,10 @@ async function status() {
   else if (s.preparing?.running) parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
   else if (s.preparing?.total) parts.push(`Documents ready for ${s.preparing.total} new matches`);
   $('status').textContent = s.refreshing ? 'Updating jobs…' : parts.join(' · ');
+  if (s.newIdeas && !s.refreshing) {
+    const b = el('button', 'link ideas-note', `${s.newIdeas} new role idea${s.newIdeas === 1 ? '' : 's'} from your resume`); b.type = 'button';
+    b.addEventListener('click', openRoles); $('status').append(' · ', b);
+  }
   if (s.version) $('version').textContent = s.version;
   if (s.update?.available) { $('update').hidden = false; $('updateText').textContent = `B3spoken ${s.update.version} is available (you have ${s.version}). Your setup, tracker and documents are kept.`; }
   showProblems(s.problems);
@@ -364,95 +368,27 @@ async function health() {
   } catch (e) { box.replaceChildren(el('p', 'problems', `The health check didn't run: ${e.message}`)); }
 }
 
-// Career ideas: strengths, titles to search, roles not considered, industries and better-paid paths, with real counts and pay.
-const money = n => (n == null ? '' : `$${Math.round(n / 1000)}k`);
-async function career(again = false) {
-  const box = $('career');
-  if (!again && !box.hidden && box.dataset.done) { box.hidden = true; return; }
-  box.hidden = false; box.dataset.done = '';
-  let c = again ? null : await api('/api/career').catch(() => null);
-  if (!c?.titles) {
-    box.replaceChildren(el('p', null, 'Your AI is reading your resume for career ideas (about a minute)…'));
-    try { c = await api('/api/career', { method: 'POST', body: JSON.stringify({ again }) }); }
-    catch (e) { box.replaceChildren(el('p', 'problems', e.message)); box.dataset.done = '1'; return; }
-  }
-  drawCareer(box, c); box.dataset.done = '1';
-}
-function drawCareer(box, c) {
-  const searching = new Set((c.searching || []).map(x => x.toLowerCase()));
-  const market = m => !m ? '' : m.count ? `${m.count} posting${m.count === 1 ? '' : 's'} on the board now${m.median ? `, typical pay ${money(m.median)}${m.top && m.top > m.median ? ` (up to ${money(m.top)})` : ''} from ${m.paid} that list pay` : ''}` : 'no postings on the board right now';
-  const row = (t, extra) => {
-    const li = el('li', 'idea');
-    const head = el('div', 'idea-head'); head.append(el('strong', null, t.title));
-    if (t.level) head.append(el('span', 'tag', t.level));
-    const on = searching.has(t.title.toLowerCase());
-    const add = el('button', 'small', on ? 'Searching ✓' : 'Add to my searches'); add.type = 'button';
-    add.addEventListener('click', async () => {
-      add.disabled = true;
-      try { const r = await api('/api/career/search', { method: 'POST', body: JSON.stringify({ title: t.title, on: !searching.has(t.title.toLowerCase()) }) }); c.searching = r.searching; drawCareer(box, c); load(); }
-      catch (e) { alert(e.message); add.disabled = false; }
-    });
-    head.append(add);
-    if (t.market?.count) { const see = el('button', 'small', 'Show these jobs'); see.type = 'button'; see.addEventListener('click', () => { $('q').value = t.title; box.hidden = true; load(); }); head.append(see); }
-    li.append(head, el('span', null, t.why || ''));
-    if (extra) li.append(el('span', 'fix', extra));
-    li.append(el('span', 'fix', market(t.market)));
-    return li;
-  };
-  const section = (title, items) => { if (!items.length) return []; const ul = el('ul'); ul.append(...items); return [el('h4', null, title), ul]; };
-  const again = el('button', 'small', 'Ask again'); again.type = 'button'; again.addEventListener('click', () => career(true));
-  const close = el('button', 'small', 'Close'); close.type = 'button'; close.addEventListener('click', () => { box.hidden = true; });
-  box.replaceChildren(
-    el('h3', null, 'Career ideas from your resume'),
-    el('p', 'fix', `Your AI read only your resume. Job counts and pay come from the real postings on your board today${(c.years || 0) < 5 ? ' (senior and manager postings left out)' : ''}; pay is as posted, so US jobs show US dollars. "Add to my searches" makes B3spoken look for that title from now on.`),
-    ...section('Your strongest skills', c.strengths.map(s => { const li = el('li', 'idea'); li.append(el('strong', null, s.skill), el('span', 'fix', s.evidence)); return li; })),
-    ...section('Jobs you qualify for now', c.titles.map(t => row(t))),
-    ...section('Roles you may not have considered', c.unexpected.map(t => row(t))),
-    ...section('Industries that value your background', c.industries.map(i => { const li = el('li', 'idea'); li.append(el('strong', null, i.name), el('span', null, i.why)); return li; })),
-    ...section('Better-paid paths', c.higherPay.map(t => row(t, t.gap ? `To get there: ${t.gap}` : ''))),
-  );
-  const btns = el('div', 'row-btns'); btns.append(again, close); box.append(btns);
-}
-
-// New role ideas from the automatic career check: asked once, each off until the person turns it on.
-async function ideasBanner(force = false) {
-  const box = $('ideas');
-  let c; try { c = await api('/api/career'); } catch { return; }
-  if (!c?.titles) { box.hidden = true; return; }
-  const searching = new Set((c.searching || []).map(x => x.toLowerCase())), answered = c.answered || {};
-  const seen = new Set();
-  const pending = [...c.titles, ...c.unexpected, ...c.higherPay].filter(t => { const k = t.title.toLowerCase(); if (seen.has(k) || searching.has(k) || answered[k]) return false; seen.add(k); return true; });
-  if (!pending.length) { box.hidden = true; box.dataset.key = ''; return; }
-  const shown = pending.slice(0, 6); // the strongest few; the rest are under Career ideas
-  const key = pending.map(t => t.title).join('|');
-  if (!force && key === box.dataset.key && !box.hidden) return; // don't wipe ticks while they're choosing
-  box.dataset.key = key;
-  const ul = el('ul');
-  for (const t of shown) {
-    const li = el('li'); const lab = el('label', 'pick'); const cb = el('input'); cb.type = 'checkbox'; cb.value = t.title;
-    lab.append(cb, el('strong', null, ` ${t.title}`), el('span', null, ` ${t.why || ''}`));
-    li.append(lab);
-    const m = t.market; li.append(el('span', 'fix', m?.count ? `${m.count} on the board now${m.median ? `, typical pay ${money(m.median)}` : ''}${t.gap ? ` · To get there: ${t.gap}` : ''}` : `none on the board right now${t.gap ? ` · To get there: ${t.gap}` : ''}`));
-    ul.append(li);
-  }
-  const add = el('button', 'small primary', 'Add selected to my searches'); add.type = 'button';
-  const no = el('button', 'small', 'Not now'); no.type = 'button';
-  const all = el('button', 'small link', 'See all career ideas'); all.type = 'button'; all.addEventListener('click', () => career());
-  const send = async body => {
-    add.disabled = no.disabled = true;
-    try { const r = await api('/api/career/answer', { method: 'POST', body: JSON.stringify(body) }); if (r.problem) alert(r.problem); }
-    catch (e) { alert(e.message); }
-    ideasBanner(true); load();
-  };
-  add.addEventListener('click', () => {
-    const picked = [...ul.querySelectorAll('input:checked')].map(x => x.value);
-    if (!picked.length) return alert('Tick the roles you want first, or press Not now.');
-    send({ add: picked, dismiss: pending.map(t => t.title).filter(x => !picked.includes(x)) });
-  });
-  no.addEventListener('click', () => send({ dismiss: pending.map(t => t.title) }));
-  const btns = el('div', 'row-btns'); btns.append(add, no, all);
-  box.replaceChildren(el('h3', null, `Your AI found ${pending.length} role${pending.length === 1 ? '' : 's'} that fit your resume. Add any to your searches?`), el('p', 'fix', `From your resume only. Each is off until you tick it; B3spoken then looks for that title every morning.${pending.length > shown.length ? ` Showing the ${shown.length} strongest; see all career ideas for the rest.` : ''}`), ul, btns);
-  box.hidden = false;
+// New role ideas (the AI re-checks the resume each week): a note in the status line opens a pop-up with switches.
+// Saving updates the searches straight away, so there's no need to go back through setup.
+let rolesOpen = false;
+async function openRoles() {
+  const box = $('rolesBox'); if (rolesOpen) return; rolesOpen = true;
+  try {
+    const [c, prof] = await Promise.all([api('/api/career'), api('/api/profile')]);
+    if (!c?.titles) { rolesOpen = false; return; }
+    const searching = new Set((c.searching || []).map(x => x.toLowerCase())), asked = c.answered || {};
+    const fresh = [...c.titles, ...c.unexpected, ...c.higherPay].map(t => t.title).filter(t => !searching.has(t.toLowerCase()) && !asked[t.toLowerCase()]);
+    const pick = rolePicker.draw($('rolesPick'), { career: c, on: prof.extraRoles || [], fixed: prof.targetRoles || [], only: fresh });
+    $('rolesSave').onclick = async () => {
+      $('rolesSave').disabled = true;
+      try { await api('/api/roles', { method: 'PUT', body: JSON.stringify({ extraRoles: pick.picked(), seen: pick.shown() }) }); box.close(); await status(); load(); }
+      catch (e) { alert(e.message); }
+      finally { $('rolesSave').disabled = false; }
+    };
+    $('rolesLater').onclick = () => box.close();
+    box.onclose = () => { rolesOpen = false; };
+    box.showModal();
+  } catch { rolesOpen = false; }
 }
 
 async function update() {
@@ -466,7 +402,6 @@ async function update() {
 
 // Keeps the status line (and document progress) current.
 setInterval(() => status().catch(() => {}), 5000);
-setInterval(() => ideasBanner().catch(() => {}), 60000);
 
 async function poll() {
   const s = await status().catch(() => null);
@@ -485,8 +420,6 @@ async function init() {
   $('more').addEventListener('click', () => load(false));
   $('updateGo').addEventListener('click', update);
   $('healthGo').addEventListener('click', health);
-  $('careerGo').addEventListener('click', () => career());
-  ideasBanner().catch(() => {});
   $('checkUpdate').addEventListener('click', async () => {
     const b = $('checkUpdate'); b.disabled = true; b.textContent = 'Checking…';
     try {

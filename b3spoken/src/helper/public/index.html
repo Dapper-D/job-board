@@ -6,6 +6,7 @@
 <meta name="b3spoken-token" content="__TOKEN__">
 <title>B3spoken</title>
 <link rel="stylesheet" href="/app.css">
+<script src="/roles.js" defer></script>
 <script src="/app.js" defer></script>
 </head>
 <body>
@@ -13,7 +14,6 @@
   <div class="brand">B3spoken <span id="version" class="tag">preview</span></div>
   <div id="status" class="status" aria-live="polite">Starting…</div>
   <button id="checkUpdate" type="button" class="link">Check for updates</button>
-  <button id="careerGo" type="button" class="link">Career ideas</button>
   <button id="healthGo" type="button" class="link">Health check</button>
   <a class="setup-link" href="/setup">Edit setup</a>
   <button id="refresh" type="button">Refresh</button>
@@ -21,8 +21,6 @@
 <div id="update" class="update" hidden><span id="updateText"></span> <button id="updateGo" type="button" class="small primary">Update now</button></div>
 <main>
   <section id="health" class="health" hidden aria-live="polite"></section>
-  <section id="ideas" class="health career ideas" hidden aria-live="polite"></section>
-  <section id="career" class="health career" hidden aria-live="polite"></section>
   <nav class="tabs" aria-label="Views">
     <button type="button" data-view="" class="on">To apply <span class="n" data-count=""></span></button>
     <button type="button" data-view="applied">Applied <span class="n" data-count="applied"></span></button>
@@ -75,6 +73,12 @@
   <ol id="list" class="list"></ol>
   <button id="more" type="button" hidden>Show more</button>
 </main>
+<dialog id="rolesBox" class="roles-box" aria-labelledby="rolesTitle">
+  <h2 id="rolesTitle">New role ideas</h2>
+  <p class="note">Your AI re-read your resume and found roles you haven't seen yet. Tick the ones to search for every morning and untick any you no longer want.</p>
+  <div id="rolesPick" class="choices"></div>
+  <div class="nav"><button id="rolesLater" type="button">Later</button><button id="rolesSave" type="button" class="primary">Save</button></div>
+</dialog>
 <footer>Jobs come from employers' own hiring systems, Job Bank and job sites that allow it. Job-site listings are shown only when the same job is on the employer's own board.</footer>
 </body>
 </html>

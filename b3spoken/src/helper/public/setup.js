@@ -14,6 +14,7 @@ let settings, profile, lib;
 function show(step) {
   for (const s of document.querySelectorAll('.step')) s.hidden = s.id !== `step-${step}`;
   for (const li of $('steps').children) li.classList.toggle('on', li.dataset.step === step);
+  if (step === 'questions') startCareer(); // the AI reads the resume for role ideas while they answer
   if (step === 'roles') drawRoles();
   window.scrollTo(0, 0);
 }
@@ -169,25 +170,34 @@ $('questionsNext').addEventListener('click', async () => {
   show('roles');
 });
 
-// ---- 4. Extra roles ----
-function drawRoles() {
-  const seen = new Set(profile.targetRoles.map(r => r.toLowerCase()));
-  const items = [];
-  for (const r of lib?.roles || []) {
-    if (seen.has(r.title.toLowerCase())) continue; seen.add(r.title.toLowerCase());
-    items.push([r.title, r.reason || '']);
-    for (const rel of r.related || []) if (!seen.has(rel.toLowerCase())) { seen.add(rel.toLowerCase()); items.push([rel, `Related to ${r.title}`]); }
+// ---- 4. Roles to search: the AI's career ideas (or quick rule-based roles without an AI) ----
+// The AI starts reading the resume for ideas as soon as the questions are done, so they're usually ready here.
+let careerAsk = null, picker = null;
+const aiOn = () => ['codex', 'claude'].includes(settings?.ai);
+function startCareer() { if (aiOn() && !careerAsk) careerAsk = api('/api/career', { method: 'POST', body: '{}' }).catch(e => ({ error: e.message })); }
+async function drawRoles() {
+  const box = $('roleList');
+  const rule = (lib?.roles || []).flatMap(r => [{ title: r.title, reason: r.reason || '' }, ...(r.related || []).map(x => ({ title: x, reason: `Related to ${r.title}` }))]).slice(0, 16);
+  const opts = { ruleRoles: rule, on: profile.extraRoles || [], fixed: profile.targetRoles || [] };
+  let career = await api('/api/career').catch(() => null);
+  if (!career?.titles && aiOn()) {
+    box.replaceChildren(el('p', 'note', 'Your AI is reading your resume for role ideas, including better-paid ones and some you may not have considered (about a minute)\u2026'));
+    $('finish').disabled = true;
+    startCareer();
+    const r = await careerAsk; careerAsk = null;
+    $('finish').disabled = false;
+    if (r?.titles) career = r;
+    else msg('roleMsg', `Your AI couldn't suggest roles this time (${r?.error || 'no answer'}), so these come from your resume's words. You can try again later from Edit setup.`);
   }
-  $('roleList').replaceChildren(...items.slice(0, 16).map(([title, reason]) => {
-    const l = el('label', 'choice');
-    const c = el('input'); c.type = 'checkbox'; c.value = title; c.checked = (profile.extraRoles || []).includes(title);
-    l.append(c, el('strong', null, title), el('span', 'note', reason));
-    return l;
-  }));
+  $('rolesLead').textContent = career?.titles ? 'Your AI read your resume. Tick the roles you want B3spoken to search for every morning; each is off until you tick it.' : 'Roles your resume supports. Tick the ones you\u2019d take.';
+  picker = rolePicker.draw(box, { ...opts, career: career?.titles ? career : null });
 }
 $('finish').addEventListener('click', async () => {
-  const extraRoles = [...$('roleList').querySelectorAll('input:checked')].map(c => c.value);
-  profile = await api('/api/profile', { method: 'PUT', body: JSON.stringify({ ...profile, extraRoles, done: true }) });
+  // Roles ticked here, plus earlier extra roles this list didn't offer (so nothing is lost).
+  const shown = new Set((picker?.shown() || []).map(t => t.toLowerCase()));
+  const keep = (profile.extraRoles || []).filter(t => !shown.has(t.toLowerCase()));
+  await api('/api/roles', { method: 'PUT', body: JSON.stringify({ extraRoles: [...(picker?.picked() || []), ...keep], seen: picker?.shown() || [] }) });
+  profile = await api('/api/profile', { method: 'PUT', body: JSON.stringify({ ...(await api('/api/profile')), done: true }) });
   await api('/api/refresh', { method: 'POST' });
   location.href = '/';
 });

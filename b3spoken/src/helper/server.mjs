@@ -10,7 +10,7 @@ import { queryJobs, PROVINCES, VIEWS, viewCounts } from './jobs.mjs';
 
 import { readAsset } from './assets.mjs';
 const page = f => readAsset(`src/helper/public/${f}`);
-const STATIC = { '/app.js': 'text/javascript; charset=utf-8', '/app.css': 'text/css; charset=utf-8', '/setup.js': 'text/javascript; charset=utf-8' };
+const STATIC = { '/app.js': 'text/javascript; charset=utf-8', '/roles.js': 'text/javascript; charset=utf-8', '/app.css': 'text/css; charset=utf-8', '/setup.js': 'text/javascript; charset=utf-8' };
 const PAGES = { '/': 'index.html', '/index.html': 'index.html', '/setup': 'setup.html' };
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
@@ -107,8 +107,7 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'POST /api/roles/check') return send(res, 200, app.checkRole((await readBody(req)).target));
       if (route === 'GET /api/career') return send(res, 200, app.careerSaved() || {});
       if (route === 'POST /api/career') return send(res, 200, await app.career({ again: (await readBody(req)).again === true }));
-      if (route === 'POST /api/career/answer') return send(res, 200, app.answerCareer(await readBody(req)));
-      if (route === 'POST /api/career/search') { const b = await readBody(req); return send(res, 200, app.searchFor(b.title, b.on !== false)); }
+      if (route === 'PUT /api/roles') return send(res, 200, app.saveRoles(await readBody(req)));
       if (route === 'GET /api/profile') return send(res, 200, app.profile());
       if (route === 'PUT /api/profile') return send(res, 200, app.saveProfile(await readBody(req)));
       return send(res, 404, { error: 'not found' });

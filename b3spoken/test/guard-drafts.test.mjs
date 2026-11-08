@@ -220,9 +220,14 @@ test('career ideas: checked, priced from real postings, and one click adds a tit
     const got = await app.career();
     assert.equal(got.titles[0].market.count, 1); assert.equal(got.titles[0].market.median, 75000);
     await app.career(); assert.equal(asks, 1);
-    assert.deepEqual(app.searchFor('QA Analyst').searching, ['Software Developer', 'QA Analyst']);
+    assert.deepEqual(app.newIdeas(), ['QA Analyst', 'Technical Support Analyst']);
+    assert.deepEqual(app.saveRoles({ extraRoles: ['QA Analyst'], seen: ['QA Analyst', 'Technical Support Analyst'] }).searching, ['Software Developer', 'QA Analyst']);
     assert.ok(app.careerSaved().searching.includes('QA Analyst'));
-    assert.deepEqual(app.searchFor('QA Analyst', false).searching, ['Software Developer']);
+    assert.deepEqual(app.newIdeas(), []); // both were shown, so neither is new any more
+    // No limit on roles.
+    const many = Array.from({ length: 30 }, (_, i) => `Role ${i}`);
+    assert.equal(app.saveRoles({ extraRoles: many }).searching.length, 31);
+    assert.deepEqual(app.saveRoles({ extraRoles: [] }).searching, ['Software Developer']);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -255,7 +260,8 @@ test('AI reviews come with the job cards: new jobs reviewed on their own (daily 
     // Career ideas ran on their own; nothing was added until asked.
     assert.equal(asked.career, 1);
     assert.deepEqual(app.careerSaved().searching, ['Software Developer']);
-    const r = app.answerCareer({ add: ['QA Analyst'], dismiss: ['Python Developer'] });
+    assert.equal((await app.status()).newIdeas, 2);
+    const r = app.saveRoles({ extraRoles: ['QA Analyst'], seen: ['QA Analyst', 'Python Developer'] });
     assert.deepEqual(r.searching, ['Software Developer', 'QA Analyst']);
     assert.deepEqual(app.careerSaved().answered, { 'qa analyst': 'yes', 'python developer': 'no' });
   } finally { rmSync(dir, { recursive: true, force: true }); }

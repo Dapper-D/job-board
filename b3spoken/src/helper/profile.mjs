@@ -11,7 +11,7 @@ export function cleanProfile(p = {}) {
   const unit = u => (u === 'hour' ? 'hour' : 'year');
   return {
     targetRoles: list(p.targetRoles, 8),
-    extraRoles: list(p.extraRoles, 12),
+    extraRoles: list(p.extraRoles, 100),
     // Floor and goal each have their own unit, e.g. at least $35 an hour, aiming for $100,000 a year.
     payFloor: money(p.payFloor), payFloorUnit: unit(p.payFloorUnit), payGoal: money(p.payGoal), payGoalUnit: unit(p.payGoalUnit),
     province: PROVINCES.includes(p.province) ? p.province : '',
@@ -29,4 +29,5 @@ export function cleanProfile(p = {}) {
 export const yearly = (amount, unit) => (amount == null ? null : unit === 'hour' ? Math.round(amount * 2080) : amount);
 
 // The roles the search uses: the person's targets plus the extra roles they switched on.
-export const searchRoles = p => [...new Set([...(p.targetRoles || []), ...(p.extraRoles || [])])].slice(0, 12);
+// No limit on how many (each is one more Job Bank search in the morning); 100 only stops a broken file.
+export const searchRoles = p => { const seen = new Set(); return [...(p.targetRoles || []), ...(p.extraRoles || [])].filter(r => { const k = r.toLowerCase(); return !seen.has(k) && seen.add(k); }).slice(0, 100); };

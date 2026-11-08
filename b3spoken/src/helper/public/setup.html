@@ -6,6 +6,7 @@
 <meta name="b3spoken-token" content="__TOKEN__">
 <title>B3spoken setup</title>
 <link rel="stylesheet" href="/app.css">
+<script src="/roles.js" defer></script>
 <script src="/setup.js" defer></script>
 </head>
 <body>
@@ -65,8 +66,9 @@
   </section>
 
   <section id="step-roles" class="step" hidden>
-    <h1>More roles to search</h1>
-    <p class="lead">Related and niche roles your resume supports. Switch on the ones you'd take.</p>
+    <h1>Roles to search</h1>
+    <p id="rolesLead" class="lead">Roles your resume supports. Tick the ones you'd take.</p>
+    <p id="roleMsg" class="note" hidden></p>
     <div id="roleList" class="choices"></div>
     <div class="nav"><button data-go="questions" type="button">Back</button><button id="finish" type="button" class="primary">Finish and show my jobs</button></div>
   </section>

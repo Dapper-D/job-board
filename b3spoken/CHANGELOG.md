@@ -1,5 +1,12 @@
 # B3spoken changelog
 
+## 0.1.10
+
+### One place for role ideas: setup, right after the resume
+- **The career ideas, the board banner and setup's extra-roles step are now one step.** While you answer setup's questions, your AI reads your resume; the last step, **Roles to search**, shows your strongest skills and the industries that value them, then the roles you qualify for now, roles you may not have considered and better-paid paths (with what's missing to get there). Each is a switch, off until you tick it, with real job counts and pay. Without an AI it shows the quick roles from your resume's words.
+- **The Career ideas button and the board banner are gone.** When the weekly re-check finds roles you haven't seen, the status line says "3 new role ideas from your resume". Click it for a pop-up: tick new ones, untick any you no longer want, Save. Your searches update straight away, no setup needed.
+- **No limit on roles.** Each one is another Job Bank search in the morning, so a long list makes the refresh a little slower.
+
 ## 0.1.9
 
 ### AI reviews come with the job cards (like the Job Hunt Kit)

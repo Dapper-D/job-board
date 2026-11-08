@@ -48,7 +48,7 @@ const AI_CHOICES = ['auto', 'codex', 'claude', 'chrome', 'none'];
 export const DEFAULT_SETTINGS = { keywords: [], province: '', remote: 'yes', ai: 'auto', autostart: true, reviewsPerDay: 30 };
 
 export function cleanSettings(s = {}) {
-  const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 12);
+  const keywords = (Array.isArray(s.keywords) ? s.keywords : []).map(k => String(k).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)).filter(Boolean).slice(0, 100);
   return {
     keywords: [...new Set(keywords)],
     province: PROVINCES.includes(s.province) ? s.province : '',
@@ -315,7 +315,9 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   const careerFile = join(dir, 'career.json');
   // Ideas follow the resume only, so adding a suggested title to the searches doesn't throw them away.
   const careerStamp = () => createHash('sha256').update('career-v1|' + JSON.stringify(ob.library())).digest('hex');
-  async function career({ again = false } = {}) {
+  let careerRun = null; // one AI run at a time (setup and the morning check can ask together)
+  function career(opts = {}) { if (!careerRun) careerRun = careerOnce(opts).finally(() => { careerRun = null; }); return careerRun; }
+  async function careerOnce({ again = false } = {}) {
     let c = readJson(careerFile, null);
     if (again || !c || c.stamp !== careerStamp()) {
       if (!['codex', 'claude'].includes(settings.ai)) throw err(409, 'Connect ChatGPT (Codex) or Claude (Claude Code) in setup to get career ideas.');
@@ -336,32 +338,25 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(prof), years: yearsOfExperience(ob.library()) };
   }
   const careerDue = () => { const c = readJson(careerFile, null); return !c || c.stamp !== careerStamp() || Date.now() - Date.parse(c.at || 0) > 7 * 864e5; };
-  // The person's yes / no on each suggested role, kept across weekly re-runs so they're only asked about new ones.
-  function answerCareer({ add = [], dismiss = [] } = {}) {
-    const c = readJson(careerFile, null); if (!c) throw err(409, 'no career ideas yet');
-    const clean = l => (Array.isArray(l) ? l : []).map(t => String(t || '').trim().slice(0, 80)).filter(Boolean).slice(0, 20);
-    c.answered = { ...(c.answered || {}) };
-    for (const t of clean(dismiss)) c.answered[t.toLowerCase()] = 'no';
-    let searching = searchRoles(ob.profile()), problem = '';
-    for (const t of clean(add)) {
-      try { searching = searchFor(t, true, { refreshAfter: false }).searching; c.answered[t.toLowerCase()] = 'yes'; }
-      catch (e) { problem = e.message; break; }
-    }
-    writeJson(careerFile, c);
-    if (clean(add).length) setTimeout(() => refresh().catch(() => {}), 50); // answer first, then fetch jobs for the new roles
-    return { searching, problem };
+  // The role switches (setup's last step and the "new role ideas" pop-up): saves which extra roles to search, and
+  // remembers every idea the person was shown, so only roles they haven't seen yet count as new.
+  function saveRoles({ extraRoles = [], seen = [] } = {}) {
+    const clean = l => (Array.isArray(l) ? l : []).map(t => String(t || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 80)).filter(Boolean).slice(0, 100);
+    const prof = ob.profile(), on = clean(extraRoles);
+    const saved = ob.saveProfile({ ...prof, extraRoles: on });
+    const c = readJson(careerFile, null);
+    if (c) { c.answered = { ...(c.answered || {}) }; for (const t of [...clean(seen), ...on]) c.answered[t.toLowerCase()] = on.some(x => x.toLowerCase() === t.toLowerCase()) ? 'yes' : 'no'; writeJson(careerFile, c); }
+    if (saved.done) setTimeout(() => refresh().catch(() => {}), 50); // answer first, then fetch jobs for the new roles
+    return { searching: searchRoles(saved), extraRoles: saved.extraRoles };
+  }
+  // Ideas the person hasn't been shown yet (and doesn't already search for).
+  function newIdeas() {
+    const c = readJson(careerFile, null); if (!c || c.stamp !== careerStamp()) return [];
+    const have = new Set(searchRoles(ob.profile()).map(x => x.toLowerCase())), asked = c.answered || {}, out = new Set();
+    return [...(c.titles || []), ...(c.unexpected || []), ...(c.higherPay || [])].filter(t => { const k = t.title.toLowerCase(); if (have.has(k) || asked[k] || out.has(k)) return false; out.add(k); return true; }).map(t => t.title);
   }
   const careerSaved = () => { const c = readJson(careerFile, null); return c && c.stamp === careerStamp() ? { ...withMarket(c, merged, yearsOfExperience(ob.library())), searching: searchRoles(ob.profile()), years: yearsOfExperience(ob.library()) } : null; };
-  // Adds a suggested title to the searches (or takes it off), then fetches jobs for it.
-  function searchFor(title, on = true, { refreshAfter = true } = {}) {
-    const prof = ob.profile(); const t = String(title || '').trim().slice(0, 80); if (!t) throw err(400, 'no title');
-    const has = x => x.toLowerCase() === t.toLowerCase();
-    let extra = (prof.extraRoles || []).filter(x => !has(x));
-    if (on) { if (searchRoles(prof).some(has)) return { searching: searchRoles(prof) }; if (searchRoles(prof).length >= 12) throw err(409, 'You already search for 12 roles. Remove one in Edit setup first.'); extra = [...extra, t]; }
-    const saved = ob.saveProfile({ ...prof, extraRoles: extra });
-    if (refreshAfter) refresh().catch(() => {});
-    return { searching: searchRoles(saved) };
-  }
+
 
   // One-click writing help (LinkedIn note, interview debrief, negotiation plan, offer letter review) by the person's AI.
   const draftsFile = join(dir, 'drafts.json');
@@ -505,7 +500,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       else add('PASS', 'Updates', 'You have the newest version.');
       return { at: new Date().toISOString(), items, worst: items.some(i => i.status === 'FAIL') ? 'FAIL' : items.some(i => i.status === 'WARN') ? 'WARN' : 'PASS' };
     },
-    review, reviewOf, career, careerSaved, searchFor, answerCareer,
+    review, reviewOf, career, careerSaved, saveRoles, newIdeas,
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },
@@ -517,7 +512,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     documentIndex: () => Object.fromEntries(Object.entries(readJson(join(dir, 'documents', 'index.json'), {})).filter(([, d]) => d.stamp === documentStamp()).map(([id, d]) => [id, d.files])),
     documents: id => readJson(join(dir, 'documents', 'index.json'), {})[id] || null,
     status: async () => ({
-      version: VERSION, ...state, update: updateInfo, preparing, settings,
+      version: VERSION, ...state, update: updateInfo, preparing, settings, newIdeas: newIdeas().length,
       pool: pool ? { count: pool.meta.count, generatedAt: pool.meta.generatedAt, sha256: pool.meta.sha256 } : null,
       jobBank: jobBank ? { count: jobBank.jobs.length, fetchedAt: new Date(jobBank.fetchedAt).toISOString() } : null,
       jobs: merged.length, ai,
