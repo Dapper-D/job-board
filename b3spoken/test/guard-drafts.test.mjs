@@ -158,3 +158,30 @@ test('health check: plain PASS / WARN / FAIL items, each with a fix', async () =
     assert.equal(item('Your files').status, 'PASS');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('AI review: scores out of 10, requirements matched to evidence, checked and saved; contacts from Job Bank and named recruiters', async () => {
+  const { cleanReview } = await import('../src/helper/tailor/review.mjs');
+  const { namedContacts, findContacts } = await import('../src/helper/contacts.mjs');
+  assert.equal(cleanReview({ call: 'maybe', techScore: 5, fitScore: 5 }), null);
+  const r = cleanReview({ call: 'stretch', techScore: 12, fitScore: '6', summary: 'x'.repeat(900), requirements: [{ requirement: 'Python', match: 'strong', evidence: 'Built a Python API' }, { requirement: '' }], gaps: ['Kafka'], leadWith: ['Budget Tracker'] });
+  assert.equal(r.call, 'Stretch'); assert.equal(r.techScore, 10); assert.equal(r.fitScore, 6); assert.equal(r.summary.length, 600);
+  assert.deepEqual(r.requirements, [{ requirement: 'Python', required: true, match: 'Strong', evidence: 'Built a Python API' }]);
+  assert.deepEqual(namedContacts('Recruiter: Jane Smith. Contact Priya Patel, Talent Acquisition Partner.').map(p => p.name), ['Jane Smith', 'Priya Patel']);
+  const job = { source: 'jobbank', company: 'Acme', title: 'Developer', url: 'https://www.jobbank.gc.ca/jobsearch/jobposting/123', description: 'Recruiter: Jane Smith' };
+  const got = await findContacts(job, { robots: async () => true, get: async url => ({ text: /jobbank/.test(url) ? 'How to apply: By email hiring@acme-dev.ca or noreply@jobbank.gc.ca' : '' }) });
+  assert.deepEqual(got.contacts.map(c => c.email || c.name), ['hiring@acme-dev.ca', 'Jane Smith']);
+
+  const dir = mkdtempSync(join(tmpdir(), 'b3-review-'));
+  try {
+    const j = makeJob({ source: 'greenhouse', company: 'Acme', nativeId: '8', title: 'Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/8', location: 'Vancouver, BC', postedAt: new Date().toISOString(), description: 'Python APIs and SQL.' });
+    writeFileSync(join(dir, 'pasted.json'), JSON.stringify([j]));
+    let asks = 0;
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), ask: async () => { asks++; return JSON.stringify({ call: 'Apply', techScore: 7, fitScore: 6, requirements: [] }); } } });
+    app.uploadResume({ text: resume }); app.saveProfile({ targetRoles: ['Software Developer'], done: true });
+    app.saveSettings({ ...app.settings(), ai: 'claude' });
+    await app.refresh();
+    assert.equal((await app.review(j.id)).call, 'Apply');
+    await app.review(j.id); assert.equal(asks, 1); // saved, not asked again
+    assert.equal(app.reviewOf(j.id).fitScore, 6);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

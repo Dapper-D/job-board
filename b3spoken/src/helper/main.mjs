@@ -32,6 +32,7 @@ import { buildPrep, PREP_PROMPT, cleanQuestions } from './tailor/prep.mjs';
 import { cleanEntry, dueToday } from './tracker.mjs';
 import { findAiTrap, usesTrap } from './tailor/guard.mjs';
 import { checkJobBank } from './jobbankcheck.mjs';
+import { REVIEW_PROMPT, cleanReview } from './tailor/review.mjs';
 import { setAutostart, autostartOn, relaunchHidden, startTray } from './desktop.mjs';
 import { DRAFTS, cleanDraftInput, draftPrompt, cleanDraft } from './tailor/drafts.mjs';
 
@@ -98,7 +99,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   // so they're ready on the board. Quick rule-based versions first for all of them, then (with an AI connected)
   // the AI picks the order for the best ones, one at a time.
   let preparing = null;
-  const AI_PREP_LIMIT = 12;
+  const AI_PREP_LIMIT = 12, AI_REVIEW_LIMIT = 8;
   const documentStamp = () => createHash('sha256').update('resume-layout-v2|' + JSON.stringify(ob.library()) + '|' + JSON.stringify(ob.profile())).digest('hex');
   async function prepareAll() {
     if (preparing?.running || offline && !deps.allowOfflinePrep) return;
@@ -114,6 +115,8 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     if (['codex', 'claude'].includes(settings.ai)) {
       const best = list.slice(0, AI_PREP_LIMIT).filter(j => readJson(join(dir, 'documents', 'index.json'), {})[j.id]?.picker === 'rules');
       for (const j of best) { try { await makeDocuments(j.id, { useAi: true, stamp: libStamp }); preparing.ai++; } catch {} }
+      // A deeper AI review for the best few each day (once per job; the button on a job does any other).
+      for (const j of list.slice(0, AI_REVIEW_LIMIT)) { if (reviewOf(j.id)) continue; try { await review(j.id); } catch {} }
     }
     preparing.running = false;
   }
@@ -260,6 +263,26 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
     return buildPrep(lib, job, scoredJobs().find(j => j.id === id)?.match || null, ob.profile(), { extraQuestions: extra });
   }
 
+  // AI review of one job: scores out of 10, requirements matched to evidence, gaps and an Apply / Stretch / Skip call.
+  const reviewFile = join(dir, 'reviews.json');
+  const reviewOf = id => { const r = readJson(reviewFile, {})[id]; return r && r.stamp === documentStamp() ? r : null; };
+  async function review(id, { again = false } = {}) {
+    const job = byId.get(id); if (!job) throw err(404, 'no such job');
+    if (!again) { const have = reviewOf(id); if (have) return have; }
+    if (!['codex', 'claude'].includes(settings.ai)) throw err(409, 'Connect ChatGPT (Codex) or Claude (Claude Code) in setup to use AI reviews.');
+    const resume = existsSync(join(dir, 'resume.txt')) ? readFileSync(join(dir, 'resume.txt'), 'utf8') : '';
+    if (!resume.trim()) throw err(409, 'finish setup first: upload your resume');
+    let r = null, raw;
+    for (let attempt = 0; attempt < 2 && !r; attempt++) {
+      try { raw = await (deps.ask || ask)(settings.ai, REVIEW_PROMPT(job, resume, ob.profile()) + trapNote(findAiTrap(job.description)), { timeoutMs: 240_000 }); }
+      catch (e) { throw err(502, `Your AI didn't answer: ${e.message}`); }
+      try { r = cleanReview(parseAiJson(raw)); } catch { r = null; }
+    }
+    if (!r) throw err(502, 'The AI\'s review couldn\'t be read. Try again.');
+    const all = readJson(reviewFile, {}); all[id] = { ...r, at: new Date().toISOString(), by: settings.ai, stamp: documentStamp() }; writeJson(reviewFile, all);
+    return all[id];
+  }
+
   // One-click writing help (LinkedIn note, interview debrief, negotiation plan, offer letter review) by the person's AI.
   const draftsFile = join(dir, 'drafts.json');
   async function draft(id, kind, values = {}) {
@@ -402,6 +425,7 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
       else add('PASS', 'Updates', 'You have the newest version.');
       return { at: new Date().toISOString(), items, worst: items.some(i => i.status === 'FAIL') ? 'FAIL' : items.some(i => i.status === 'WARN') ? 'WARN' : 'PASS' };
     },
+    review, reviewOf,
     refresh, makeDocuments, documentFile, paste, prep, prepareAll, draft, drafts: id => readJson(draftsFile, {})[id] || {}, withTrap, checkUpdate, installUpdate, contacts, saveHunterKey,
     // One-click AI setup
     aiInstall: provider => { if (!['codex', 'claude'].includes(provider)) throw err(400, 'unknown AI'); return (deps.startInstall || startInstall)(provider); },

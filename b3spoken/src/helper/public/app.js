@@ -70,6 +70,7 @@ function card(j) {
   const top = el('div', 'top');
   top.append(el('h2', null, j.title));
   if (j.match) top.append(el('span', `score ${j.match.label.toLowerCase()}`, `${j.match.label} · ${j.match.score}`));
+  if (j.review) top.append(el('span', `score ${j.review.call === 'Apply' ? 'strong' : j.review.call === 'Stretch' ? 'good' : 'stretch'}`, `AI: ${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`));
   li.append(top);
   const meta = el('div', 'meta');
   meta.append(el('span', null, j.company), el('span', null, j.location || ''));
@@ -120,16 +121,27 @@ function card(j) {
     finally { conBtn.disabled = false; conBtn.textContent = 'Recruiter contacts'; }
   };
   conBtn.addEventListener('click', () => { if (!conBox.hidden) { conBox.hidden = true; return; } loadContacts(); });
+  const revBtn = el('button', 'small', j.review ? 'AI review' : 'Get an AI review'); revBtn.type = 'button';
+  const revBox = el('div', 'prep'); revBox.hidden = true;
+  const showReview = r => { j.review = r; drawReview(revBox, r); revBox.hidden = false; revBtn.textContent = 'AI review'; };
+  revBtn.addEventListener('click', async () => {
+    if (!revBox.hidden) { revBox.hidden = true; return; }
+    if (j.review) return showReview(j.review);
+    revBtn.disabled = true; revBtn.textContent = 'Reviewing… (about a minute)';
+    try { showReview(await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, { method: 'POST', body: '{}' })); }
+    catch (e) { revBox.hidden = false; revBox.replaceChildren(el('p', 'problems', e.message)); revBtn.textContent = 'Get an AI review'; }
+    finally { revBtn.disabled = false; }
+  });
   const helpBtn = el('button', 'small', 'Writing help'); helpBtn.type = 'button';
   const helpBox = el('div', 'prep drafts'); helpBox.hidden = true;
   helpBtn.addEventListener('click', async () => {
     if (!helpBox.hidden) { helpBox.hidden = true; return; }
     helpBox.hidden = false; await drawDrafts(helpBox, j);
   });
-  row.append(make, files, prepBtn, conBtn, helpBtn);
+  row.append(make, files, revBtn, prepBtn, conBtn, helpBtn);
   if (docs[j.id]) { showFiles(files, j.id, { files: docs[j.id] }); make.textContent = 'Make them again'; }
   if (j.moreLocations) row.append(el('span', 'badge', `+${j.moreLocations} more locations`));
-  li.append(row, prepBox, conBox, helpBox, trackerControls(j));
+  li.append(row, revBox, prepBox, conBox, helpBox, trackerControls(j));
   drawStatusBadge(li, j.track?.status);
   return li;
 }
@@ -158,7 +170,8 @@ function drawContacts(box, j, r, again) {
   const ul = el('ul', 'lines');
   for (const c of r.contacts) {
     const li = el('li');
-    li.append(el('strong', null, c.email), el('em', null, ` ${[c.name, c.position].filter(Boolean).join(', ')} (from ${c.source}${c.confidence ? `, ${c.confidence}% sure` : ''})`));
+    if (c.email) li.append(el('strong', null, c.email), el('em', null, ` ${[c.name, c.position].filter(Boolean).join(', ')} (from ${c.source}${c.confidence ? `, ${c.confidence}% sure` : ''})`));
+    else li.append(el('strong', null, c.name), el('em', null, ` ${c.position || ''} (named in ${c.source}; no email given, so look them up on the company's own site or write to the hiring inbox)`));
     ul.append(li);
   }
   box.append(ul);
@@ -170,9 +183,10 @@ function drawContacts(box, j, r, again) {
   const copy = el('button', 'small', 'Copy email'); copy.type = 'button';
   copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`Subject: ${subj.value}\n\n${body.value}`); copy.textContent = 'Copied'; } catch { body.select(); } });
   row.append(copy);
-  if (r.contacts[0]) {
+  const to = r.contacts.find(c => c.email);
+  if (to) {
     const a = el('a', 'small link', 'Open in my email app');
-    const set = () => { a.href = `mailto:${encodeURIComponent(r.contacts[0].email)}?subject=${encodeURIComponent(subj.value)}&body=${encodeURIComponent(body.value)}`; };
+    const set = () => { a.href = `mailto:${encodeURIComponent(to.email)}?subject=${encodeURIComponent(subj.value)}&body=${encodeURIComponent(body.value)}`; };
     set(); subj.addEventListener('input', set); body.addEventListener('input', set);
     row.append(a);
   }
@@ -230,6 +244,20 @@ async function drawDrafts(box, j) {
   };
   for (const t of shown) { const b = el('button', 'small', t.label); b.type = 'button'; b.dataset.kind = t.kind; b.addEventListener('click', () => open(t)); bar.append(b); }
   if (shown[0]) open(shown[0]);
+}
+
+function drawReview(box, r) {
+  box.replaceChildren(el('h3', null, `AI review: ${r.call} · technical match ${r.techScore}/10 · overall fit ${r.fitScore}/10`));
+  if (r.summary) box.append(el('p', null, r.summary));
+  if (r.requirements.length) {
+    const ul = el('ul', 'lines');
+    for (const q of r.requirements) { const li = el('li'); li.append(el('strong', null, `${q.match}: `), el('span', null, `${q.requirement}${q.required ? '' : ' (nice to have)'}`), el('em', null, q.evidence ? ` (${q.evidence})` : '')); ul.append(li); }
+    box.append(el('h3', null, 'What they ask for, and your evidence'), ul);
+  }
+  if (r.gaps.length) { const ul = el('ul', 'lines'); r.gaps.forEach(g => ul.append(el('li', null, g))); box.append(el('h3', null, 'Gaps to be ready for'), ul); }
+  if (r.leadWith.length) box.append(el('p', null, `Lead with: ${r.leadWith.join(', ')}`));
+  if (r.eligibility) box.append(el('p', 'tip', `Eligibility: ${r.eligibility}`));
+  box.append(el('p', 'tip', `Reviewed by your AI ${ago(r.at)}. A judgement from your resume, not a promise.`));
 }
 
 function drawPrep(box, p) {

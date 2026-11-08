@@ -2,6 +2,19 @@
 
 ## 0.1.6
 
+### AI review of a job (like the Job Hunt Kit)
+- **An "AI review" button on each job.** Your AI gives:
+  - a technical match and an overall fit, each out of 10
+  - a clear Apply, Stretch or Skip call
+  - each requirement matched to evidence from your resume, marked Strong, Partial or Gap
+  - the gaps to be ready for, what to lead with, and an eligibility note
+- **Your 8 best matches are reviewed automatically after each refresh**, once per job. Results show on the card, for example "AI: Apply · tech 9/10 · fit 8/10".
+- Reviews are saved, and redone after you change your resume.
+
+### More places to find who to contact
+- **Job Bank jobs:** the Job Bank posting page is read for the employer's email (many list it under "How to apply"). Job Bank's own addresses are left out.
+- **Named recruiters or hiring managers in the posting** (for example "Recruiter: Jane Smith") are listed too, without an email, so you know whom to look for on the company's own site.
+
 ### Job Bank works on home networks that dropped its connection
 - **Found the cause on a real Windows PC.**
   - Newer Node.js versions open secure connections with a large first message (about 1.6 KB, because it includes a post-quantum key share).
