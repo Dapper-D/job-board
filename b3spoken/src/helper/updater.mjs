@@ -70,7 +70,7 @@ export async function downloadUpdate(rel, dir, { get = request, kind = 'installe
 
 // ---- Source installs: unpack a verified source .tar.gz over the install folder ----
 // Only these top-level names are written; nothing outside the folder, no links, no absolute or ".." paths.
-const SOURCE_TOP = new Set(['b3spoken', 'setup.ps1', 'setup.sh', 'uninstall.ps1', 'uninstall.sh', 'README.md', 'HANDOFF.md', 'LICENSE', 'SECURITY.md']);
+const SOURCE_TOP = new Set(['b3spoken', 'setup.cmd', 'uninstall.cmd', 'setup.ps1', 'setup.sh', 'uninstall.ps1', 'uninstall.sh', 'README.md', 'HANDOFF.md', 'LICENSE', 'SECURITY.md']);
 export function untarGz(gz) {
   const buf = gunzipSync(gz, { maxOutputLength: 300 * 1024 * 1024 });
   const files = [];

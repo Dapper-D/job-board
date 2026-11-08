@@ -2,6 +2,12 @@
 
 ## 0.1.5
 
+### Windows source install: double-click setup.cmd
+- **New `setup.cmd` and `uninstall.cmd` you can double-click.** Windows no longer blocks setup.
+  - Windows' PowerShell script policy, and the "downloaded from the internet" block, could stop `setup.ps1` before it ran.
+  - `setup.cmd` unblocks this folder's files, then runs `setup.ps1` with the script policy relaxed for that one run only. Nothing on the computer is changed permanently.
+- Both are in the source package and kept up to date by updates. Tested on GitHub's Windows machines.
+
 ### You can always see your version and check for updates
 - **The version is shown at the top of the board**, for example "B3spoken 0.1.5".
 - **A "Check for updates" button** checks GitHub straight away. It either shows **Update now** or says you already have the newest version. Before, the update bar only appeared when a newer version existed, so there was no way to tell whether you were up to date.

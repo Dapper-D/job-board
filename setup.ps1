@@ -1,6 +1,7 @@
 <#
   B3spoken - Windows setup from source (for people who want to see every file that goes on their computer)
-  Right-click this file > "Run with PowerShell", or in PowerShell from this folder:
+  Easiest: double-click setup.cmd in this folder (it unblocks the files and runs this script).
+  Or right-click this file > "Run with PowerShell", or in PowerShell from this folder:
       powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
   What it does, and nothing else:
     1. Makes sure Node.js 22 or newer is installed (with winget, if it's missing).

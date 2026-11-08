@@ -101,7 +101,7 @@ jobs:
         shell: bash
         env:
           TAG: ${{ github.ref_name }}
-        run: git archive --format=tar.gz -o "b3spoken/dist/B3spoken-source-${TAG#b3spoken-v}.tar.gz" HEAD b3spoken setup.ps1 setup.sh uninstall.ps1 uninstall.sh README.md HANDOFF.md LICENSE SECURITY.md
+        run: git archive --format=tar.gz -o "b3spoken/dist/B3spoken-source-${TAG#b3spoken-v}.tar.gz" HEAD b3spoken setup.cmd uninstall.cmd setup.ps1 setup.sh uninstall.ps1 uninstall.sh README.md HANDOFF.md LICENSE SECURITY.md
       - name: Sign
         working-directory: b3spoken
         shell: bash
