@@ -81,6 +81,9 @@ function card(j) {
     const t = el('p', 'trap', `AI trap in this posting: “${j.aiTrap.instruction}” B3spoken won’t follow it${j.aiTrap.phrases.length ? `, and nothing it writes will use “${j.aiTrap.phrases.join('”, “')}”` : ''}. If you write anything yourself, don’t follow it either.`);
     li.append(t);
   }
+  const sc = j.match?.scam;
+  if (sc?.stop?.length) li.append(el('p', 'trap', `Possible scam: this posting ${sc.stop.join('; it ')}. Real employers don't ask for this. Don't send money or banking details.`));
+  else if (sc?.warn?.length) li.append(el('p', 'problems', `Be careful: this posting ${sc.warn.join('; it ')}. Check the job on the employer's own careers page before you reply.`));
   if (j.match?.reasons?.length) li.append(el('p', 'reasons', j.match.reasons.join(' · ')));
   else if (j.snippet) li.append(el('p', 'snippet', j.snippet + (j.snippet.length >= 280 ? '…' : '')));
   const row = el('div', 'row');

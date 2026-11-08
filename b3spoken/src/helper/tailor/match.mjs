@@ -4,6 +4,7 @@
 // are never shown.
 import { norm } from '../resume/library.mjs';
 import { yearly } from '../profile.mjs';
+import { scamSigns } from './scam.mjs';
 
 // Skills and tools we look for in postings (plus everything in the person's own skills list).
 export const VOCAB = `python java javascript typescript c# c++ golang rust ruby php kotlin swift scala sql nosql bash powershell
@@ -119,6 +120,9 @@ export function scoreJob(job, ctx) {
   let label = stops.length ? 'Skip' : score >= 70 ? 'Strong' : score >= 50 ? 'Good' : score >= 30 ? 'Stretch' : 'Skip';
   // Senior, lead, staff or manager titles are hidden for people with under 3 years on their resume (they can still paste or track one).
   if (tooSenior) { label = 'Skip'; stops.push('Senior-level title; your resume shows under 3 years'); }
+  // Scam warning signs: asking for money, banking details and the like hide the job; softer signs show a warning.
+  const scam = scamSigns(`${job.title} ${job.description || ''}`);
+  if (scam.stop.length) { label = 'Skip'; stops.push(`Scam warning signs: it ${scam.stop.join('; it ')}`); }
   if (!stops.length && label === 'Skip') stops.push('Too far from your resume and roles');
-  return { score: stops.length ? Math.min(score, 29) : score, label, reasons, stops, have, missing, pay };
+  return { score: stops.length ? Math.min(score, 29) : score, label, reasons, stops, have, missing, pay, ...(scam.stop.length || scam.warn.length ? { scam: { stop: scam.stop, warn: scam.warn } } : {}) };
 }

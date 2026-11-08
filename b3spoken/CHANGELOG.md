@@ -2,6 +2,11 @@
 
 ## 0.1.4 (with everything below up to 0.1.3)
 
+### Scam checks
+- **Postings that ask you for money are hidden**, along with ones that ask for banking details or your SIN before hiring, gift cards, cryptocurrency, cheque deposits or package reshipping. If you paste one in yourself, it shows a red "Possible scam" note.
+- **A softer warning** shows for postings that ask you to interview over Telegram or WhatsApp, apply to a personal Gmail-style address, or promise unusually high pay for little work.
+- Checked against the real daily job list (10,838 jobs): no real job was wrongly hidden.
+
 ### Tabs for every stage, no senior jobs, fuller resumes
 - **A tab for each stage:** To apply, Applied, Interview, Offer, Rejected, Not interested and Follow-ups, each with a count.
   - When you change a job's status, it moves out of To apply into its own tab.

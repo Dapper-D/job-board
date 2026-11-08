@@ -126,3 +126,15 @@ test('senior titles are hidden for under 3 years; tracked jobs stay in their tab
     assert.equal(app.jobs().find(j => j.id === junior.id)?.track?.status, 'applied');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('scam checks: money, cheques, gift cards and reshipping hide a job; chat-app interviews and personal emails warn', async () => {
+  const { scamSigns } = await import('../src/helper/tailor/scam.mjs');
+  assert.match(scamSigns('You must pay a $150 training fee before you start.').stop.join(), /fee/);
+  assert.match(scamSigns('We will mail you a cashier\'s check to buy equipment.').stop.join(), /cheque/);
+  assert.match(scamSigns('Purchase gift cards for clients and send the codes.').stop.join(), /gift cards/);
+  assert.match(scamSigns('Work from home as a package forwarding assistant.').stop.join(), /reshipping/);
+  assert.match(scamSigns('Interviews are held on Telegram with our HR team.').warn.join(), /chat app/);
+  assert.match(scamSigns('Apply by sending your resume to hiring.dept@gmail.com today.').warn.join(), /personal email/);
+  const fine = scamSigns('We cover the cost of your certification exam fees. Benefits include a home-office allowance. Interviews on Microsoft Teams. Apply on our careers page.');
+  assert.deepEqual(fine, { stop: [], warn: [] });
+});
