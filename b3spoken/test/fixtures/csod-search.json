@@ -1,0 +1,12 @@
+{
+  "data": {
+    "totalCount": 4,
+    "requisitions": [
+      { "requisitionId": 8410, "postingEffectiveDate": "11/3/2026", "displayJobTitle": "IT Security Specialist (m/w/d)", "locations": [{ "city": "Bremen", "state": "Bremen", "country": "DE" }] },
+      { "requisitionId": 8411, "postingEffectiveDate": "2/30/2026", "displayJobTitle": "R&amp;D <b>Software</b> Engineer", "locations": [{ "city": "Vancouver", "state": "BC", "country": "CA" }, { "city": "Vancouver", "state": "BC", "country": "CA" }, { "city": "Toronto", "state": "ON", "country": "CA" }] },
+      { "requisitionId": null, "displayJobTitle": "No id, dropped" },
+      { "requisitionId": 99, "displayJobTitle": "" }
+    ]
+  },
+  "status": "Success"
+}

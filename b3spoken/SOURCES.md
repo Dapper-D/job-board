@@ -1,6 +1,6 @@
 # Job sources
 
-Every source B3spoken reads, why it's allowed, and the rules we follow for it. A source is only added after its terms and robots rules are checked. Last checked: 2026-11-05.
+Every source B3spoken reads, why it's allowed, and the rules we follow for it. A source is only added after its terms and robots rules are checked. Last checked: 2026-11-09.
 
 ## Employer hiring systems (the employer's own postings)
 
@@ -30,6 +30,16 @@ These are the public job feeds employers publish through their hiring software, 
 | Apple Jobs | `jobs.apple.com/en-ca/search?location=canada-CANC` | A company's own site: robots.txt checked before every request. Adapted from career-ops (MIT) |
 | Microsoft | Eightfold (`apply.careers.microsoft.com`) | Microsoft's careers site runs on Eightfold |
 | Amazon Jobs | `www.amazon.jobs/en/search.json` (Canada) | A company's own site, so robots.txt is checked before every run. Adapted from career-ops (MIT) |
+| PageUp | `careers.pageuppeople.com/<tenant>/<site>/<lang>/listing/` | The public job listing pages (used by many universities and public bodies); robots.txt checked first, 1 second between pages. Adapted from career-ops (MIT) |
+| NEOGOV | `www.governmentjobs.com/careers/<agency>` and `www.schooljobs.com` | Public listing pages of government and school-board employers; robots.txt checked first. Adapted from career-ops (MIT) |
+| Cornerstone OnDemand | `<tenant>.csod.com/ux/ats/careersite/<id>/home` and its public search | The public career site and the search it uses; no session cookies are replayed. Adapted from career-ops (MIT) |
+| Avature | `<tenant>.avature.net/careers/SearchJobs` or the employer's own Avature host | Public job search pages; robots.txt checked first; branded hosts only when the page itself is an Avature site. Adapted from career-ops (MIT) |
+| iCIMS (classic portals) | `careers-<tenant>.icims.com/jobs/search` | Public hosted job search pages; robots.txt checked first. Separate from iCIMS Jibe sites. Adapted from career-ops (MIT) |
+| JazzHR | `<company>.applytojob.com/apply` | Public job board page; robots.txt checked first. Adapted from career-ops (MIT) |
+| Recruitee | `<company>.recruitee.com/api/offers/` | Public careers API, no key. Adapted from career-ops (MIT) |
+| Personio | `<company>.jobs.personio.de/xml` (or `.com`) | Public job feed; the careers page only as a fallback, with robots.txt checked. Adapted from career-ops (MIT) |
+| UKG Pro (UltiPro) | `recruiting.ultipro.com/<tenant>/JobBoard/<board>` | The public job board and the search it uses; robots.txt checked first. Adapted from career-ops (MIT) |
+| Dayforce | not read | Behind a bot check (Cloudflare). We don't get around bot checks, so Dayforce employers are left out |
 
 ## Government
 

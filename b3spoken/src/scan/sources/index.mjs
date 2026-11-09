@@ -21,13 +21,22 @@ import jibe from './jibe.mjs';
 import successfactors from './successfactors.mjs';
 import taleo from './taleo.mjs';
 import jobvite from './jobvite.mjs';
+import pageup from './pageup.mjs';
+import neogov from './neogov.mjs';
+import csod from './csod.mjs';
+import avature from './avature.mjs';
+import icims from './icims.mjs';
+import jazzhr from './jazzhr.mjs';
+import recruitee from './recruitee.mjs';
+import personio from './personio.mjs';
+import ultipro from './ultipro.mjs';
 import remotive from './remotive.mjs';
 import remoteok from './remoteok.mjs';
 import jobicy from './jobicy.mjs';
 import himalayas from './himalayas.mjs';
 
 // Employer hiring systems first (they are the employer's own postings), then job sites (feed: true), then Job Bank (runs on each computer).
-export const SOURCES = { greenhouse, lever, ashby, workday, smartrecruiters, workable, bamboohr, breezy, pinpoint, teamtailor, oraclecloud, phenom, eightfold, jibe, successfactors, taleo, jobvite, rippling, amazon, google, apple, remotive, remoteok, jobicy, himalayas, jobbank };
+export const SOURCES = { greenhouse, lever, ashby, workday, smartrecruiters, workable, bamboohr, breezy, pinpoint, teamtailor, oraclecloud, phenom, eightfold, jibe, successfactors, taleo, jobvite, rippling, pageup, neogov, csod, avature, icims, jazzhr, recruitee, personio, ultipro, amazon, google, apple, remotive, remoteok, jobicy, himalayas, jobbank };
 
 // Which hiring system does this careers link belong to? -> { source, target } or null
 export function detect(url) {

@@ -1,0 +1,31 @@
+{
+  "opportunities": [
+    {
+      "Id": "6a1f2c3d-0000-4000-8000-000000000001",
+      "Title": "Cybersecurity Analyst",
+      "RequisitionNumber": "CYBER001234",
+      "JobCategoryName": "Information Technology",
+      "FullTime": true,
+      "JobLocationType": 1,
+      "PostedDate": "2026-11-03T16:22:10.123Z",
+      "BriefDescription": "<p>Monitor our <b>SIEM</b> &amp; respond.</p>",
+      "Locations": [
+        { "LocalizedName": "Head Office", "Address": { "City": "Toronto", "State": { "Code": "ON" }, "Country": { "Code": "CAN" } } },
+        { "LocalizedName": "Branch 2", "Address": { "City": "Toronto", "State": { "Code": "ON" }, "Country": { "Code": "CAN" } } }
+      ]
+    },
+    {
+      "Id": 2001,
+      "Title": "Software Developer",
+      "JobCategoryName": "Engineering",
+      "FullTime": false,
+      "JobLocationType": "Remote",
+      "PostedDate": "2026-10-28",
+      "BriefDescription": "",
+      "Locations": [ { "LocalizedName": "Remote - US" } ]
+    },
+    { "Id": "", "Title": "No id" },
+    { "Id": "abc", "Title": "" }
+  ],
+  "totalCount": 4
+}
