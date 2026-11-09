@@ -1,0 +1,3 @@
+{"total":2,"facets":[{"facetParameter":"locationMainGroup","descriptor":"Locations","values":[{"facetParameter":"locationHierarchy1","descriptor":"Country","values":[{"descriptor":"United States of America","id":"us1","count":40},{"descriptor":"Canada","id":"ca9","count":2}]}]}],
+ "jobPostings":[{"title":"IT Support Analyst","externalPath":"/job/UBC-Vancouver-Campus---Vancouver-BC-Canada/IT-Support-Analyst_JR123","locationsText":"UBC Vancouver Campus - Vancouver, BC, Canada","postedOn":"Posted 3 Days Ago","bulletFields":["JR123"]},
+ {"title":"Research Engineer","externalPath":"/job/Remote/Research-Engineer_JR124","locationsText":"2 Locations","postedOn":"Posted Today","remoteType":"Fully Remote","bulletFields":["JR124"]}]}

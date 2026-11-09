@@ -1,0 +1,6 @@
+{"company":{"name":"Hootsuite"},"jobs":[
+ {"id":7001,"title":"Software Developer, Platform","absolute_url":"https://job-boards.greenhouse.io/hootsuite/jobs/7001","location":{"name":"Vancouver, British Columbia, Canada"},"updated_at":"2026-11-03T10:00:00-05:00","first_published":"2026-11-02T09:00:00-05:00","content":"&lt;p&gt;Build &amp;amp; ship &lt;strong&gt;APIs&lt;/strong&gt;.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Node.js&lt;/li&gt;&lt;li&gt;AWS&lt;/li&gt;&lt;/ul&gt;","departments":[{"name":"Engineering"}],"metadata":[{"name":"Salary Range","value":"$95,000 - $120,000 CAD"}]},
+ {"id":7002,"title":"Account Executive","absolute_url":"https://job-boards.greenhouse.io/hootsuite/jobs/7002","location":{"name":"London, England"},"updated_at":"2026-11-01T10:00:00Z","content":"<p>Sell.</p>"},
+ {"id":7003,"title":"","absolute_url":"https://job-boards.greenhouse.io/hootsuite/jobs/7003","location":{"name":"Toronto"}},
+ {"id":7004,"title":"Bad link","absolute_url":"http://example.com/x","location":{"name":"Toronto, ON"}}
+]}

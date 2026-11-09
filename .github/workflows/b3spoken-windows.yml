@@ -1,0 +1,70 @@
+# B3spoken (branch b3spoken): builds B3spoken.exe and the Windows installer, installs it on a clean Windows
+# runner, tests it, uninstalls it, and keeps the installer as a build artifact. Nothing is signed or published here.
+name: B3spoken Windows build
+on:
+  push:
+    branches: [b3spoken]
+    paths: ['b3spoken/**', 'setup.ps1', 'uninstall.ps1', '.github/workflows/b3spoken-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: b3spoken-windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - name: Make sure Inno Setup is there
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe')) { choco install innosetup -y --no-progress }
+      - name: Source setup (setup.ps1) adds the shortcut, uninstall.ps1 removes it
+        shell: pwsh
+        run: |
+          cmd /c ..\setup.cmd -NoLaunch -Quiet
+          if ($LASTEXITCODE -ne 0) { throw "setup.cmd failed ($LASTEXITCODE)" }
+          $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'B3spoken.lnk'
+          if (-not (Test-Path $lnk)) { throw 'setup.ps1 made no shortcut' }
+          $t = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          if ($t.Arguments -notmatch 'b3spoken\\src\\helper\\main\.mjs') { throw "shortcut points at $($t.Arguments)" }
+          powershell -NoProfile -ExecutionPolicy Bypass -File ..\uninstall.ps1 -Quiet
+          if (Test-Path $lnk) { throw 'uninstall.ps1 left the shortcut' }
+      - name: Background mode (no window, icon by the clock, start when I sign in)
+        run: node scripts/background-check.mjs
+      - name: Build B3spoken.exe and the installer
+        run: node scripts/build-exe.mjs
+      - name: Install (silently, for this user only)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist\B3spoken-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          if (-not (Test-Path "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe")) { throw 'not installed' }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\B3spoken.lnk")) { throw 'no Start menu shortcut' }
+      - name: Test the installed app
+        shell: pwsh
+        run: node scripts/exe-smoke.mjs "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe"
+      - name: One-click AI installers (Claude Code and Codex) install and are found
+        run: node scripts/ai-install-check.mjs
+      - name: Uninstall
+        shell: pwsh
+        run: |
+          Start-Process "$env:LOCALAPPDATA\Programs\B3spoken\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe") { throw 'still installed' }
+      - name: Keep the installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: b3spoken-windows-installer
+          path: b3spoken/dist/B3spoken-Setup-*.exe
+          retention-days: 14

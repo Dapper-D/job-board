@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="b3spoken-token" content="__TOKEN__">
+<title>B3spoken setup</title>
+<link rel="stylesheet" href="/app.css">
+<script src="/roles.js" defer></script>
+<script src="/setup.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="brand">B3spoken <span class="tag">setup</span></div>
+  <ol class="steps" id="steps">
+    <li data-step="ai">AI</li><li data-step="resume">Resume</li><li data-step="questions">Questions</li><li data-step="roles">Roles</li>
+  </ol>
+</header>
+<main>
+  <section id="step-ai" class="step">
+    <div id="kitBox" class="kit" hidden>
+      <strong>Used the Job Hunt Kit before?</strong>
+      <p class="note small">B3spoken can bring over your resume library, answers and tracked jobs. Your kit folder is only read, never changed.</p>
+      <div class="row"><input id="kitDir" type="text" aria-label="Job Hunt Kit folder" placeholder="C:\Users\you\Desktop\job board"><button id="kitGo" type="button" class="small primary">Import my setup</button></div>
+      <p id="kitMsg" class="note small"></p>
+    </div>
+    <h1>Connect an AI</h1>
+    <p class="lead">B3spoken uses the AI you already pay for, on this computer. It only ever picks lines from your own resume; it never writes claims about you.</p>
+    <div id="aiChoices" class="choices"></div>
+    <div class="nav"><span></span><button id="aiNext" type="button" class="primary">Next</button></div>
+  </section>
+
+  <section id="step-resume" class="step" hidden>
+    <h1>Upload your resume</h1>
+    <p class="lead">PDF, Word (.docx) or plain text. It stays on this computer.</p>
+    <div class="row">
+      <input id="file" type="file" accept=".pdf,.docx,.txt" aria-label="Resume file">
+      <button id="upload" type="button">Read it</button>
+    </div>
+    <details><summary>Or paste the text</summary><textarea id="paste" rows="10" aria-label="Resume text"></textarea><button id="usePaste" type="button">Use this text</button></details>
+    <div id="resumeMsg" class="problems" hidden></div>
+    <div id="libraryBox" hidden>
+      <div class="row"><h2>Your resume library</h2><button id="tidy" type="button" hidden>Tidy it with my AI</button></div>
+      <p class="lead small">Every line below comes from your resume and has an ID. Lines marked <span class="badge warn">check</span> weren't found word for word in your resume; they won't be used until you confirm or fix them.</p>
+      <div id="library"></div>
+    </div>
+    <div class="nav"><button data-go="ai" type="button">Back</button><button id="resumeNext" type="button" class="primary" disabled>Next</button></div>
+  </section>
+
+  <section id="step-questions" class="step" hidden>
+    <h1>A few questions</h1>
+    <label>Roles you want (comma separated)<input id="targetRoles" type="text" placeholder="Software Developer, Security Analyst"></label>
+    <div id="roleWarn" class="problems" hidden></div>
+    <div class="grid">
+      <label>Lowest pay you'd accept<span class="pair"><input id="payFloor" type="text" inputmode="decimal" placeholder="35"><select id="payFloorUnit" aria-label="per"><option value="hour">per hour</option><option value="year">per year</option></select></span></label>
+      <label>Pay you're aiming for<span class="pair"><input id="payGoal" type="text" inputmode="decimal" placeholder="100000"><select id="payGoalUnit" aria-label="per"><option value="year">per year</option><option value="hour">per hour</option></select></span></label>
+      <label>Province for on-site or hybrid<select id="province"><option value="">Anywhere in Canada</option><option>BC</option><option>AB</option><option>SK</option><option>MB</option><option>ON</option><option>QC</option><option>NB</option><option>NS</option><option>PE</option><option>NL</option><option>YT</option><option>NT</option><option>NU</option></select></label>
+      <label>Cities (optional)<input id="cities" type="text" placeholder="Vancouver, Burnaby, Surrey"></label>
+      <label>Remote work<select id="remote"><option value="yes">Remote anywhere in Canada is fine</option><option value="only">Remote only</option><option value="no">No remote</option></select></label>
+      <label>Work authorization<select id="workAuth"><option value="">Choose…</option><option value="citizen">Canadian citizen</option><option value="permanent-resident">Permanent resident</option><option value="open-work-permit">Open work permit</option><option value="employer-permit">Employer-specific permit</option><option value="study-permit">Study permit</option><option value="needs-sponsorship">Will need sponsorship</option></select></label>
+      <label>Earliest start date<input id="startDate" type="date"></label>
+    </div>
+    <label>Skills you don't have (so the cover letter is honest about them)<input id="missingSkills" type="text" placeholder="Kubernetes, Java"></label>
+    <label>Industries to avoid<input id="avoidIndustries" type="text" placeholder="Gambling, Tobacco"></label>
+    <div class="nav"><button data-go="resume" type="button">Back</button><button id="questionsNext" type="button" class="primary">Next</button></div>
+  </section>
+
+  <section id="step-roles" class="step" hidden>
+    <h1>Roles to search</h1>
+    <p id="rolesLead" class="lead">Roles your resume supports. Tick the ones you'd take.</p>
+    <p id="roleMsg" class="note" hidden></p>
+    <div id="roleList" class="choices"></div>
+    <div class="nav"><button data-go="questions" type="button">Back</button><button id="finish" type="button" class="primary">Finish and show my jobs</button></div>
+  </section>
+</main>
+</body>
+</html>

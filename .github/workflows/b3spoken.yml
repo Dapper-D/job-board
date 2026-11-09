@@ -1,0 +1,54 @@
+# B3spoken (branch b3spoken): unit tests on Windows, Mac and Linux, then a live check that calls every job source for real.
+# No secrets are used here.
+name: B3spoken
+on:
+  push:
+    branches: [b3spoken]
+    paths: ['b3spoken/**', '.github/workflows/b3spoken.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: b3spoken-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: npm test
+      - name: Helper smoke test (real job pool, local server)
+        run: node scripts/helper-smoke.mjs
+  live-check:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: npm run live-check
+      - name: Updater finds, downloads and verifies the newest real release
+        run: node scripts/update-check.mjs
+      - name: Recruiter contacts for a few real employers (information only)
+        run: node scripts/contacts-check.mjs
+        continue-on-error: true

@@ -1,0 +1,86 @@
+// The person's job list: the shared daily pool plus Job Bank, fetched on their own computer.
+// Duplicates between the two are merged, so each job is shown and counted once.
+import { join } from 'node:path';
+import { SOURCES } from '../scan/sources/index.mjs';
+import { dedupe } from '../scan/scan.mjs';
+import { readJson, writeJson } from './paths.mjs';
+
+const JOBBANK_EVERY_MS = 6 * 3600e3; // Job Bank at most every 6 hours (it asks for 5 s between requests)
+const JOBBANK_RETRY_MS = 3600e3; // after a partial result, try again in an hour
+
+export async function refreshJobBank(dir, settings, { now = Date.now(), force = false, log = () => {}, fetchJobs } = {}) {
+  const file = join(dir, 'jobbank.json');
+  const have = readJson(file, null);
+  if (!force && have && now - have.fetchedAt < (have.missed ? JOBBANK_RETRY_MS : JOBBANK_EVERY_MS) && JSON.stringify(have.keywords) === JSON.stringify(settings.keywords || [])) return have;
+  const missed = [];
+  const get = fetchJobs || (t => SOURCES.jobbank.fetchJobs(t, { now, onError: e => missed.push({ keyword: e.keyword || '', error: e.code || e.message }) }));
+  log('checking Job Bank for postings from the last 3 days…');
+  const jobs = (await get({ keywords: settings.keywords || [], maxAgeDays: 3, maxPages: 40 })).filter(j => j.canada);
+  const saved = { fetchedAt: now, keywords: settings.keywords || [], jobs, ...(missed.length ? { missed } : {}) };
+  writeJson(file, saved);
+  log(`Job Bank: ${jobs.length} postings`);
+  return saved;
+}
+
+export function mergeJobs(poolJobs = [], jobBankJobs = []) {
+  return dedupe([...poolJobs, ...jobBankJobs]).sort((a, b) => String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
+}
+
+const PROVINCE_NAMES = { BC: 'british columbia', AB: 'alberta', SK: 'saskatchewan', MB: 'manitoba', ON: 'ontario', QC: 'quebec|québec', NB: 'new brunswick', NS: 'nova scotia', PE: 'prince edward island', NL: 'newfoundland|labrador', YT: 'yukon', NT: 'northwest territories', NU: 'nunavut' };
+export const PROVINCES = Object.keys(PROVINCE_NAMES);
+
+export function inProvince(job, code) {
+  const names = PROVINCE_NAMES[code]; if (!names) return true;
+  const loc = String(job.location || '');
+  return new RegExp(`(,|\\(|\\s-|^)\\s*${code}\\b(?!-)`).test(loc) || new RegExp(`\\b(${names})\\b`, 'i').test(loc);
+}
+
+// Filters for the board. Every filter is optional.
+// Only fresh jobs: posted in the last 3 days at most (the board's choice is 1, 2 or 3 days).
+// Jobs with no posting date can't be shown to be fresh, so they're left out too.
+export const MAX_AGE_DAYS = 3;
+// Board tabs: '' is "To apply" (not tracked yet, or saved); each status has its own tab; 'due' is follow-ups; 'tracked' is all of them.
+export const STATUS_VIEWS = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
+export const VIEWS = ['', 'tracked', 'due', ...STATUS_VIEWS];
+const isDue = (t, today) => !!(t?.followUp && t.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(t.status));
+// How many jobs are in each tab (tracked tabs only; the To apply count comes with the list).
+export function viewCounts(jobs, now = Date.now()) {
+  const today = new Date(now).toISOString().slice(0, 10);
+  const out = { tracked: 0, due: 0, ...Object.fromEntries(STATUS_VIEWS.map(v => [v, 0])) };
+  for (const j of jobs) {
+    const t = j.track; if (!t) continue;
+    if (t.status || t.notes) out.tracked++;
+    if (STATUS_VIEWS.includes(t.status)) out[t.status]++;
+    if (isDue(t, today)) out.due++;
+  }
+  return out;
+}
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = MAX_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
+  const today = new Date(now).toISOString().slice(0, 10);
+  const LABELS = ['Stretch', 'Good', 'Strong'];
+  const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+  const days = Math.min(MAX_AGE_DAYS, Math.max(1, Number(maxAgeDays) || MAX_AGE_DAYS));
+  const cutoff = now - days * 864e5;
+  const hits = jobs.filter(j => {
+    if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
+    else if (view === 'due') { if (!isDue(j.track, today)) return false; }
+    else if (STATUS_VIEWS.includes(view)) { if (j.track?.status !== view) return false; }
+    else if (j.track?.status && j.track.status !== 'saved') return false; // To apply: jobs you've acted on move to their own tab
+    if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
+    if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
+    if (view) return true;
+    if (source && j.source !== source) return false;
+    if (remote === 'only' && !j.remote) return false;
+    if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;
+    if (!j.pasted && !j.track && !(Date.parse(j.postedAt) >= cutoff)) return false; // tracked and pasted jobs stay
+    if (words.length) { const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
+    return true;
+  });
+  // The list shows the first 3 places; the full job (GET /api/jobs/<id>) keeps them all.
+  const slim = ({ description, ...rest }) => {
+    const places = String(rest.location || '').split(' / ');
+    return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: String(description || '').slice(0, 280) };
+  };
+  if (sort === 'score') hits.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0) || String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
+  return { total: hits.length, jobs: hits.slice(offset, offset + Math.min(limit, 200)).map(slim) };
+}

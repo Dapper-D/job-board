@@ -1,0 +1,184 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { SOURCES, detect } from '../src/scan/sources/index.mjs';
+import { parseRobots, allowedBy } from '../src/scan/robots.mjs';
+import { findBoardLinks, slugGuesses, norm } from '../src/scan/discover.mjs';
+
+test('remotive: names the source, keeps Canada-eligible jobs', () => {
+  const jobs = SOURCES.remotive.parse({ 'job-count': 2, jobs: [
+    { id: 1, url: 'https://remotive.com/remote-jobs/software-dev/dev-1', title: 'Dev', company_name: 'Acme', category: 'Software Development', job_type: 'full_time', publication_date: '2026-11-04T10:00:00', candidate_required_location: 'USA, Canada', salary: '$100k', description: '<p>Code</p>' },
+    { id: 2, url: 'https://remotive.com/remote-jobs/x/2', title: 'Ops', company_name: 'B', candidate_required_location: 'Europe' }] });
+  assert.equal(jobs[0].canada, true);
+  assert.equal(jobs[1].canada, false);
+  assert.deepEqual(jobs[0].via, { name: 'Remotive', url: 'https://remotive.com' });
+  assert.equal(jobs[0].employerVerified, false);
+});
+
+test('remote ok: skips the legal notice item; no location = open to all', () => {
+  const jobs = SOURCES.remoteok.parse([{ 'last-updated': 1, legal: 'Please link back' }, { id: '9', slug: 'dev-9', position: 'Dev', company: 'C', location: '', date: '2026-11-04T00:00:00+00:00', url: 'https://remoteok.com/remote-jobs/dev-9', salary_min: 90000, salary_max: 120000 }]);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].canada, true);
+  assert.match(jobs[0].salary, /USD 90000 – 120000/);
+  assert.equal(jobs[0].via.name, 'Remote OK');
+});
+
+test('jobicy: geo decides Canada eligibility', () => {
+  const jobs = SOURCES.jobicy.parse({ jobs: [{ id: 5, url: 'https://jobicy.com/jobs/5-dev', jobTitle: 'Dev &amp; Ops', companyName: 'D', jobGeo: 'Canada', jobIndustry: ['Engineering'], jobType: ['full-time'], pubDate: '2026-11-04 10:00:00', jobDescription: '<p>x</p>' }, { id: 6, url: 'https://jobicy.com/jobs/6', jobTitle: 'X', companyName: 'E', jobGeo: 'USA' }] });
+  assert.equal(jobs[0].title, 'Dev & Ops');
+  assert.equal(jobs[0].canada, true);
+  assert.equal(jobs[1].canada, false);
+});
+
+test('bamboohr, breezy, pinpoint, teamtailor parse their public lists', () => {
+  const b = SOURCES.bamboohr.parse({ result: [{ id: 12, jobOpeningName: 'Analyst', location: { city: 'Vancouver', state: 'British Columbia' }, isRemote: false, departmentLabel: 'Ops' }] }, { host: 'acme.bamboohr.com' });
+  assert.equal(b[0].url, 'https://acme.bamboohr.com/careers/12');
+  assert.equal(b[0].canada, true);
+  const z = SOURCES.breezy.parse([{ id: 'p1', name: 'Designer', url: 'https://acme.breezy.hr/p/p1', published_date: '2026-11-01T00:00:00Z', location: { city: 'Toronto', state: { name: 'Ontario' }, country: { name: 'Canada' }, is_remote: true } }], { host: 'acme.breezy.hr' });
+  assert.equal(z[0].location, 'Toronto, Ontario, Canada, Remote');
+  const p = SOURCES.pinpoint.parse({ data: [{ id: 1, title: 'Nurse', url: 'https://acme.pinpointhq.com/postings/1', location: { city: 'Calgary', province: 'Alberta' } }, { id: 2, title: 'Demo', url: 'https://acme.pinpointhq.com/postings/2', description: 'youtube.com/embed/https://www.youtube.com/embed/pFxm6fszrpw' }] }, { host: 'acme.pinpointhq.com' });
+  assert.deepEqual(p.map(j => j.location), ['Calgary, Alberta']);
+  const t = SOURCES.teamtailor.parse('<rss><channel><item><title><![CDATA[Engineer]]></title><link>https://acme.teamtailor.com/jobs/1-engineer</link><pubDate>Tue, 03 Nov 2026 10:00:00 +0000</pubDate><tt:city>Montréal</tt:city><tt:country>Canada</tt:country><remoteStatus>none</remoteStatus></item></channel></rss>', { host: 'acme.teamtailor.com' });
+  assert.equal(t[0].location, 'Montréal, Canada');
+  assert.equal(t[0].postedAt, '2026-11-03T10:00:00.000Z');
+  assert.deepEqual(detect('https://acme.bamboohr.com/careers'), { source: 'bamboohr', target: { host: 'acme.bamboohr.com' } });
+  assert.deepEqual(detect('https://acme.teamtailor.com/jobs'), { source: 'teamtailor', target: { host: 'acme.teamtailor.com' } });
+});
+
+test('robots.txt: longest rule wins, our own group beats *', () => {
+  const rules = parseRobots('User-agent: *\nDisallow: /careers\nAllow: /careers/public\n\nUser-agent: OtherBot\nDisallow: /');
+  assert.equal(allowedBy(rules, '/careers/apply'), false);
+  assert.equal(allowedBy(rules, '/careers/public/list'), true);
+  assert.equal(allowedBy(rules, '/about'), true);
+  assert.equal(allowedBy(parseRobots('User-agent: B3spokenBot\nDisallow: /\nUser-agent: *\nAllow: /'), '/jobs'), false);
+  assert.equal(allowedBy(parseRobots('User-agent: *\nDisallow:'), '/jobs'), true);
+  assert.equal(allowedBy(parseRobots('User-agent: *\nDisallow: /*.pdf$'), '/a/b.pdf'), false);
+});
+
+test('discovery finds hiring-system links in a careers page and guesses board names', () => {
+  const html = `<a href="https://boards.greenhouse.io/acme">Open roles</a><iframe src="https://acme.wd3.myworkdayjobs.com/en-US/External"></iframe><script>var u="https://jobs.lever.co/acme"</script><a href="https://remotive.com/x">x</a>`;
+  const hits = findBoardLinks(html, 'https://www.acme.com/careers');
+  assert.deepEqual(hits.map(h => h.source), ['greenhouse', 'workday', 'lever']);
+  assert.deepEqual(slugGuesses('Dye & Durham Inc.'), ['dyeanddurham', 'dye-and-durham', 'dyedurham']);
+  assert.equal(norm('Coveo Solutions Inc.'), 'coveosolutions');
+});
+
+test('company names: "Air Canada" is not "Air", but "Hootsuite Inc." is "Hootsuite"', async () => {
+  const { sameCompany } = await import('../src/scan/discover.mjs');
+  assert.equal(sameCompany('Air', 'Air Canada'), false);
+  assert.equal(sameCompany('Hootsuite', 'Hootsuite Inc.'), true);
+  assert.equal(sameCompany('Coveo', 'Coveo Solutions'), false);
+  assert.equal(sameCompany('Wattpad Corp', 'wattpad'), true);
+});
+
+test('himalayas: apply link from the API, expired jobs dropped, Canada or worldwide', () => {
+  const now = Date.parse('2026-11-05T00:00:00Z');
+  const jobs = SOURCES.himalayas.parse({ jobs: [
+    { title: 'Dev', companyName: 'A', guid: 'https://himalayas.app/companies/a/jobs/dev', applicationLink: 'https://himalayas.app/companies/a/jobs/dev/apply', locationRestrictions: ['Canada', 'United States'], pubDate: 1762300000, expiryDate: 1800000000 },
+    { title: 'Old', companyName: 'B', guid: 'https://himalayas.app/x', applicationLink: 'https://himalayas.app/x', expiryDate: 1700000000 },
+    { title: 'EU', companyName: 'C', guid: 'https://himalayas.app/y', applicationLink: 'https://himalayas.app/y', locationRestrictions: ['Germany'] }] }, now);
+  assert.deepEqual(jobs.map(j => [j.title, j.canada]), [['Dev', true], ['EU', false]]);
+  assert.equal(jobs[0].applyUrl, 'https://himalayas.app/companies/a/jobs/dev/apply');
+  assert.equal(jobs[0].via.name, 'Himalayas');
+});
+
+test('cross-check: titles and companies match loosely but not wrongly', async () => {
+  const { sameTitle, companyKey, verifyFeedJobs } = await import('../src/scan/verify.mjs');
+  assert.equal(sameTitle('Senior Backend Engineer (Remote, Canada)', 'Senior Backend Engineer'), true);
+  assert.equal(sameTitle('Senior Backend Engineer', 'Senior Backend Engineer, Payments'), true);
+  assert.equal(sameTitle('Engineer', 'Engineering Manager'), false);
+  assert.equal(companyKey('Acme, Inc.'), companyKey('ACME'));
+  const own = [{ company: 'Acme', title: 'Data Analyst', url: 'https://jobs.lever.co/acme/1', applyUrl: 'https://jobs.lever.co/acme/1/apply', employerVerified: true }];
+  const site = [
+    { company: 'Acme Inc', title: 'Data Analyst - Remote', url: 'https://remoteok.com/x', applyUrl: 'https://remoteok.com/x', via: { name: 'Remote OK' }, employerVerified: false, description: '' },
+    { company: 'Acme Inc', title: 'Designer', url: 'https://remoteok.com/y', via: { name: 'Remote OK' }, employerVerified: false, description: '' }];
+  const { verified, dropped } = await verifyFeedJobs(site, own, { maxLookups: 0 });
+  assert.equal(verified.length, 1);
+  assert.equal(verified[0].employerUrl, 'https://jobs.lever.co/acme/1');
+  assert.equal(verified[0].applyUrl, 'https://remoteok.com/x'); // the site's own link, as its terms ask
+  assert.equal(verified[0].via.name, 'Remote OK');
+  assert.deepEqual(dropped.map(d => d.why), ["title not on the employer's board"]);
+});
+
+test('oracle cloud and phenom: targets and parsing', async () => {
+  const { phenomFromPage } = await import('../src/scan/sources/phenom.mjs');
+  assert.deepEqual(detect('https://ecqd.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs'), { source: 'oraclecloud', target: { host: 'ecqd.fa.ca2.oraclecloud.com', lang: 'en', site: 'CX_1' } });
+  assert.equal(detect('https://evil.oraclecloud.com.example/x'), null);
+  const o = SOURCES.oraclecloud.parse({ items: [{ requisitionList: [{ Id: '123', Title: 'Analyst', PrimaryLocation: 'Toronto, ON, Canada', WorkplaceTypeCode: 'ORA_HYBRID', PostedDate: '2026-11-03' }] }] }, { host: 'x.fa.ca2.oraclecloud.com', lang: 'en', site: 'CX_1', name: 'Bank' });
+  assert.equal(o[0].url, 'https://x.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/123');
+  assert.equal(o[0].canada, true);
+  const ph = phenomFromPage('<script src="https://cdn.phenompeople.com/x.js"></script><a href="/ca/en/job/R-1/Analyst">', 'https://jobs.rbc.com/ca/en/');
+  assert.deepEqual(ph, { host: 'jobs.rbc.com', prefix: 'ca/en' });
+  const p = SOURCES.phenom.parse({ refineSearch: { totalHits: 1, data: { jobs: [{ jobId: 'R-1', title: 'Data &amp; AI Analyst', city: 'Toronto', state: 'Ontario', country: 'Canada', postedDate: '2026-11-02T00:00:00Z' }] } } }, { host: 'jobs.rbc.com', prefix: 'ca/en' });
+  assert.equal(p[0].title, 'Data & AI Analyst');
+  assert.equal(p[0].url, 'https://jobs.rbc.com/ca/en/job/R-1/Data-AI-Analyst');
+  assert.equal(p[0].canada, true);
+});
+
+test('rippling, eightfold and jibe: targets and parsing', async () => {
+  const { eightfoldFromPage } = await import('../src/scan/sources/eightfold.mjs');
+  const { jibeFromPage } = await import('../src/scan/sources/jibe.mjs');
+  assert.deepEqual(detect('https://ats.rippling.com/freshbooks/jobs'), { source: 'rippling', target: { slug: 'freshbooks' } });
+  const r = SOURCES.rippling.parse({ items: [{ id: 'a', name: 'Dev', url: 'https://ats.rippling.com/freshbooks/jobs/a', locations: [{ name: 'Toronto, ON' }], department: { name: 'Eng' } }], totalPages: 1 }, { slug: 'freshbooks' });
+  assert.equal(r[0].canada, true);
+  assert.deepEqual(eightfoldFromPage('<script src="https://static.vscdn.net/x.js">', 'https://jobs.autodesk.com/careers'), { host: 'jobs.autodesk.com' });
+  const e = SOURCES.eightfold.parse({ positions: [{ id: 7, name: 'Engineer', location: 'Vancouver, BC, Canada', t_create: 1762300000, canonicalPositionUrl: 'https://jobs.autodesk.com/careers/job/7' }], count: 1 }, { host: 'jobs.autodesk.com' });
+  assert.equal(e[0].url, 'https://jobs.autodesk.com/careers/job/7');
+  assert.equal(e[0].canada, true);
+  assert.deepEqual(jibeFromPage('<link href="https://app.jibecdn.com/x.css">', 'https://careers.rivian.com/'), { host: 'careers.rivian.com' });
+  const j = SOURCES.jibe.parse({ totalCount: 1, jobs: [{ data: { slug: '123', req_id: '123', title: 'Technician', city: 'Vancouver', state: 'BC', country: 'Canada', posted_date: '2026-11-01T00:00:00Z' } }] }, { host: 'careers.rivian.com', name: 'Rivian' });
+  assert.equal(j[0].url, 'https://careers.rivian.com/jobs/123');
+  assert.equal(j[0].canada, true);
+});
+
+test('phenom: careers site on another host of the same employer', async () => {
+  const { phenomFromPage } = await import('../src/scan/sources/phenom.mjs');
+  assert.deepEqual(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://careers.opentext.com/us/en/search-results">Jobs</a>', 'https://www.opentext.com/careers'), { host: 'careers.opentext.com', prefix: 'us/en' });
+  assert.equal(phenomFromPage('<script src="https://cdn.phenompeople.com/a.js"></script><a href="https://evil.example/us/en/job/1">', 'https://www.opentext.com/careers'), null);
+});
+
+test('successfactors, taleo, jobvite: targets and parsing', async () => {
+  const { parseTiles, sfFromPage } = await import('../src/scan/sources/successfactors.mjs');
+  const tiles = parseTiles('<li class="job-tile job-id-55 x" data-url="/job/Montreal-Analyst/55/"><a class="jobTitle-link" href="#">Analyst &amp; Planner</a><div id="j-section-city-value">Montréal, QC</div></li>', 'https://jobs.metro.ca');
+  assert.deepEqual(tiles, [{ id: '55', title: 'Analyst & Planner', url: 'https://jobs.metro.ca/job/Montreal-Analyst/55/', location: 'Montréal, QC' }]);
+  assert.deepEqual(sfFromPage('<script src="https://rmkcdn.successfactors.com/x.js">', 'https://jobs.metro.ca/'), { host: 'jobs.metro.ca', path: '' });
+  assert.deepEqual(detect('https://agnicoeagle.taleo.net/careersection/ext/jobsearch.ftl?lang=en'), { source: 'taleo', target: { host: 'agnicoeagle.taleo.net', section: 'ext', lang: 'en' } });
+  assert.equal(detect('https://chj.tbe.taleo.net/chj04/ats/careers'), null);
+  const t = SOURCES.taleo.parse({ requisitionList: [{ contestNo: '2600123', column: ['Mine Engineer', '["Canada-Nunavut-Baker Lake"]', 'Nov 2, 2026'] }] }, { host: 'agnicoeagle.taleo.net', section: 'ext', lang: 'en' }, ['Job Title', 'Location', 'Posting Date']);
+  assert.equal(t[0].url, 'https://agnicoeagle.taleo.net/careersection/ext/jobdetail.ftl?job=2600123&lang=en');
+  assert.equal(t[0].canada, true);
+  assert.deepEqual(detect('https://jobs.jobvite.com/absolute/jobs'), { source: 'jobvite', target: { slug: 'absolute' } });
+  const v = SOURCES.jobvite.parse('<result><job><id>o1</id><title>Support Analyst</title><location>Vancouver, BC</location><date>11/3/2026</date><detail-url><![CDATA[https://jobs.jobvite.com/absolute/job/o1]]></detail-url></job></result>', { slug: 'absolute' });
+  assert.equal(v[0].postedAt, '2026-11-03T00:00:00.000Z');
+  assert.equal(v[0].canada, true);
+});
+
+test('google and apple pages', async () => {
+  const { parseGoogle } = await import('../src/scan/sources/google.mjs');
+  const { parseApple } = await import('../src/scan/sources/apple.mjs');
+  const g = parseGoogle('<h3 class="x">Software Engineer, Maps</h3><p class="l103df">Google | Toronto, ON, Canada; Montreal, QC, Canada; +2 more</p><a href="jobs/results/1234-software-engineer-maps" aria-label="Learn more about Software Engineer, Maps">');
+  assert.deepEqual(g, [{ id: '1234', slug: 'software-engineer-maps', title: 'Software Engineer, Maps', employer: 'Google', places: ['Toronto, ON, Canada', 'Montreal, QC, Canada'] }]);
+  const blob = JSON.stringify(JSON.stringify({ loaderData: { search: { totalRecords: 1, searchResults: [{ id: '200-1', postingTitle: 'Specialist', transformedPostingTitle: 'specialist', postDateInGMT: '2026-11-01T00:00:00Z', locations: [{ name: 'Toronto' }] }] } } }));
+  const search = parseApple(`<script>window.__staticRouterHydrationData = JSON.parse(${blob});</script>`);
+  const jobs = SOURCES.apple.toJobs(search);
+  assert.equal(jobs[0].url, 'https://jobs.apple.com/en-ca/details/200-1/specialist');
+  assert.equal(jobs[0].canada, true);
+});
+
+test('successfactors tiles with several location fields; canadaOnly employers', async () => {
+  const { parseTiles } = await import('../src/scan/sources/successfactors.mjs');
+  const html = '<li class="job-tile job-id-9 a" data-url="/job/x/9/"><a class="jobTitle-link fontcolor" href="#">Clerk</a><div id="job-9-desktop-section-city-value" class="section-value">Kamloops</div><div id="job-9-desktop-section-country-value" class="section-value">CA</div></li>';
+  assert.equal(parseTiles(html, 'https://careers.bclc.com')[0].location, 'Kamloops, CA');
+  const { scanEmployers } = await import('../src/scan/scan.mjs');
+  SOURCES.__fake = { fetchJobs: async () => [{ id: 'f1', title: 'Clerk', location: 'Head Office', canada: false }, { id: 'f2', title: 'Analyst', location: 'Seattle, WA', canada: false }] };
+  const { jobs } = await scanEmployers([{ name: 'X', source: '__fake', target: {}, canadaOnly: true }]);
+  delete SOURCES.__fake;
+  assert.deepEqual([...jobs.values?.() ?? jobs].map(j => j.id), ['f1']);
+});
+
+test('successfactors search table rows', async () => {
+  const { parseSearchRows } = await import('../src/scan/sources/successfactors.mjs');
+  const html = '<tr class="data-row"> <td class="colTitle" headers="hdrTitle"> <span class="jobTitle hidden-phone"> <a href="/job/Toronto-QA-ON/605929917/" class="jobTitle-link">QA &amp; Testing</a> </span> <span class="jobLocation visible-phone"> <span class="jobLocation"> Toronto, ON, CA </span></span></td> <td class="colDate hidden-phone"><span class="jobDate">Nov 6, 2026 </span></td> <td class="colLocation hidden-phone" headers="hdrLocation"> <span class="jobLocation"> Mt. Laurel, NJ, US <small class="nobr">+1 more&hellip;</small> </span> </td> </tr>';
+  const [r] = parseSearchRows(html, 'https://jobs.scotiabank.com');
+  assert.equal(r.id, '605929917'); assert.equal(r.title, 'QA & Testing'); assert.equal(r.location, 'Mt. Laurel, NJ, US');
+  assert.equal(r.url, 'https://jobs.scotiabank.com/job/Toronto-QA-ON/605929917/'); assert.ok(r.postedAt.startsWith('2026-11-0'));
+});

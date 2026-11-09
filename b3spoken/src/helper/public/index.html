@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="b3spoken-token" content="__TOKEN__">
+<title>B3spoken</title>
+<link rel="stylesheet" href="/app.css">
+<script src="/roles.js" defer></script>
+<script src="/app.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="brand">B3spoken <span id="version" class="tag">preview</span></div>
+  <div id="status" class="status" aria-live="polite">Starting…</div>
+  <button id="checkUpdate" type="button" class="link">Check for updates</button>
+  <button id="healthGo" type="button" class="link">Health check</button>
+  <a class="setup-link" href="/setup">Edit setup</a>
+  <button id="refresh" type="button">Refresh</button>
+</header>
+<div id="update" class="update" hidden><span id="updateText"></span> <button id="updateGo" type="button" class="small primary">Update now</button></div>
+<main>
+  <section id="health" class="health" hidden aria-live="polite"></section>
+  <nav class="tabs" aria-label="Views">
+    <button type="button" data-view="" class="on">To apply <span class="n" data-count=""></span></button>
+    <button type="button" data-view="applied">Applied <span class="n" data-count="applied"></span></button>
+    <button type="button" data-view="interview">Interview <span class="n" data-count="interview"></span></button>
+    <button type="button" data-view="offer">Offer <span class="n" data-count="offer"></span></button>
+    <button type="button" data-view="rejected">Rejected <span class="n" data-count="rejected"></span></button>
+    <button type="button" data-view="not-interested">Not interested <span class="n" data-count="not-interested"></span></button>
+    <button type="button" data-view="due">Follow-ups <span id="dueCount"></span></button>
+  </nav>
+  <section class="paste" aria-label="Paste a job link">
+    <input id="pasteUrl" type="url" placeholder="Paste a job link from the employer's own site to check and tailor it" aria-label="Job link">
+    <button id="pasteGo" type="button">Check link</button>
+  </section>
+  <div id="pasteMsg" class="problems" hidden></div>
+  <ol id="pasted" class="list"></ol>
+  <section class="filters" aria-label="Filters">
+    <input id="q" type="search" placeholder="Search titles, companies, places" aria-label="Search">
+    <select id="province" aria-label="Province">
+      <option value="">All of Canada</option>
+      <option>BC</option><option>AB</option><option>SK</option><option>MB</option><option>ON</option><option>QC</option>
+      <option>NB</option><option>NS</option><option>PE</option><option>NL</option><option>YT</option><option>NT</option><option>NU</option>
+    </select>
+    <select id="remote" aria-label="Remote">
+      <option value="yes">Include remote</option>
+      <option value="only">Remote only</option>
+      <option value="no">No remote</option>
+    </select>
+    <select id="minLabel" aria-label="Match">
+      <option value="">All matches</option>
+      <option value="Good">Good and strong</option>
+      <option value="Strong">Strong only</option>
+    </select>
+    <select id="sort" aria-label="Sort">
+      <option value="score">Best match first</option>
+      <option value="date">Newest first</option>
+    </select>
+    <select id="age" aria-label="Posted">
+      <option value="3">Last 3 days</option>
+      <option value="2">Last 2 days</option>
+      <option value="1">Last 24 hours</option>
+    </select>
+  </section>
+  <section class="keywords">
+    <label for="kw">Job Bank keywords (comma separated, up to 12):</label>
+    <input id="kw" type="text" placeholder="software developer, security analyst">
+    <button id="saveKw" type="button">Save</button>
+  </section>
+  <div id="problems" class="problems" hidden></div>
+  <p id="count" class="count"></p>
+  <ol id="list" class="list"></ol>
+  <button id="more" type="button" hidden>Show more</button>
+</main>
+<dialog id="rolesBox" class="roles-box" aria-labelledby="rolesTitle">
+  <h2 id="rolesTitle">New role ideas</h2>
+  <p class="note">Your AI re-read your resume and found roles you haven't seen yet. Tick the ones to search for every morning and untick any you no longer want.</p>
+  <div id="rolesPick" class="choices"></div>
+  <div class="nav"><button id="rolesLater" type="button">Later</button><button id="rolesSave" type="button" class="primary">Save</button></div>
+</dialog>
+<footer>Jobs come from employers' own hiring systems, Job Bank and job sites that allow it. Job-site listings are shown only when the same job is on the employer's own board.</footer>
+</body>
+</html>

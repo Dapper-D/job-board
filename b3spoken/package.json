@@ -1,0 +1,15 @@
+{
+  "name": "b3spoken",
+  "version": "0.1.11",
+  "private": true,
+  "description": "B3spoken: verified jobs matched to your resume, tailored with your own AI, on your own computer.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "scan": "node src/scan/scan.mjs --employers catalog/employers.json --out out",
+    "live-check": "node scripts/live-check.mjs",
+    "helper": "node src/helper/main.mjs"
+  }
+}

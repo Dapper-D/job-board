@@ -1,0 +1,32 @@
+# B3spoken: find each employer's hiring system from catalog/seeds.json.
+# Runs when the employer list or the discovery code changes on the b3spoken branch (and by hand once this is on main).
+# The result is uploaded as a file to review; nothing is committed automatically.
+name: B3spoken discover employers
+on:
+  workflow_dispatch:
+  push:
+    branches: [b3spoken]
+    paths: ['b3spoken/catalog/seeds.json', 'b3spoken/src/scan/discover.mjs', 'b3spoken/src/scan/robots.mjs']
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: b3spoken
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: node src/scan/discover.mjs --in catalog/seeds.json --skip catalog/employers.json --out out/discovered.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: discovered-employers
+          path: b3spoken/out/discovered.json
+          retention-days: 14

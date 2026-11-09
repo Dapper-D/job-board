@@ -1,35 +1,65 @@
 <#
-  Job Hunt Kit - Windows setup
-  Right-click this file > "Run with PowerShell", or in PowerShell from this folder:
+  B3spoken - Windows setup from source (for people who want to see every file that goes on their computer)
+  Easiest: double-click setup.cmd in this folder (it unblocks the files and runs this script).
+  Or right-click this file > "Run with PowerShell", or in PowerShell from this folder:
       powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
-  Makes sure Node.js and Git are installed, then runs the setup (app\setup.mjs).
-  Safe to run again: it updates what's there and keeps your data.
-  Options are passed through, e.g.:  .\setup.ps1 --provider claude --no-schedule
+  What it does, and nothing else:
+    1. Makes sure Node.js 22 or newer is installed (with winget, if it's missing).
+    2. Adds a "B3spoken" shortcut to your Start menu (and your desktop if you add -Desktop).
+       The shortcut runs: node "<this folder>\b3spoken\src\helper\main.mjs"
+    3. Starts B3spoken, which opens in your browser at http://127.0.0.1:4747
+  B3spoken has no other packages to download: everything it runs is in this folder.
+  Your own files (resume, answers, tracker, documents) are kept in %LOCALAPPDATA%\B3spoken.
+  To remove it: uninstall.ps1 in this folder.
+  This is NOT the old Job Hunt Kit setup (that one lives on the main branch).
 #>
+param([switch]$Desktop, [switch]$NoLaunch, [switch]$Quiet)
 $ErrorActionPreference = 'Continue'
-$Kit = Split-Path -Parent $MyInvocation.MyCommand.Path
-function Fail($m) { Write-Host "`n$m" -ForegroundColor Red; Read-Host 'Press Enter to close'; exit 1 }
+$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Helper = Join-Path $Root 'b3spoken\src\helper\main.mjs'
+function Done { if (-not $Quiet) { Read-Host 'Press Enter to close' } }
+function Fail($m) { Write-Host "`n$m" -ForegroundColor Red; Done; exit 1 }
 function RefreshPath { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') }
 function Has($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
-function Winget($id, $name) {
-  if (-not (Has winget)) { Fail "$name is missing and winget isn't available. Install $name yourself, then run setup again." }
-  Write-Host "Installing $name (Windows may ask for permission)..."
-  winget install -e --id $id --accept-source-agreements --accept-package-agreements --silent | Out-Host
-  RefreshPath
-}
+
+Write-Host 'B3spoken setup' -ForegroundColor Cyan
+if (-not (Test-Path $Helper)) { Fail "Can't find $Helper. Run this from the folder you downloaded B3spoken into (it has a b3spoken folder inside)." }
 
 RefreshPath
-if (-not (Has node)) { Winget 'OpenJS.NodeJS.LTS' 'Node.js' }
-if (-not (Has node)) { Fail 'Node.js was installed but this window cannot see it yet. Close PowerShell, open it again, and rerun setup.' }
-$major = [int]((node -v).TrimStart('v').Split('.')[0])
-if ($major -lt 22) { Winget 'OpenJS.NodeJS.LTS' 'Node.js LTS (newer)'; $major = [int]((node -v).TrimStart('v').Split('.')[0]) }
-if ($major -lt 22) { Fail "Node $(node -v) is too old. Install Node 22 LTS or newer from https://nodejs.org and rerun setup." }
-if (-not (Has git)) { Winget 'Git.Git' 'Git' }
-if (-not (Has git)) { Fail 'Git was installed but this window cannot see it yet. Close PowerShell, open it again, and rerun setup.' }
+$major = 0
+if (Has node) { $major = [int]((node -v).TrimStart('v').Split('.')[0]) }
+if ($major -lt 22) {
+  if (-not (Has winget)) { Fail 'Node.js 22 or newer is needed. Install the LTS version from https://nodejs.org, then run setup again.' }
+  Write-Host 'Installing Node.js LTS with winget (Windows may ask for permission)...'
+  winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements --silent | Out-Host
+  RefreshPath
+  if (Has node) { $major = [int]((node -v).TrimStart('v').Split('.')[0]) }
+}
+if ($major -lt 22) { Fail 'Node.js was installed but this window cannot see it yet. Close PowerShell, open it again, and run setup again.' }
+$Node = (Get-Command node).Source
+Write-Host "Node.js $(node -v): $Node"
 
-Push-Location (Join-Path $Kit 'app')
-node setup.mjs @args
-$code = $LASTEXITCODE
-Pop-Location
-if ($code -ne 0) { Fail 'Setup stopped early. The reason is above, and in the logs folder.' }
-Read-Host 'Press Enter to close'
+$shell = New-Object -ComObject WScript.Shell
+$links = @(Join-Path ([Environment]::GetFolderPath('Programs')) 'B3spoken.lnk')
+if ($Desktop) { $links += Join-Path ([Environment]::GetFolderPath('Desktop')) 'B3spoken.lnk' }
+foreach ($l in $links) {
+  $s = $shell.CreateShortcut($l)
+  $s.TargetPath = $Node
+  $s.Arguments = "`"$Helper`""
+  $s.WorkingDirectory = $Root
+  $s.Description = 'Open B3spoken'
+  $s.IconLocation = "$Node,0"
+  $s.Save()
+  Write-Host "Shortcut: $l"
+}
+$data = Join-Path $env:LOCALAPPDATA 'B3spoken'
+New-Item -ItemType Directory -Force -Path $data | Out-Null
+@{ root = $Root; node = $Node; shortcuts = $links; installedAt = (Get-Date).ToString('o') } | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $data 'source-install.json')
+Write-Host "Your files will be kept in: $data"
+
+if (-not $NoLaunch) {
+  Write-Host 'Starting B3spoken. It opens in your browser and keeps running in the background, with an icon by the clock (right-click it to quit). It also starts by itself when you sign in; you can turn that off in its Health check.' -ForegroundColor Green
+  Start-Process -FilePath $Node -ArgumentList "`"$Helper`"" -WorkingDirectory $Root
+}
+Write-Host "`nDone. Next time, open B3spoken from the Start menu." -ForegroundColor Green
+Done
