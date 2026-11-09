@@ -1,0 +1,40 @@
+{
+  "offers": [
+    {
+      "id": 1453201,
+      "slug": "security-analyst",
+      "title": "Security Analyst",
+      "company_name": "Acme Labs",
+      "careers_url": "https://acmelabs.recruitee.com/o/security-analyst",
+      "careers_apply_url": "https://acmelabs.recruitee.com/o/security-analyst/c/new",
+      "location": "Vancouver, British Columbia",
+      "city": "Vancouver",
+      "country": "Canada",
+      "remote": false,
+      "department": "Security",
+      "employment_type_code": "fulltime",
+      "published_at": "2026-11-02 14:00:00 UTC",
+      "description": "<p>Watch alerts &amp; triage incidents.</p>",
+      "requirements": "<ul><li>SIEM</li><li>Python</li></ul>",
+      "salary": { "min": "85000", "max": "100000", "period": "year", "currency": "cad" },
+      "translations": { "en": { "title": "Security Analyst" } }
+    },
+    {
+      "id": 1453202,
+      "title": "Backend Developer",
+      "url": "https://careers.acmelabs.example/o/backend-developer",
+      "location": "Toronto, Ontario, Canada",
+      "locations": [
+        { "name": "Toronto, Ontario", "city": "Toronto", "country": "Canada" },
+        { "name": "Berlin", "city": "Berlin", "country": "Germany" }
+      ],
+      "remote": true,
+      "published_at": "2026-10-30 09:15:00 UTC",
+      "salary": { "min": null, "max": null, "period": null, "currency": null }
+    },
+    { "id": 1, "title": "Senior Marketer (Sample)", "careers_url": "https://acmelabs.recruitee.com/o/sample" },
+    { "id": 2, "title": "", "careers_url": "https://acmelabs.recruitee.com/o/blank" },
+    { "id": 3, "title": "Plain link", "careers_url": "http://acmelabs.recruitee.com/o/plain" },
+    null
+  ]
+}

@@ -1,9 +1,12 @@
-# B3spoken (branch b3spoken): builds B3spoken.exe and the Windows installer, installs it on a clean Windows
+# B3spoken: builds B3spoken.exe and the Windows installer, installs it on a clean Windows
 # runner, tests it, uninstalls it, and keeps the installer as a build artifact. Nothing is signed or published here.
 name: B3spoken Windows build
 on:
   push:
-    branches: [b3spoken]
+    branches: [main]
+    paths: ['b3spoken/**', 'setup.ps1', 'uninstall.ps1', '.github/workflows/b3spoken-windows.yml']
+  pull_request:
+    branches: [main]
     paths: ['b3spoken/**', 'setup.ps1', 'uninstall.ps1', '.github/workflows/b3spoken-windows.yml']
   workflow_dispatch:
 permissions:

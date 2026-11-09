@@ -1,9 +1,12 @@
-# B3spoken (branch b3spoken): unit tests on Windows, Mac and Linux, then a live check that calls every job source for real.
+# B3spoken: unit tests on Windows, Mac and Linux, then a live check that calls every job source for real.
 # No secrets are used here.
 name: B3spoken
 on:
   push:
-    branches: [b3spoken]
+    branches: [main]
+    paths: ['b3spoken/**', '.github/workflows/b3spoken.yml']
+  pull_request:
+    branches: [main]
     paths: ['b3spoken/**', '.github/workflows/b3spoken.yml']
   workflow_dispatch:
 permissions:

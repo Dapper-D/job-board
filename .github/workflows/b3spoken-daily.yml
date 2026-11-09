@@ -1,6 +1,6 @@
 # B3spoken daily shared scan (step 2): builds the Canada job pool and publishes it on the "job-pool" pre-release.
 # The scan job has read-only access; only the small publish job can write, and it only uploads the built files.
-# Schedules only run from the default branch, so until this is on main it runs on pushes to b3spoken and by hand.
+# Runs every day from main (schedules only run from the default branch), on pushes to main that change the scan, and by hand.
 name: B3spoken daily job pool
 on:
   schedule:
@@ -9,7 +9,7 @@ on:
     - cron: '17 4 * * *'
   workflow_dispatch:
   push:
-    branches: [b3spoken]
+    branches: [main]
     paths: ['b3spoken/src/scan/daily.mjs', 'b3spoken/src/scan/verify.mjs', '.github/workflows/b3spoken-daily.yml']
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          ref: b3spoken
+          ref: main
           persist-credentials: false
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
@@ -56,7 +56,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          gh release view job-pool -R "$REPO" >/dev/null 2>&1 || gh release create job-pool -R "$REPO" --prerelease --target b3spoken \
+          gh release view job-pool -R "$REPO" >/dev/null 2>&1 || gh release create job-pool -R "$REPO" --prerelease --target main \
             --title "B3spoken job pool (testing)" \
             --notes "Daily Canada job pool for B3spoken helpers, rebuilt every morning. Job-site listings stay under their sites' terms (see b3spoken/SOURCES.md) and may not be passed on to other job boards or aggregators."
           gh release upload job-pool -R "$REPO" --clobber pool/pool.json.gz pool/pool-meta.json pool/report.json

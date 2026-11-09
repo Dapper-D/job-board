@@ -1,6 +1,6 @@
 # B3spoken (work in progress)
 
-> This is the `b3spoken` branch, where B3spoken is being built and tested. The current **Job Hunt Kit** lives on the [`main` branch](https://github.com/Dapper-D/job-board/tree/main) and keeps working while this is built. B3spoken is a placeholder name.
+> B3spoken is built and released from the `main` branch. Old Job Hunt Kit installs move to B3spoken by themselves when they update (kit 3.0.0). B3spoken is a placeholder name.
 
 B3spoken is a free, open-source job search tool. It finds verified jobs every day, matches them to each person's resume and writes them tailored resumes and cover letters using the AI they already pay for. It is a ground-up rebuild of the Job Hunt Kit with no career-ops code in its architecture.
 

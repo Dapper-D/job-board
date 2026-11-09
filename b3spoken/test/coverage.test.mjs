@@ -42,3 +42,33 @@ test('job-site check: boards found before are reused, recent misses skipped, the
     assert.equal(r.known.beta.source, 'lever'); // still remembered for tomorrow
   } finally { SOURCES.lever.fetchJobs = realLever; }
 });
+
+test('daily discovery: listed employers get looked up, remembered, and scanned without editing the catalog', async () => {
+  const { discoverDaily } = await import('../src/scan/daily.mjs');
+  const seeds = [{ name: 'Hootsuite', domain: 'hootsuite.com' }, { name: 'Acme Security', domain: 'acme.example' }, { name: 'Nobody Inc', domain: 'nobody.example' }, { name: 'Old Miss', domain: 'old.example' }];
+  const catalog = [{ name: 'Hootsuite', source: 'greenhouse', target: { board: 'hootsuite' } }];
+  const asked = [];
+  const find = async list => { asked.push(...list.map(s => s.name)); return { found: list.filter(s => s.name === 'Acme Security').map(s => ({ name: s.name, source: 'lever', target: { site: 'acme' }, how: 'link on careers page' })), missing: list.filter(s => s.name !== 'Acme Security') }; };
+  const previous = { oldmiss: { name: 'Old Miss', none: '2026-11-05' } }; // tried 4 days ago: not again yet
+  const r = await discoverDaily(seeds, catalog, previous, { find, today: '2026-11-09' });
+  assert.deepEqual(asked, ['Acme Security', 'Nobody Inc']); // not the catalog one, not a recent miss
+  assert.deepEqual(r.employers, [{ name: 'Acme Security', source: 'lever', target: { site: 'acme' }, found: 'link on careers page' }]);
+  assert.equal(r.discovered.nobody.none, '2026-11-09');
+  // Next day: the found employer is scanned again without another lookup.
+  asked.length = 0;
+  const r2 = await discoverDaily(seeds, catalog, r.discovered, { find, today: '2026-11-10' });
+  assert.deepEqual(asked, []);
+  assert.equal(r2.employers.length, 1);
+  // Two weeks later the misses are tried again.
+  await discoverDaily(seeds, catalog, r.discovered, { find, today: '2026-11-24' });
+  assert.deepEqual(asked.sort(), ['Nobody Inc', 'Old Miss']);
+});
+
+test('daily discovery: a found board that fails when read goes back to be looked up again', async () => {
+  const { forgetFailed } = await import('../src/scan/daily.mjs');
+  const discovered = { metro: { name: 'Metro', source: 'successfactors', target: { host: 'www.metro.ca' } }, ea: { name: 'Electronic Arts', source: 'avature', target: {} } };
+  forgetFailed(discovered, [{ name: 'Metro', source: 'successfactors', ok: false, error: 'HTTP 404' }, { name: 'Electronic Arts', source: 'avature', ok: true }], '2026-11-09');
+  assert.equal(discovered.metro.none, '2026-11-09');
+  assert.equal(discovered.metro.source, undefined);
+  assert.equal(discovered.ea.source, 'avature');
+});

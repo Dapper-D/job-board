@@ -1,9 +1,12 @@
-# B3spoken (branch b3spoken): builds the Mac and Linux apps (one file each, Node inside) and tests them:
+# B3spoken: builds the Mac and Linux apps (one file each, Node inside) and tests them:
 # they start, load and verify the real job pool, and serve the board. Nothing is published here.
 name: B3spoken Mac and Linux build
 on:
   push:
-    branches: [b3spoken]
+    branches: [main]
+    paths: ['b3spoken/**', '.github/workflows/b3spoken-mac-linux.yml']
+  pull_request:
+    branches: [main]
     paths: ['b3spoken/**', '.github/workflows/b3spoken-mac-linux.yml']
   workflow_dispatch:
 permissions:
