@@ -4,7 +4,9 @@
 name: B3spoken daily job pool
 on:
   schedule:
-    - cron: '23 10 * * *'
+    # 04:17 UTC (8:17 pm Pacific the evening before). GitHub often starts scheduled runs hours late; at the old
+    # 10:23 UTC slot runs began around 16:30-17:30 UTC, after the 6 am Pacific board refreshes that read this pool.
+    - cron: '17 4 * * *'
   workflow_dispatch:
   push:
     branches: [b3spoken]
