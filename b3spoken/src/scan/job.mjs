@@ -100,6 +100,9 @@ export const NOT_CANADA = /\b(uk|united kingdom|england|usa|united states|u\.s\.
 export function isCanada(location, remote = false) {
   const loc = String(location || '');
   if (!loc) return false;
+  // Several locations ("Vancouver / San Francisco, United States"): Canadian if any one of them is.
+  const parts = loc.split(/\s+\/\s+|\s*;\s*/).filter(Boolean);
+  if (parts.length > 1) return parts.some(p => isCanada(p, remote));
   const low = loc.toLowerCase();
   if (/\bcanada\b|\bcanadian\b|\bcan\b(?= *$)/i.test(loc)) return true;
   if (PROVINCES.some(p => low.includes(p))) return true;

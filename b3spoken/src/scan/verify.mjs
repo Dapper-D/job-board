@@ -18,7 +18,7 @@ export function sameTitle(a, b) {
 
 // Find a company's own board by name: Greenhouse and Workable confirm the company name; for Ashby and Lever
 // the board name must equal the company name, and the title match below confirms it.
-export async function findBoardJobs(company) {
+export async function findBoardJobs(company, title = '') {
   const slugs = slugGuesses(company);
   for (const slug of slugs) {
     try {
@@ -40,34 +40,67 @@ export async function findBoardJobs(company) {
       if (sameCompany(r.json?.name, company)) return { source: 'workable', target: { account: slug }, jobs: SOURCES.workable.parse(r.json, { account: slug }) };
     } catch {}
   }
+  // SmartRecruiters and BambooHR don't tell us the company's name, so the job's own title must be on the board.
+  if (title) for (const slug of slugs.slice(0, 2)) {
+    for (const [source, target, opts] of [['smartrecruiters', { company: slug }, { details: false }], ['bamboohr', { host: `${slug}.bamboohr.com` }]]) {
+      try {
+        const jobs = await SOURCES[source].fetchJobs({ ...target, name: company }, opts);
+        if (jobs.some(e => sameTitle(e.title, title))) return { source, target, jobs };
+      } catch {}
+    }
+  }
   return null;
 }
 
-/** verifyFeedJobs(feedJobs, employerJobs) -> { verified, dropped, newBoards } */
-export async function verifyFeedJobs(feedJobs, employerJobs, { maxLookups = 250, log = () => {} } = {}) {
+/**
+ * verifyFeedJobs(feedJobs, employerJobs, { known }) -> { verified, dropped, newBoards, known }
+ * known remembers, from one day to the next, each company's board ({ name, source, target }) or that none was found
+ * ({ none: date }), so the daily lookup limit is spent on companies not tried before. A company with no board found
+ * is tried again after RETRY_DAYS.
+ */
+export const RETRY_DAYS = 7;
+export async function verifyFeedJobs(feedJobs, employerJobs, { maxLookups = 600, known = {}, log = () => {}, today = new Date().toISOString().slice(0, 10) } = {}) {
   const byCompany = new Map();
   for (const j of employerJobs) {
     const k = companyKey(j.company);
     if (!byCompany.has(k)) byCompany.set(k, []);
     byCompany.get(k).push(j);
   }
+  const mem = { ...known };
+  const recent = d => d && (Date.parse(today) - Date.parse(d)) / 864e5 < RETRY_DAYS;
   const verified = [], dropped = [], newBoards = [];
   const looked = new Map();
   let lookups = 0;
   for (const j of feedJobs) {
     const k = companyKey(j.company);
     let pool = byCompany.get(k);
-    if (!pool && !looked.has(k) && lookups < maxLookups) {
-      lookups++;
-      const found = await findBoardJobs(j.company);
-      looked.set(k, found);
-      if (found) { pool = found.jobs; byCompany.set(k, pool); newBoards.push({ name: j.company, source: found.source, target: found.target }); log(`board for ${j.company}: ${found.source}`); }
-    }
+    let why = 'employer board not found';
+    if (!pool && !looked.has(k)) {
+      const m = mem[k];
+      if (m?.source && SOURCES[m.source]) {
+        // A board found on an earlier day: read it again directly.
+        try { pool = await SOURCES[m.source].fetchJobs({ ...m.target, name: j.company }, { details: false }); } catch { pool = null; }
+        looked.set(k, pool);
+        if (pool) byCompany.set(k, pool);
+      } else if (m?.none && recent(m.none)) {
+        looked.set(k, null);
+      } else if (lookups < maxLookups) {
+        lookups++;
+        const found = await findBoardJobs(j.company, j.title);
+        looked.set(k, found ? found.jobs : null);
+        if (found) {
+          pool = found.jobs; byCompany.set(k, pool);
+          mem[k] = { name: j.company, source: found.source, target: found.target, found: today };
+          newBoards.push({ name: j.company, source: found.source, target: found.target });
+          log(`board for ${j.company}: ${found.source}`);
+        } else mem[k] = { name: j.company, none: today };
+      } else why = 'not checked today (daily lookup limit)';
+    } else if (!pool) pool = looked.get(k) || null;
     const match = (pool || []).find(e => sameTitle(e.title, j.title));
     // The Apply link stays the job site's own (Himalayas requires its applicationLink for every Apply; the others ask
     // for a link back). The employer's own posting is kept beside it as employerUrl.
     if (match) verified.push({ ...j, employerVerified: true, employerUrl: match.url, description: j.description || match.description });
-    else dropped.push({ source: j.source, company: j.company, title: j.title, why: pool ? 'title not on the employer\'s board' : 'employer board not found' });
+    else dropped.push({ source: j.source, company: j.company, title: j.title, why: pool ? 'title not on the employer\'s board' : why });
   }
-  return { verified, dropped, newBoards };
+  return { verified, dropped, newBoards, known: mem };
 }

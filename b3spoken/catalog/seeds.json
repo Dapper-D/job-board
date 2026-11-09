@@ -122,11 +122,6 @@
    "sector": "tech"
   },
   {
-   "name": "Bench Accounting",
-   "domain": "bench.co",
-   "sector": "tech"
-  },
-  {
    "name": "Trulioo",
    "domain": "trulioo.com",
    "sector": "tech"
@@ -204,11 +199,6 @@
   {
    "name": "Hopper",
    "domain": "hopper.com",
-   "sector": "tech"
-  },
-  {
-   "name": "Element AI",
-   "domain": "elementai.com",
    "sector": "tech"
   },
   {
@@ -577,11 +567,6 @@
    "sector": "tech"
   },
   {
-   "name": "Shaw",
-   "domain": "shaw.ca",
-   "sector": "tech"
-  },
-  {
    "name": "Videotron",
    "domain": "videotron.com",
    "sector": "tech"
@@ -607,18 +592,8 @@
    "sector": "tech"
   },
   {
-   "name": "Sierra Wireless",
-   "domain": "sierrawireless.com",
-   "sector": "tech"
-  },
-  {
    "name": "Celestica",
    "domain": "celestica.com",
-   "sector": "tech"
-  },
-  {
-   "name": "Ritual",
-   "domain": "ritual.co",
    "sector": "tech"
   },
   {
@@ -637,18 +612,8 @@
    "sector": "tech"
   },
   {
-   "name": "Galvanize",
-   "domain": "wegalvanize.com",
-   "sector": "tech"
-  },
-  {
    "name": "Teck Digital",
    "domain": "teck.com",
-   "sector": "tech"
-  },
-  {
-   "name": "Two Hat",
-   "domain": "twohat.com",
    "sector": "tech"
   },
   {
@@ -692,11 +657,6 @@
    "sector": "tech"
   },
   {
-   "name": "Copperleaf",
-   "domain": "copperleaf.com",
-   "sector": "tech"
-  },
-  {
    "name": "Fispan",
    "domain": "fispan.com",
    "sector": "tech"
@@ -719,11 +679,6 @@
   {
    "name": "Q4 Inc",
    "domain": "q4inc.com",
-   "sector": "tech"
-  },
-  {
-   "name": "Rubikloud",
-   "domain": "rubikloud.com",
    "sector": "tech"
   },
   {
@@ -779,11 +734,6 @@
   {
    "name": "Clearco",
    "domain": "clear.co",
-   "sector": "tech"
-  },
-  {
-   "name": "Properly",
-   "domain": "properly.ca",
    "sector": "tech"
   },
   {
