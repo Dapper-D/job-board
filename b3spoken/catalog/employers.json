@@ -2855,30 +2855,12 @@
       "sector": "tech"
     },
     {
-      "name": "Lightspeed Commerce",
-      "source": "greenhouse",
-      "target": {
-        "board": "lightspeedhq"
-      },
-      "found": "job link seen in search results: https://job-boards.greenhouse.io/lightspeedhq/jobs/7743608",
-      "sector": "tech"
-    },
-    {
       "name": "Constellation Software",
       "source": "greenhouse",
       "target": {
         "board": "constellationsoftwareinc"
       },
       "found": "job link seen in search results: https://job-boards.greenhouse.io/constellationsoftwareinc/jobs/4581475006",
-      "sector": "tech"
-    },
-    {
-      "name": "Sanctuary AI",
-      "source": "lever",
-      "target": {
-        "site": "sanctuary"
-      },
-      "found": "job link seen in search results: https://jobs.lever.co/sanctuary",
       "sector": "tech"
     },
     {
@@ -2897,24 +2879,6 @@
         "board": "leagueinc"
       },
       "found": "job link seen in search results: https://job-boards.greenhouse.io/leagueinc/jobs/5566750004",
-      "sector": "tech"
-    },
-    {
-      "name": "Dialogue",
-      "source": "greenhouse",
-      "target": {
-        "board": "dialoguehealthtechnologiesinc"
-      },
-      "found": "job link seen in search results: https://job-boards.greenhouse.io/dialoguehealthtechnologiesinc/jobs/5648972004",
-      "sector": "tech"
-    },
-    {
-      "name": "Vidyard",
-      "source": "greenhouse",
-      "target": {
-        "board": "vidyard"
-      },
-      "found": "job link seen in search results: https://job-boards.greenhouse.io/vidyard/jobs/7177893",
       "sector": "tech"
     },
     {
