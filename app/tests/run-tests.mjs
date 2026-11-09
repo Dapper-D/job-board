@@ -123,6 +123,33 @@ ok(threw, 'no release key means no update (fails closed)');
 ok((await fetch(base + '/fonts/Carlito-Regular.ttf')).status === 200 && (await fetch(base + '/vendor/pdfmake.min.js')).status === 200 && (await fetch(base + '/tailorpdf.js')).status === 200, 'fonts and PDF builder served locally');
 const snap = await (await fetch(base + '/api/all', { headers: H })).json();
 ok(snap.lib && snap.lib.name === 'Sam Tester', 'board receives the resume library');
+// 3.0.0: updating moves the kit to B3spoken (system steps replaced, the file steps are real).
+{
+  const M = await import('../lib/migrate-b3spoken.mjs');
+  const root = join(T, 'mig'), kit = join(root, 'job board'), src = join(root, 'rel'), data = join(root, 'b3data');
+  for (const d of [join(kit, 'app'), join(kit, 'data'), join(src, 'app'), join(src, 'b3spoken', 'src', 'helper')]) mkdirSync(d, { recursive: true });
+  writeFileSync(join(kit, 'config.json'), '{"name":"Sam"}'); writeFileSync(join(kit, 'app', 'package.json'), '{"name":"job-hunt-kit","version":"2.2.0"}');
+  writeFileSync(join(src, 'app', 'package.json'), '{"version":"3.0.0"}'); writeFileSync(join(src, 'b3spoken', 'src', 'helper', 'main.mjs'), '// b3');
+  writeFileSync(join(src, 'setup.sh'), '#'); writeFileSync(join(src, 'README.md'), 'B3spoken');
+  ok(M.hasB3spoken(src) && !M.hasB3spoken(kit), 'switch-over: a release with B3spoken is recognised');
+  const calls = [];
+  const deps = { dataDir: () => data, setup: t => calls.push('setup:' + t), unschedule: () => calls.push('unschedule'), removeShortcut: () => calls.push('shortcut'), start: t => calls.push('start:' + t) };
+  let m = await M.migrate({ kit, source: src, say: () => {}, deps });
+  const target = join(root, 'B3spoken');
+  ok(m.ok && m.target === target && existsSync(join(target, 'b3spoken', 'src', 'helper', 'main.mjs')) && existsSync(join(target, 'setup.sh')), 'switch-over: B3spoken copied next to the kit');
+  ok(JSON.parse(readFileSync(join(data, M.HINT), 'utf8')).dir === kit, 'switch-over: B3spoken is told where the kit is, to import it');
+  ok(calls.join() === ['setup:' + target, 'unschedule', 'shortcut', 'start:' + target].join(), 'switch-over: shortcut added before the kit\'s refresh and shortcut are removed, then B3spoken starts');
+  ok(readFileSync(join(kit, 'config.json'), 'utf8') === '{"name":"Sam"}' && existsSync(join(kit, 'data')) && existsSync(join(kit, M.NOTE)), 'switch-over: kit data kept, note left in the kit folder');
+  ok(JSON.parse(readFileSync(join(kit, 'app', 'package.json'), 'utf8')).version === '3.0.0', 'switch-over: the old board stops offering the same update');
+  // A failing B3spoken setup leaves the kit untouched.
+  const kit2 = join(root, 'k2', 'job board'); mkdirSync(join(kit2, 'app'), { recursive: true }); writeFileSync(join(kit2, 'config.json'), '{}');
+  const calls2 = [];
+  m = await M.migrate({ kit: kit2, source: src, say: () => {}, deps: { ...deps, setup: () => { throw new Error('no node'); }, unschedule: () => calls2.push('unschedule'), removeShortcut: () => calls2.push('shortcut'), start: () => calls2.push('start') } });
+  ok(!m.ok && m.kitChanged === false && !calls2.length && !existsSync(join(kit2, M.NOTE)), 'switch-over: if B3spoken setup fails, the kit keeps its refresh and shortcut');
+  // An unrelated folder called B3spoken is never overwritten.
+  const kit3 = join(root, 'k3', 'job board'); mkdirSync(join(kit3, 'app'), { recursive: true }); mkdirSync(join(root, 'k3', 'B3spoken')); writeFileSync(join(root, 'k3', 'B3spoken', 'mine.txt'), 'x');
+  ok(M.chooseTarget(kit3, '2026-11-09') === join(root, 'k3', 'B3spoken 2026-11-09') && M.chooseTarget(kit) === target, 'switch-over: another folder named B3spoken is left alone; an earlier B3spoken copy is reused');
+}
 srv.kill(); site.close();
 if (process.env.KEEP_TEST_DIR) console.log('TEST_DIR ' + T);
 console.log(fails ? `\n${fails} failed` : '\nAll passed'); process.exit(fails ? 1 : 0);

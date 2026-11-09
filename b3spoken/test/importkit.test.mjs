@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findKits, readKit, profileFromConfig } from '../src/helper/importkit.mjs';
@@ -47,4 +47,27 @@ test('import into the app: library, answers, AI choice and tracked jobs', () => 
   assert.equal(app.tracker()['kit:j1'].status, 'applied');
   assert.ok(app.jobs().some(j => j.id === 'kit:j1' && j.track?.status === 'applied'));
   assert.match(readFileSync(join(dir, 'resume.txt'), 'utf8'), /Built a Python service\./);
+});
+
+test('moved here by the kit\'s update: imports the kit once on first start, never over an existing setup', () => {
+  const home = mkdtempSync(join(tmpdir(), 'b3-home-'));
+  const kit = makeKit(join(home, 'Somewhere else')); // not one of the usual places
+  const dir = mkdtempSync(join(tmpdir(), 'b3-data-'));
+  writeFileSync(join(dir, 'kit-import.json'), JSON.stringify({ dir: kit }));
+  assert.equal(findKits(home, dir)[0], kit); // the kit the update pointed to comes first
+  const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}) } });
+  const r = app.autoImportKit();
+  assert.equal(r.imported.length, 3);
+  assert.equal(app.library().entries.length, 4);
+  assert.ok(!existsSync(join(dir, 'kit-import.json')) && existsSync(join(dir, 'kit-import.done.json'))); // only once
+  assert.equal(app.autoImportKit(), null);
+
+  // Someone who already set up B3spoken keeps their own answers and library.
+  const dir2 = mkdtempSync(join(tmpdir(), 'b3-data-'));
+  writeFileSync(join(dir2, 'library.json'), JSON.stringify({ contact: { name: 'Mine' }, entries: [], skills: [] }));
+  writeFileSync(join(dir2, 'kit-import.json'), JSON.stringify({ dir: kit }));
+  const app2 = createApp(dir2, { offline: true, log: () => {}, deps: { detect: async () => ({}) } });
+  assert.equal(app2.autoImportKit(), null);
+  assert.equal(JSON.parse(readFileSync(join(dir2, 'library.json'), 'utf8')).contact.name, 'Mine');
+  assert.ok(existsSync(join(dir2, 'kit-import.done.json')));
 });

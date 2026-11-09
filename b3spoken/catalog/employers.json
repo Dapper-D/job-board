@@ -44,6 +44,15 @@
       }
     },
     {
+      "name": "Clio",
+      "source": "workday",
+      "target": {
+        "host": "clio.wd3.myworkdayjobs.com",
+        "tenant": "clio",
+        "site": "ClioCareerSite"
+      }
+    },
+    {
       "name": "University of British Columbia",
       "source": "workday",
       "target": {
