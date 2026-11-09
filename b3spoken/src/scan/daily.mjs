@@ -44,7 +44,18 @@ export async function previousKnownBoards(file, repo) { return (await previousRe
 // Every listed employer (catalog/seeds.json) without a known hiring system gets looked up, a few each day, so new
 // employers are scanned without anyone editing the catalog. Found ones are scanned from then on; ones not found are
 // tried again after RETRY_DAYS. Returns { employers to add to today's scan, discovered (to keep for tomorrow) }.
-export const DISCOVER_PER_DAY = 80, DISCOVER_RETRY_DAYS = 14;
+// A discovered board that fails when read (e.g. a 404 from a wrong guess) goes back to "not found", so it's
+// looked up again later instead of failing every day.
+export function forgetFailed(discovered, report, today = new Date().toISOString().slice(0, 10)) {
+  const failed = new Map(report.filter(r => !r.ok).map(r => [nameKey(r.name), r]));
+  for (const [k, d] of Object.entries(discovered)) {
+    const f = d.source && failed.get(k);
+    if (f && f.source === d.source) discovered[k] = { name: d.name, none: today, failedSource: d.source, error: String(f.error || '').slice(0, 120) };
+  }
+  return discovered;
+}
+
+export const DISCOVER_PER_DAY = 200, DISCOVER_RETRY_DAYS = 14;
 export async function discoverDaily(seeds, catalog, previous = {}, { log = () => {}, today = new Date().toISOString().slice(0, 10), find = discover, perDay = DISCOVER_PER_DAY } = {}) {
   const inCatalog = new Set(catalog.map(e => nameKey(e.name)));
   const mem = { ...previous };
@@ -77,6 +88,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const { employers: extra, discovered } = await discoverDaily(seeds, employers, prev.discovered || {}, { log: console.log });
   console.log(`Employers found by discovery and scanned today: ${extra.length}`);
   const { pool, report, dropped, newBoards, knownBoards, counts } = await buildPool([...employers, ...extra], { log: console.log, known });
+  forgetFailed(discovered, report);
   const generatedAt = new Date().toISOString();
   const attribution = Object.values(SOURCES).filter(s => s.feed).map(s => ({ source: s.id, name: s.label }));
   const body = JSON.stringify({ version: 1, generatedAt, country: 'CA', count: pool.length, attribution,

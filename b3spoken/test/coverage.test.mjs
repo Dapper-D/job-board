@@ -63,3 +63,12 @@ test('daily discovery: listed employers get looked up, remembered, and scanned w
   await discoverDaily(seeds, catalog, r.discovered, { find, today: '2026-11-24' });
   assert.deepEqual(asked.sort(), ['Nobody Inc', 'Old Miss']);
 });
+
+test('daily discovery: a found board that fails when read goes back to be looked up again', async () => {
+  const { forgetFailed } = await import('../src/scan/daily.mjs');
+  const discovered = { metro: { name: 'Metro', source: 'successfactors', target: { host: 'www.metro.ca' } }, ea: { name: 'Electronic Arts', source: 'avature', target: {} } };
+  forgetFailed(discovered, [{ name: 'Metro', source: 'successfactors', ok: false, error: 'HTTP 404' }, { name: 'Electronic Arts', source: 'avature', ok: true }], '2026-11-09');
+  assert.equal(discovered.metro.none, '2026-11-09');
+  assert.equal(discovered.metro.source, undefined);
+  assert.equal(discovered.ea.source, 'avature');
+});
