@@ -23,11 +23,41 @@ export function htmlToText(html) {
 }
 
 const clip = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : s || '');
+// A posting date more than two days ahead is a closing date or a misread format, not when it was posted.
+const FUTURE_SLACK_MS = 2 * 24 * 3600 * 1000;
 const iso = v => {
   if (v === null || v === undefined || v === '') return null;
   const d = typeof v === 'number' ? new Date(v < 1e12 ? v * 1000 : v) : new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  if (Number.isNaN(d.getTime()) || d.getTime() > Date.now() + FUTURE_SLACK_MS) return null;
+  return d.toISOString();
 };
+
+const money = n => {
+  const x = Number(String(n ?? '').replace(/[^\d.]/g, ''));
+  return Number.isFinite(x) && x > 0 ? x.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
+};
+// Salary as readable text. Some systems send an object (Greenhouse: {min_value, max_value, unit}) rather than text.
+export function salaryText(v) {
+  if (v === null || v === undefined) return '';
+  if (Array.isArray(v)) return v.map(salaryText).filter(Boolean).join(', ');
+  if (typeof v === 'object') {
+    const lo = money(v.min_value ?? v.min ?? v.minimum ?? v.from), hi = money(v.max_value ?? v.max ?? v.maximum ?? v.to);
+    const cur = String(v.unit ?? v.currency ?? v.currency_code ?? '').trim();
+    if (lo || hi) return `${cur} ${lo}${lo && hi ? ' – ' : ''}${hi}`.trim();
+    const t = v.value ?? v.text ?? v.label;
+    return t !== undefined && t !== null && typeof t !== 'object' ? String(t) : '';
+  }
+  const s = String(v);
+  return /^\[object \w+\]$/.test(s) ? '' : s;
+}
+
+// When no salary field is sent, many Canadian postings state the range in the text (pay transparency).
+const AMT = String.raw`(?:CA?\$|US\$|\$)\s?\d[\d,]*(?:\.\d+)?\s?[kK]?`;
+const PAY_RANGE = new RegExp(String.raw`(?:pay|salary|compensation|wage)[^\n]{0,80}\n?[^\n]{0,40}?(${AMT}\s*(?:[-–—]|to)\s*${AMT}(?:\s*(?:CAD|USD|per (?:year|hour|annum)|\/\s?(?:yr|year|hr|hour)|annually|hourly))?)`, 'i');
+export function salaryFromText(text) {
+  const m = String(text || '').match(PAY_RANGE);
+  return m ? m[1].replace(/\s+/g, ' ').trim() : '';
+}
 
 /** Build a normalized job. Returns null when the essentials (title, a real https link) are missing. */
 export function makeJob({ source, company, nativeId, title, url, applyUrl, location, remote, postedAt, description, salary, department, employment, via, canada }) {
@@ -51,7 +81,7 @@ export function makeJob({ source, company, nativeId, title, url, applyUrl, locat
     postedAt: iso(postedAt),
     department: department ? String(department).trim() : '',
     employment: employment ? String(employment).trim() : '',
-    salary: salary ? String(salary).replace(/\s+/g, ' ').trim() : '',
+    salary: (salaryText(salary) || salaryFromText(description)).replace(/\s+/g, ' ').trim(),
     description: clip(description || '', 20000),
     // Jobs from job sites (not the employer's own hiring system) name the site and must link back to it,
     // and still need matching to the employer's own posting before they reach anyone's board.

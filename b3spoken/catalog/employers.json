@@ -16,6 +16,13 @@
       }
     },
     {
+      "name": "Northbeam",
+      "source": "greenhouse",
+      "target": {
+        "board": "northbeam"
+      }
+    },
+    {
       "name": "Coalfire",
       "source": "lever",
       "target": {
