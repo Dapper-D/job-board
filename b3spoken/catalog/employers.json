@@ -44,6 +44,15 @@
       }
     },
     {
+      "name": "Clio",
+      "source": "workday",
+      "target": {
+        "host": "clio.wd3.myworkdayjobs.com",
+        "tenant": "clio",
+        "site": "ClioCareerSite"
+      }
+    },
+    {
       "name": "University of British Columbia",
       "source": "workday",
       "target": {
@@ -2835,6 +2844,90 @@
       },
       "found": "link on https://jobs.alberta.ca/",
       "canadaOnly": true
+    },
+    {
+      "name": "Coveo",
+      "source": "greenhouse",
+      "target": {
+        "board": "coveodeven"
+      },
+      "found": "job link seen in search results: https://job-boards.greenhouse.io/coveodeven/jobs/6397132002",
+      "sector": "tech"
+    },
+    {
+      "name": "Constellation Software",
+      "source": "greenhouse",
+      "target": {
+        "board": "constellationsoftwareinc"
+      },
+      "found": "job link seen in search results: https://job-boards.greenhouse.io/constellationsoftwareinc/jobs/4581475006",
+      "sector": "tech"
+    },
+    {
+      "name": "Ada",
+      "source": "greenhouse",
+      "target": {
+        "board": "ada18"
+      },
+      "found": "job link seen in search results: https://job-boards.greenhouse.io/ada18/jobs/4781884007",
+      "sector": "tech"
+    },
+    {
+      "name": "League",
+      "source": "greenhouse",
+      "target": {
+        "board": "leagueinc"
+      },
+      "found": "job link seen in search results: https://job-boards.greenhouse.io/leagueinc/jobs/5566750004",
+      "sector": "tech"
+    },
+    {
+      "name": "Ubisoft",
+      "source": "smartrecruiters",
+      "target": {
+        "company": "Ubisoft2"
+      },
+      "found": "job link seen in search results: https://careers.smartrecruiters.com/Ubisoft2",
+      "sector": "tech"
+    },
+    {
+      "name": "Behaviour Interactive",
+      "source": "lever",
+      "target": {
+        "site": "bhvr"
+      },
+      "found": "job link seen in search results: https://jobs.lever.co/bhvr",
+      "sector": "tech"
+    },
+    {
+      "name": "DoorDash",
+      "source": "greenhouse",
+      "target": {
+        "board": "doordashcanada"
+      },
+      "found": "job link seen in search results: https://job-boards.greenhouse.io/doordashcanada/jobs/7976398",
+      "sector": "tech"
+    },
+    {
+      "name": "Rogers",
+      "source": "successfactors",
+      "target": {
+        "host": "jobs.rogers.com",
+        "path": ""
+      },
+      "found": "job link seen in search results: https://jobs.rogers.com/ (SAP SuccessFactors)",
+      "sector": "tech",
+      "canadaOnly": true
+    },
+    {
+      "name": "Teck",
+      "source": "successfactors",
+      "target": {
+        "host": "jobs.teck.com",
+        "path": ""
+      },
+      "found": "job link seen in search results: https://jobs.teck.com/ (SAP SuccessFactors)",
+      "sector": "industrial"
     }
   ]
 }

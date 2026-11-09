@@ -16,17 +16,27 @@ import { SOURCES } from './sources/index.mjs';
 
 const DESCRIPTION_MAX = 8000;
 
-export async function buildPool(employers, { log = () => {} } = {}) {
+export async function buildPool(employers, { log = () => {}, known = {} } = {}) {
   const { jobs, report } = await scanEmployers(employers, { log });
   const own = jobs.filter(j => j.employerVerified);
   const fromSites = jobs.filter(j => !j.employerVerified);
   log(`\nChecking ${fromSites.length} job-site jobs against employers' own boards...`);
-  const { verified, dropped, newBoards } = await verifyFeedJobs(fromSites, own, { log });
+  const { verified, dropped, newBoards, known: knownBoards } = await verifyFeedJobs(fromSites, own, { log, known });
   const pool = dedupe([...own, ...verified]).map(j => ({ ...j, description: j.description.length > DESCRIPTION_MAX ? j.description.slice(0, DESCRIPTION_MAX) + '…' : j.description }));
   pool.sort((a, b) => String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
   const listings = own.length + verified.length;
   const bySource = pool.reduce((m, j) => (m[j.source] = (m[j.source] || 0) + 1, m), {});
-  return { pool, report, dropped, newBoards, counts: { uniqueJobs: pool.length, listingsSeen: listings, duplicatesMerged: listings - pool.length, siteJobs: fromSites.length, siteVerified: verified.length, siteDropped: dropped.length, bySource } };
+  return { pool, report, dropped, newBoards, knownBoards, counts: { uniqueJobs: pool.length, listingsSeen: listings, duplicatesMerged: listings - pool.length, siteJobs: fromSites.length, siteVerified: verified.length, siteDropped: dropped.length, bySource } };
+}
+
+// Boards found through job sites on earlier days live in the last published report.json (job-pool release),
+// so each day's lookup limit goes to companies not tried before. A local file can be given with --known instead.
+export async function previousKnownBoards(file, repo = process.env.GITHUB_REPOSITORY || 'Dapper-D/job-board') {
+  try {
+    if (file) return JSON.parse(readFileSync(file, 'utf8')).knownBoards || {};
+    const r = await fetch(`https://github.com/${repo}/releases/download/job-pool/report.json`, { signal: AbortSignal.timeout(30000) });
+    return r.ok ? ((await r.json()).knownBoards || {}) : {};
+  } catch { return {}; }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
@@ -35,7 +45,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     .filter(e => SOURCES[e.source] && SOURCES[e.source].runsOn !== 'helper');
   const out = arg('--out', 'out');
   mkdirSync(out, { recursive: true });
-  const { pool, report, dropped, newBoards, counts } = await buildPool(employers, { log: console.log });
+  const known = await previousKnownBoards(arg('--known'));
+  console.log(`Remembered employer boards from earlier days: ${Object.values(known).filter(k => k.source).length} found, ${Object.values(known).filter(k => k.none).length} not found`);
+  const { pool, report, dropped, newBoards, knownBoards, counts } = await buildPool(employers, { log: console.log, known });
   const generatedAt = new Date().toISOString();
   const attribution = Object.values(SOURCES).filter(s => s.feed).map(s => ({ source: s.id, name: s.label }));
   const body = JSON.stringify({ version: 1, generatedAt, country: 'CA', count: pool.length, attribution,
@@ -45,11 +57,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'pool.json.gz'), gz);
   const meta = { version: 1, generatedAt, country: 'CA', count: pool.length, bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex'), ...counts };
   writeFileSync(join(out, 'pool-meta.json'), JSON.stringify(meta, null, 2));
-  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards }, null, 2));
+  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards, knownBoards }, null, 2));
   const failed = report.filter(r => !r.ok);
   const md = [`## Daily job pool: ${pool.length} unique jobs in Canada`, '',
     `- Unique jobs: ${counts.uniqueJobs} (from ${counts.listingsSeen} listings; ${counts.duplicatesMerged} duplicates merged, so each job is shown and counted once)`,
-    `- Job-site jobs: ${counts.siteJobs}; confirmed on the employer's own board: ${counts.siteVerified}; dropped: ${counts.siteDropped}`,
+    `- Job-site jobs: ${counts.siteJobs}; confirmed on the employer's own board: ${counts.siteVerified}; dropped: ${counts.siteDropped} (not checked because of the daily limit: ${dropped.filter(d => /daily lookup limit/.test(d.why)).length})`,
     `- Unique jobs by source: ${Object.entries(counts.bySource).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + v).join(', ')}`,
     `- Employers that failed today: ${failed.length}${failed.length ? ' (' + failed.slice(0, 10).map(f => f.name).join(', ') + ')' : ''}`,
     `- New employer boards found through job sites: ${newBoards.length}`,

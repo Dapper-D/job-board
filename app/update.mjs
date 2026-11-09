@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { appendFileSync, mkdirSync, readFileSync, existsSync, readlinkSync } from 'node:fs';
 import { KIT, LOGS } from './lib/paths.mjs';
 import { check, stage, install, writeState, localVersion } from './lib/update.mjs';
+import { hasB3spoken, migrate } from './lib/migrate-b3spoken.mjs';
 
 const argv = process.argv.slice(2);
 const val = n => { const i = argv.indexOf(n); return i > -1 ? argv[i + 1] : null; };
@@ -53,6 +54,12 @@ if (val('--install-into')) {
   // Running from the downloaded (new) version: install it into the kit folder.
   const kit = val('--install-into'), source = val('--source');
   const wasRunning = await stopBoard(kit);
+  // From 3.0.0 the release is B3spoken: move this kit over instead of updating it.
+  if (hasB3spoken(source)) {
+    const m = await migrate({ kit, source, say });
+    if (!m.ok && (wasRunning || argv.includes('--start-board'))) spawnSync(process.execPath, [join(kit, 'app', 'start.mjs'), '--no-open'], { cwd: join(kit, 'app'), stdio: 'inherit', env: { ...process.env, KIT_HOME: kit } });
+    process.exit(m.ok ? 0 : 1);
+  }
   const r = install({ source, kit, say });
   if (r.ok) {
     say('Running update steps for ' + r.to + '...');

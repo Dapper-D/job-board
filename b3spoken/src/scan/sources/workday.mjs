@@ -2,10 +2,11 @@
 //   https://<tenant>.wd<N>.myworkdayjobs.com/<site>  ->  POST /wday/cxs/<tenant>/<site>/jobs
 // When the site offers a "Canada" location filter we use it, so we only page through Canadian jobs.
 import { request } from '../http.mjs';
-import { makeJob } from '../job.mjs';
+import { makeJob, isCanada } from '../job.mjs';
 
 const HOSTS = ['*.myworkdayjobs.com'];
-const PAGE = 20, MAX_PAGES = 100;
+const PAGE = 20, MAX_PAGES = 100, MAX_DETAILS = 150;
+const MULTI = /^\d+\s+locations?$/i;
 const LANG = /^[a-z]{2}(-[A-Z]{2})?$/;
 
 // "Posted Today" / "Posted Yesterday" / "Posted 3 Days Ago" / "Posted 30+ Days Ago" -> a date
@@ -22,7 +23,7 @@ export function findCanadaFacet(facets, parent = null) {
   for (const f of facets || []) {
     const param = f.facetParameter || parent;
     for (const v of f.values || []) {
-      if (/^canada$/i.test(String(v.descriptor || '').trim()) && v.id && param) return { param, id: v.id };
+      if (/^(canada|can)( \(ca(n)?\))?$/i.test(String(v.descriptor || '').trim()) && v.id && param) return { param, id: v.id };
       if (v.values) { const hit = findCanadaFacet([v], v.facetParameter || param); if (hit) return hit; }
     }
   }
@@ -42,13 +43,19 @@ export default {
     const site = parts.find(p => !LANG.test(p));
     return site ? { host: u.hostname.toLowerCase(), tenant: h[1], site } : null;
   },
-  parse(data, target, now = Date.now()) {
+  // canada: true when the list was already filtered to Canada by Workday itself (then "3 Locations" jobs are Canadian too).
+  parse(data, target, now = Date.now(), { canada } = {}) {
     return (data?.jobPostings || []).filter(j => j.externalPath).map(j => makeJob({
       source: 'workday', company: target.name || target.tenant, nativeId: (j.bulletFields || [])[0] || j.externalPath,
       title: j.title, url: `https://${target.host}/${target.site}${j.externalPath}`,
       location: j.locationsText, remote: /remote/i.test(j.remoteType || ''),
-      postedAt: workdayPosted(j.postedOn, now),
+      postedAt: workdayPosted(j.postedOn, now), ...(canada ? { canada: true } : {}),
     })).filter(Boolean);
+  },
+  // One job's own page: every location it is posted in.
+  detailLocations(info) {
+    const i = info?.jobPostingInfo || {};
+    return [i.location, ...(i.additionalLocations || []), i.country?.descriptor].filter(Boolean);
   },
   async fetchJobs(target) {
     const api = `https://${target.host}/wday/cxs/${encodeURIComponent(target.tenant)}/${encodeURIComponent(target.site)}/jobs`;
@@ -57,13 +64,26 @@ export default {
     let facets = {};
     const ca = findCanadaFacet(first.json?.facets);
     if (ca) { facets = { [ca.param]: [ca.id] }; first = await page(0, facets); }
+    const opts = { canada: !!ca };
     const total = Number(first.json?.total) || 0;
-    const out = this.parse(first.json, target);
+    const out = this.parse(first.json, target, Date.now(), opts);
     for (let p = 1; p < MAX_PAGES && p * PAGE < total; p++) {
       const r = await page(p * PAGE, facets);
-      const got = this.parse(r.json, target);
+      const got = this.parse(r.json, target, Date.now(), opts);
       if (!got.length) break;
       out.push(...got);
+    }
+    // No Canada filter on this site: a job listed as "3 Locations" may include Canada, so open it to see where.
+    if (!ca) {
+      const many = out.filter(j => !j.canada && MULTI.test(j.location)).slice(0, MAX_DETAILS);
+      for (const j of many) {
+        try {
+          const path = new URL(j.url).pathname.replace(`/${target.site}`, '');
+          const r = await request(`https://${target.host}/wday/cxs/${encodeURIComponent(target.tenant)}/${encodeURIComponent(target.site)}${path}`, { allow: HOSTS, parse: 'json', gapMs: 500 });
+          const where = this.detailLocations(r.json);
+          if (where.length) { j.location = where.join(' / '); j.canada = isCanada(j.location, j.remote); }
+        } catch {}
+      }
     }
     return out;
   },

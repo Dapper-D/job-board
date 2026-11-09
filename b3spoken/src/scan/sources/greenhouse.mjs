@@ -18,7 +18,9 @@ export default {
   parse(data, target) {
     return (data?.jobs || []).map(j => makeJob({
       source: 'greenhouse', company: data.company?.name || target.name || target.board, nativeId: j.id,
-      title: j.title, url: j.absolute_url, location: j.location?.name,
+      title: j.title, url: j.absolute_url,
+      // The job's main location plus every office it's listed under ("Remote" may hide a Canadian office).
+      location: [j.location?.name, ...(j.offices || []).flatMap(o => [o.name, o.location])].filter((v, i, a) => v && a.indexOf(v) === i).join(' / '),
       postedAt: j.first_published || j.updated_at,
       description: htmlToText(j.content),
       department: (j.departments || []).map(d => d.name).join(', '),

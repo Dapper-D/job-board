@@ -18,12 +18,12 @@ import { buildLibrary, checkAiLibrary, LIBRARY_PROMPT, parseAiJson, requireResum
 import { suggestRoles, checkTarget } from './roles.mjs';
 import { cleanProfile, searchRoles } from './profile.mjs';
 import { ask } from './ai.mjs';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from 'node:fs';
 import { makeContext, scoreJob, yearsOfExperience } from './tailor/match.mjs';
 import { checkLink } from './paste.mjs';
 import { VERSION } from './version.mjs';
 import { findContacts, draftEmail } from './contacts.mjs';
-import { findKits, readKit, libraryText } from './importkit.mjs';
+import { findKits, readKit, libraryText, hintedKit, KIT_HINT } from './importkit.mjs';
 import { checkForUpdate, downloadUpdate, runInstaller, installSource, restartFromSource } from './updater.mjs';
 import { insideExe } from './assets.mjs';
 import { fileURLToPath } from 'node:url';
@@ -441,7 +441,19 @@ export function createApp(dir, { offline = false, log = console.log, deps = {} }
   return {
     desktop,
     lastRefresh: () => state.lastRefresh,
-    findKits: () => (deps.findKits || findKits)(), importKit,
+    findKits: () => (deps.findKits || findKits)(undefined, dir), importKit,
+    // Moved here by the kit's update: bring the kit's answers, library and tracker over once, on first start.
+    // Only into a fresh B3spoken (no finished setup, no resume library), so nothing someone set up is overwritten.
+    autoImportKit() {
+      const hint = join(dir, KIT_HINT);
+      const kitDir = hintedKit(dir);
+      if (!kitDir) return null;
+      const fresh = !ob.profile().done && !existsSync(join(dir, 'library.json'));
+      let result = null;
+      if (fresh) { try { result = importKit(kitDir); log(`Brought over from your Job Hunt Kit: ${result.imported.join(', ')}.`); } catch (e) { log('Could not import your Job Hunt Kit: ' + e.message); } }
+      try { renameSync(hint, join(dir, 'kit-import.done.json')); } catch {}
+      return result;
+    },
     // "Start B3spoken when I sign in": saved as a setting and applied to the system's startup entry.
     autostart(on) {
       const want = on !== false;
@@ -629,6 +641,7 @@ export async function start(argv = process.argv.slice(2)) {
   const win = process.platform === 'win32';
   if (win && plainStart && !process.env.B3SPOKEN_CONSOLE) { relaunchHidden(dir); return null; }
   const app = createApp(dir, { offline: flag('--offline') });
+  app.autoImportKit();
   const srv = createServer(app);
   const port = await srv.listen(portArg);
   writeJson(join(dir, 'helper.json'), { port, pid: process.pid, startedAt: new Date().toISOString() });

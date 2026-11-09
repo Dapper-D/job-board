@@ -11,11 +11,15 @@ import { PROVINCES } from './jobs.mjs';
 const read = (f, fb = null) => { try { return JSON.parse(readFileSync(f, 'utf8').replace(/^﻿/, '')); } catch { return fb; } };
 export const isKit = dir => !!dir && existsSync(join(dir, 'config.json')) && (existsSync(join(dir, 'app', 'kit.json')) || existsSync(join(dir, 'data')));
 
-// Usual places people put the kit.
-export function findKits(home = homedir()) {
+// The kit's last update (3.0.0) installs B3spoken and leaves this note in B3spoken's data folder saying where the kit is.
+export const KIT_HINT = 'kit-import.json';
+export const hintedKit = dataDirPath => { const h = dataDirPath ? read(join(dataDirPath, KIT_HINT)) : null; return h && isKit(h.dir) ? h.dir : ''; };
+
+// Usual places people put the kit (the one the kit's update pointed to comes first).
+export function findKits(home = homedir(), dataDirPath = '') {
   const names = ['job board', 'job-board', 'Job Hunt Kit', 'job-hunt-kit', 'jobboard'];
   const roots = [home, join(home, 'Desktop'), join(home, 'Documents'), join(home, 'OneDrive', 'Desktop'), join(home, 'OneDrive', 'Documents')];
-  return [...new Set(roots.flatMap(r => names.map(n => join(r, n))))].filter(isKit);
+  return [...new Set([hintedKit(dataDirPath), ...roots.flatMap(r => names.map(n => join(r, n)))])].filter(isKit);
 }
 
 const PROV_NAMES = { BC: /british columbia|\bbc\b|vancouver|burnaby|surrey|victoria/i, AB: /alberta|\bab\b|calgary|edmonton/i, ON: /ontario|\bon\b|toronto|ottawa/i, QC: /quebec|québec|\bqc\b|montreal|montréal/i, MB: /manitoba|winnipeg/i, SK: /saskatchewan|regina|saskatoon/i, NS: /nova scotia|halifax/i, NB: /new brunswick/i };

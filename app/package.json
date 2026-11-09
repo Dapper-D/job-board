@@ -1,6 +1,6 @@
 {
   "name": "job-hunt-kit",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "description": "Local job board + career-ops, powered by the AI you already pay for: Codex (ChatGPT), Claude Code (Claude) or Gemini CLI (Google). Windows, Mac and Linux.",
