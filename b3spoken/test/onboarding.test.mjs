@@ -79,7 +79,9 @@ test('onboarding through the app: upload, AI pass, fix a flagged line, finish se
   const dir = tmp();
   const fakeAsk = async () => JSON.stringify({ name: 'Jordan Lee', entries: [{ kind: 'experience', heading: 'Software Developer, Northwind Logistics', bullets: ['Built a Python service that cut invoice processing time by 40%.', 'Invented line.'] }], roles: [{ title: 'Automation Engineer', reason: 'Python service work' }] });
   const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({}), ask: fakeAsk } });
-  assert.throws(() => app.uploadResume({ text: 'too short' }), /Very little text/);
+  // Pasted text is judged by what's in it, not its length: no sections is the reason given, never "a scanned picture".
+  assert.throws(() => app.uploadResume({ text: 'too short' }), /No usable experience/);
+  assert.throws(() => app.uploadResume({ text: '   ' }), /Paste the text/);
   const lib = app.uploadResume({ filename: 'r.docx', dataBase64: fx('sample-resume.docx').toString('base64') });
   assert.equal(lib.entries.length, 4);
   const ai = await app.resumeWithAi('claude');
@@ -91,4 +93,20 @@ test('onboarding through the app: upload, AI pass, fix a flagged line, finish se
   app.saveProfile({ targetRoles: ['Software Developer'], extraRoles: ['Automation Engineer'], province: 'BC', remote: 'yes', done: true });
   assert.deepEqual(app.settings().keywords, ['Software Developer', 'Automation Engineer']);
   assert.equal(app.settings().province, 'BC');
+});
+
+test('a short pasted resume with real experience is accepted; a short French one too', () => {
+  const app = createApp(tmp(), { offline: true, log: () => {}, deps: { detect: async () => ({}) } });
+  const lib = app.uploadResume({ text: 'Sam Lee\nsam@example.com\nEXPERIENCE\nCashier, Save-On-Foods, 2023 - Present\n- Handled cash and card payments for 200 customers a day.\nEDUCATION\nBurnaby South Secondary, 2022' });
+  assert.ok(lib.entries.some(e => e.kind === 'experience' && e.bullets.length === 1));
+  const fr = app.uploadResume({ text: 'Julien Tremblay\nMontréal, QC\nEXPÉRIENCE\nStagiaire développeur, Desjardins, mai 2025 - août 2025\n- Corrigé des bogues dans une application Java interne.\nFORMATION\nUniversité de Montréal - Baccalauréat en informatique, 2026\nCOMPÉTENCES\nJava, SQL' });
+  assert.deepEqual(fr.entries.map(e => e.kind), ['experience', 'education']);
+  assert.equal(fr.entries[0].dates, 'mai 2025 - août 2025');
+});
+
+test('bullet markers people use come off the bullet text', () => {
+  for (const mark of ['-', '•', '1.', 'o', '>', '✓', '■', '►', '—', '*']) {
+    const lib = buildLibrary(`Kim Park\nkim@example.com\nEXPERIENCE\nData Analyst, Telus, 2022 - 2025\n${mark} Built Tableau dashboards for 12 regional managers.\n${mark} Automated weekly SQL reports.\nEDUCATION\nSFU, BA Economics, 2021`);
+    assert.deepEqual(lib.entries[0].bullets.map(b => b.text), ['Built Tableau dashboards for 12 regional managers.', 'Automated weekly SQL reports.'], mark);
+  }
 });

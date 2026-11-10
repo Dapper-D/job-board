@@ -28,8 +28,17 @@ export function textWidth(s, size, bold = false) {
   for (const ch of clean(s)) total += f.width(f.glyph(ch));
   return (total * size) / 1000;
 }
-// Tabs become spaces and other control characters are dropped.
-const clean = s => [...String(s).normalize('NFC').replace(/\t/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '')];
+// Tabs become spaces and other control characters are dropped. Arrows the font lacks become "→"; emoji and other
+// pictographs (🚀, ✅) are decoration, not words, so they're left out rather than printed as "?".
+const ARROWS = /[➜➔➙➛➝➞➟➠➡⟶⟹⇒⇨]/gu;
+const PICTO = /\s?(?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}])(?:\uFE0F|\u200D|\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*/gu;
+const clean = s => [...String(s).normalize('NFC').replace(/\t/g, ' ').replace(ARROWS, '→').replace(PICTO, '').replace(/[\u0000-\u001f\u007f\uFE0F\u200D]/g, '')];
+// Letters the embedded font can't draw (they'd print as "?"), e.g. Chinese characters in a name.
+export function unsupported(text) {
+  const f = fonts().regular, out = new Set();
+  for (const ch of clean(text)) if (!/\s/.test(ch) && !f.map.get(ch.codePointAt(0))) out.add(ch);
+  return [...out];
+}
 
 export function wrap(text, size, width, bold = false) {
   const words = String(text).split(/\s+/).filter(Boolean);
@@ -84,7 +93,13 @@ export class Doc {
       return add(`<< /Type /Font /Subtype /Type0 /BaseFont /${tag} /Encoding /Identity-H /DescendantFonts [${cid} 0 R] /ToUnicode ${tu} 0 R >>`);
     };
     const f1 = font('F1', fonts().regular, 'Carlito'), f2 = font('F2', fonts().bold, 'Carlito-Bold');
-    const str = t => `(${esc([...Buffer.from(String(t).replace(/[\u0000-\u001f]/g, ' ').slice(0, 200), 'latin1')])})`;
+    // Title and author: plain bytes when every letter fits in one byte, otherwise UTF-16 (so "Nguyễn" isn't garbled).
+    const str = t => {
+      const v = String(t).replace(/[\u0000-\u001f]/g, ' ').slice(0, 200);
+      if (/^[\u0020-\u007e\u00a0-\u00ff]*$/.test(v)) return `(${esc([...Buffer.from(v, 'latin1')])})`;
+      const b = Buffer.from(v, 'utf16le'); for (let i = 0; i < b.length; i += 2) [b[i], b[i + 1]] = [b[i + 1], b[i]];
+      return `<FEFF${b.toString('hex').toUpperCase()}>`;
+    };
     const info = this.title || this.author ? add(`<< ${this.title ? `/Title ${str(this.title)} ` : ''}${this.author ? `/Author ${str(this.author)}` : ''} >>`) : 0;
     const kids = [];
     this.pages.forEach((ops, i) => {

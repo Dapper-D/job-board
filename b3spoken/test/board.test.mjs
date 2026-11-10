@@ -18,7 +18,8 @@ test('board tabs: To apply holds only jobs not acted on; each status has its own
   const jobs = [
     { id: 'a', title: 'A', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 60 } },
     { id: 's', title: 'S', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 55 }, track: { status: 'saved' } },
-    { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-20T00:00:00Z', match: { label: 'Strong', score: 90 } },
+    { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-25T00:00:00Z', match: { label: 'Strong', score: 90 } },
+    { id: 'ancient', title: 'Ancient', location: 'Vancouver, BC', postedAt: '2026-10-01T00:00:00Z', match: { label: 'Strong', score: 95 } },
     { id: 'nodate', title: 'No date', location: 'Vancouver, BC', match: { label: 'Strong', score: 90 } },
     { id: 'b', title: 'B', location: 'Vancouver, BC', match: { label: 'Strong', score: 80 }, track: { status: 'not-interested' } },
     { id: 'c', title: 'C', location: 'Toronto, ON', match: { label: 'Skip', score: 10 }, track: { status: 'applied', followUp: '2026-11-01' } },
@@ -27,7 +28,9 @@ test('board tabs: To apply holds only jobs not acted on; each status has its own
   const now = Date.parse('2026-11-05T12:00:00Z');
   const ids = o => queryJobs(jobs, { now, ...o }).jobs.map(j => j.id);
   assert.deepEqual(ids({}), ['a', 's']); // applied, rejected and not-interested jobs leave To apply; old and undated jobs hidden
-  assert.deepEqual(ids({ maxAgeDays: 30 }), ['a', 's']); // never more than 3 days
+  assert.deepEqual(ids({ maxAgeDays: 14 }), ['old', 'a', 's']); // the 14-day choice reaches back further
+  assert.deepEqual(ids({ maxAgeDays: 30 }), ['old', 'a', 's']); // never more than 14 days ('ancient' stays hidden)
+  assert.deepEqual(ids({ maxAgeDays: 7 }), ['a', 's']);
   assert.deepEqual(ids({ maxAgeDays: 1 }), ['s']); // a saved job stays even when older than the window
   assert.deepEqual(ids({ view: 'applied' }), ['c']); // tracked jobs show in their tab whatever their age or score
   assert.deepEqual(ids({ view: 'rejected' }), ['r']);
@@ -53,4 +56,27 @@ test('paste a link: checked on the employer’s live list; job boards and stale 
   const before = fetched;
   assert.equal((await checkLink('https://boards.greenhouse.io/acme/jobs/4012345', { jobs: [fresh], sources, now })).how, 'already in your list');
   assert.equal(fetched, before); // no network call when it's already in the list
+});
+
+test('jobs nobody applied to leave the board after 14 days; applied ones stay in their tabs', async () => {
+  const { viewCounts, expired } = await import('../src/helper/jobs.mjs');
+  const now = Date.parse('2026-11-20T12:00:00Z');
+  const old = '2026-11-01T00:00:00Z', recent = '2026-11-15T00:00:00Z';
+  const jobs = [
+    { id: 'saved-old', title: 'A', location: 'Vancouver, BC', postedAt: old, track: { status: 'saved' } },
+    { id: 'saved-new', title: 'B', location: 'Vancouver, BC', postedAt: recent, track: { status: 'saved' } },
+    { id: 'notes-old', title: 'C', location: 'Vancouver, BC', postedAt: old, track: { notes: 'call Sam' } },
+    { id: 'pasted-old', title: 'D', location: 'Vancouver, BC', pasted: true, pastedAt: old },
+    { id: 'pasted-new', title: 'E', location: 'Vancouver, BC', pasted: true, pastedAt: recent },
+    { id: 'undated-old', title: 'F', location: 'Vancouver, BC', firstSeen: '2026-11-01' },
+    { id: 'applied-old', title: 'G', location: 'Vancouver, BC', postedAt: old, track: { status: 'applied', followUp: '2026-11-10' } },
+    { id: 'interview-old', title: 'H', location: 'Vancouver, BC', postedAt: old, track: { status: 'interview' } },
+  ];
+  const ids = o => queryJobs(jobs, { now, maxAgeDays: 14, ...o }).jobs.map(j => j.id).sort();
+  assert.deepEqual(ids({}), ['pasted-new', 'saved-new']);
+  assert.deepEqual(ids({ view: 'tracked' }), ['applied-old', 'interview-old', 'saved-new']);
+  assert.deepEqual(ids({ view: 'applied' }), ['applied-old']);
+  assert.deepEqual(ids({ view: 'due' }), ['applied-old']);
+  assert.deepEqual(viewCounts(jobs, now), { tracked: 3, due: 1, applied: 1, interview: 1, offer: 0, rejected: 0, 'not-interested': 0 });
+  assert.equal(expired({ postedAt: old }, Date.parse('2026-11-14T00:00:00Z')), false); // exactly 13 days: still there
 });

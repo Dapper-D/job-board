@@ -55,6 +55,18 @@ export function forgetFailed(discovered, report, today = new Date().toISOString(
   return discovered;
 }
 
+// Some hiring systems don't say when a job was posted (SuccessFactors, Avature, Rippling...). Those jobs carry firstSeen:
+// the first day the daily scan saw them, remembered from one day to the next in report.json, so the board can still
+// tell a new job from an old one. Returns the map to keep for tomorrow (only jobs still open).
+export function stampFirstSeen(pool, previous = {}, today = new Date().toISOString().slice(0, 10)) {
+  const keep = {};
+  for (const j of pool) {
+    if (j.postedAt) continue;
+    j.firstSeen = keep[j.id] = previous[j.id] || today;
+  }
+  return keep;
+}
+
 export const DISCOVER_PER_DAY = 200, DISCOVER_RETRY_DAYS = 14;
 export async function discoverDaily(seeds, catalog, previous = {}, { log = () => {}, today = new Date().toISOString().slice(0, 10), find = discover, perDay = DISCOVER_PER_DAY } = {}) {
   const inCatalog = new Set(catalog.map(e => nameKey(e.name)));
@@ -89,6 +101,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   console.log(`Employers found by discovery and scanned today: ${extra.length}`);
   const { pool, report, dropped, newBoards, knownBoards, counts } = await buildPool([...employers, ...extra], { log: console.log, known });
   forgetFailed(discovered, report);
+  const firstSeen = stampFirstSeen(pool, prev.firstSeen || {});
   const generatedAt = new Date().toISOString();
   const attribution = Object.values(SOURCES).filter(s => s.feed).map(s => ({ source: s.id, name: s.label }));
   const body = JSON.stringify({ version: 1, generatedAt, country: 'CA', count: pool.length, attribution,
@@ -98,7 +111,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'pool.json.gz'), gz);
   const meta = { version: 1, generatedAt, country: 'CA', count: pool.length, bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex'), ...counts };
   writeFileSync(join(out, 'pool-meta.json'), JSON.stringify(meta, null, 2));
-  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards, knownBoards, discovered }, null, 2));
+  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards, knownBoards, discovered, firstSeen }, null, 2));
   const failed = report.filter(r => !r.ok);
   const md = [`## Daily job pool: ${pool.length} unique jobs in Canada`, '',
     `- Unique jobs: ${counts.uniqueJobs} (from ${counts.listingsSeen} listings; ${counts.duplicatesMerged} duplicates merged, so each job is shown and counted once)`,

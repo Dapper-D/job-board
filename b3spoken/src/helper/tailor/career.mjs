@@ -60,7 +60,7 @@ export function marketFor(title, jobs, years = 0) {
   const want = words(title).map(w => w.replace(/s$/, ''));
   if (!want.length) return { count: 0 };
   const hits = jobs.filter(j => { if (years < 5 && SENIOR.test(j.title || '') && !SENIOR.test(title)) return false; const have = new Set(words(j.title).map(w => w.replace(/s$/, ''))); return want.every(w => have.has(w)); });
-  const pays = hits.map(j => parsePay(j.salary || '') || parsePay(String(j.description || '').slice(0, 4000))).filter(Boolean).map(p => Math.round((p.min + p.max) / 2)).sort((a, b) => a - b);
+  const pays = hits.map(j => parsePay(j.salary || '', { salaryField: true }) || parsePay(String(j.description || '').slice(0, 4000))).filter(Boolean).map(p => Math.round((p.min + p.max) / 2)).sort((a, b) => a - b);
   const mid = pays.length ? pays[Math.floor(pays.length / 2)] : null;
   return { count: hits.length, paid: pays.length, median: mid, top: pays.length ? pays[pays.length - 1] : null, ids: hits.slice(0, 50).map(j => j.id) };
 }

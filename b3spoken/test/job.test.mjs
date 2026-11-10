@@ -56,3 +56,8 @@ test('with no salary field, a pay range stated in the description is used', () =
   assert.equal(salaryFromText('We pay well and offer $500 for your home office.'), '');
   assert.equal(makeJob({ ...base, description: 'The salary range is $80,000 to $95,000 per year.' }).salary, '$80,000 to $95,000 per year');
 });
+
+test('"Copy of" left over from an employer\'s hiring system is dropped from the title', async () => {
+  const { makeJob } = await import('../src/scan/job.mjs');
+  assert.equal(makeJob({ source: 'lever', company: 'Acme', title: 'Copy of Software Developer', url: 'https://jobs.lever.co/acme/1' }).title, 'Software Developer');
+});

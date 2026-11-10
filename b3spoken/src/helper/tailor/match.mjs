@@ -69,28 +69,36 @@ export function termsIn(textNorm, extra = []) {
 }
 
 // "$90,000 - $110,000", "$45/hr", "35–45 per hour", "120k". Returns { min, max, unit } in dollars per year or null.
-export function parsePay(text) {
-  const s = String(text || "").replace(/,/g, "");
-  const m =
-    s.match(
-      /\$\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:-|–|—|to)\s*\$?\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum|annually)|(hourly|annually|per annum))?/i,
-    ) ||
-    s.match(
-      /\$\s?(\d+(?:\.\d+)?)\s?(k)?()()\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum)|(hourly|annually))/i,
-    );
-  if (!m) return null;
-  let a = Number(m[1]) * (m[2] ? 1000 : 1),
-    b = m[3] ? Number(m[3]) * (m[4] || m[2] ? 1000 : 1) : a;
-  if (b < a) [a, b] = [b, a];
-  const unitWord = (m[5] || m[6] || "").toLowerCase();
-  const hourly = /^h/.test(unitWord) || (!unitWord && b < 300);
-  if (!hourly && b < 1000) return null; // a stray number, not pay
-  const f = hourly ? 2080 : 1;
-  return {
-    min: Math.round(a * f),
-    max: Math.round(b * f),
-    unit: hourly ? "hour" : "year",
-  };
+// Pay, turned into a yearly range in Canadian dollars ({ min, max, unit }; currency: 'USD' when it was converted).
+// Reads "$90,000 - $110,000 per year", "CA$95K–120K", "CA$152K – CA$190K • Offers Equity", "CAD 135300 – 169100 per-year-salary",
+// "USD 120000 – 140000 yearly", "$35/hr", "$28 - $32 hourly", "$800 – $1,200 per week", "$6,000 a month".
+// A single amount with no unit ("$220K • Offers Equity") counts only in a job's salary field (salaryField: true), never in
+// the description, where "$500 signing bonus" would be read as pay. Placeholder ranges ("$1 – $999,999") are ignored.
+// US dollars are converted at a fixed, rounded rate: close enough for a pay floor, never shown as the job's own pay.
+export const USD_TO_CAD = 1.37;
+const CUR = String.raw`(?:(CA|C|CAD|US|USD|AU|A)\s?\$|\$|(CAD|USD)\s+)`;
+const NUM = String.raw`(\d+(?:\.\d+)?)\s?(k|K)?(?!\s?(?:million|billion|mm?\b|bn?\b))`;
+const UNIT = String.raw`(?:\s*(?:CAD|USD))?\s*(?:(?:per|an|a|\/|-)\s*|per-)?(hour|hr|year|yr|annum|month|mo|week|wk|hourly|annually|annual|yearly|monthly|weekly|(?:per-)?hour-wage|(?:per-)?year-salary)?`;
+const PAY_RE = new RegExp(`${CUR}\\s?${NUM}(?:\\s*(?:-|–|—|to)\\s*${CUR}?\\s?${NUM})?(?:\\s*(CAD|USD))?${UNIT}`, 'gi');
+export function parsePay(text, { salaryField = false } = {}) {
+  // "77,800" and "1,200" lose their thousands commas; "60,000,00" and "140,00" (a cents slip) lose the ",00".
+  const s = String(text || '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d),\d{1,2}(?!\d)/g, '$1').replace(/(\d),(?!\d)/g, '$1');
+  for (const m of s.matchAll(PAY_RE)) {
+    const [, cur1, cur2, n1, k1, cur3, cur4, n2, k2, cur5, unitRaw] = m;
+    const usd = /^US/i.test(cur1 || cur2 || cur3 || cur4 || cur5 || '');
+    let a = Number(n1) * (k1 ? 1000 : 1), b = n2 ? Number(n2) * (k2 || (k1 && Number(n2) < 1000) ? 1000 : 1) : a;
+    const u = String(unitRaw || '').toLowerCase();
+    if (!n2 && !u && !(salaryField && (k1 || a >= 1000))) continue; // a lone amount: pay only when it's the salary field
+    if (n2 && b < a) { if (b * 1000 >= a && b < 1000) b *= 1000; else b = a; } // "$70,473 - $88," (cut off): just the first
+    if (n2 && a < 1000 && b >= 10000 && !u) a = a * 1000 <= b ? a * 1000 : b; // "$195 – $415,000"
+    const unit = /^(h|per-hour|hour)/.test(u) ? 'hour' : /^mo/.test(u) ? 'month' : /^(w)/.test(u) ? 'week' : u ? 'year' : b < 300 ? 'hour' : 'year';
+    const f = { hour: 2080, week: 52, month: 12, year: 1 }[unit];
+    let min = a * f, max = b * f;
+    if (usd) { min *= USD_TO_CAD; max *= USD_TO_CAD; }
+    if (min < 15000 || max > 1500000 || max / Math.max(min, 1) > 4) continue; // a placeholder or a stray number, not pay
+    return { min: Math.round(min), max: Math.round(max), unit: unit === 'hour' ? 'hour' : 'year', ...(usd ? { currency: 'USD' } : {}) };
+  }
+  return null;
 }
 
 // Years of work experience from the library's experience dates.
@@ -197,6 +205,18 @@ const CLEARANCE =
 const YEARS_REQ =
   /(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?(?:\s+of)?(?:\s+\w+){0,4}\s+experience/i;
 
+// French: a posting written in French, or one that says French is required, needs French on the resume.
+// (norm() has already taken the accents off: "français" is "francais".)
+const FR_WORDS = /\b(le|la|les|des|du|et|pour|avec|vous|nous|une|dans|sur|est|votre|notre|poste|equipe|entreprise|emploi)\b/g;
+const EN_WORDS = /\b(the|and|for|with|you|we|our|your|to|of|in|is|are|team|role|will)\b/g;
+const FR_REQUIRED = /\b(french (is )?(required|essential|mandatory)|(fluent|fluency|proficien\w*) in (both )?(english and )?french|bilingual(ism)? \(?(english|french)[ /]+(english|french)\)?( is)? (required|essential|mandatory)|(must|required to) (be able to )?(speak|write|communicate) (in )?(english and )?french|bilinguisme (est )?(requis|obligatoire|essentiel)|francais (est )?(requis|obligatoire|essentiel)|maitrise du francais)\b/;
+export function asksForFrench(job) {
+  const t = norm(`${job.title} ${String(job.description || "").slice(0, 3000)}`);
+  const fr = (t.match(FR_WORDS) || []).length, en = (t.match(EN_WORDS) || []).length;
+  return FR_REQUIRED.test(t) || (fr >= 15 && fr > en * 1.5) || /\b\w+\.e?uses?\b|\((trice|ere|euse)\)|\bdeveloppeur|\bconseiller|\bteletravail\b/.test(String(job.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+}
+const KNOWS_FRENCH = /\b(french|francais|bilingual|bilingue)\b/;
+
 // ctx: { resumeNorm, skills (strings), years, roles (search roles), profile }
 export function makeContext(lib, resumeText, profile, roles) {
   return {
@@ -216,7 +236,7 @@ export function scoreJob(job, ctx) {
   const reasons = [],
     stops = [];
   // Hard stops
-  const pay = parsePay(job.salary) || parsePay(job.description);
+  const pay = parsePay(job.salary, { salaryField: true }) || parsePay(job.description);
   const floor = yearly(p.payFloor, p.payFloorUnit),
     goal = yearly(p.payGoal, p.payGoalUnit);
   if (pay && floor && pay.max < floor)
@@ -245,6 +265,8 @@ export function scoreJob(job, ctx) {
       )
     )
       stops.push(`Industry you want to avoid: ${ind}`);
+  if (!KNOWS_FRENCH.test(ctx.resumeNorm) && asksForFrench(job))
+    stops.push("Asks for French; your resume doesn’t mention it");
   // Skills
   const wanted = termsIn(text, ctx.skills);
   // "API" and "APIs" are the same skill.

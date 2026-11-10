@@ -203,6 +203,7 @@ function card(j) {
   meta.append(el("span", null, j.company), el("span", null, j.location || ""));
   if (j.remote) meta.append(el("span", null, "Remote"));
   if (j.postedAt) meta.append(el("span", null, ago(j.postedAt)));
+  else if (j.firstSeen) meta.append(el("span", null, `first seen ${ago(j.firstSeen)}`));
   if (j.salary) meta.append(el("span", null, j.salary));
   li.append(meta);
   if (j.aiTrap) {

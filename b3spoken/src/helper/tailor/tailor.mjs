@@ -603,10 +603,22 @@ export function coverLetter(
     if (points.length === 3) break;
   }
   if (points.length) out.push(points.join(" "));
-  if (match?.have?.length)
-    out.push(
-      `The posting asks for ${andList(match.have.slice(0, 4).map(pretty))}, which I've used in the work above.`,
+  // "Used in the work above" only for skills the quoted work really names; the rest are only on the skills list.
+  if (match?.have?.length) {
+    const said = norm(points.join(" "));
+    const shown = match.have.slice(0, 4).filter((t) =>
+      new RegExp(`(?<![a-z0-9])${norm(t).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?![a-z0-9+#])`).test(said),
     );
+    const listed = match.have.slice(0, 4).filter((t) => !shown.includes(t));
+    if (shown.length)
+      out.push(
+        `The posting asks for ${andList(shown.map(pretty))}, which I used in the work above.${listed.length ? ` My skills also include ${andList(listed.map(pretty))}.` : ""}`,
+      );
+    else
+      out.push(
+        `The posting asks for ${andList(listed.map(pretty))}, which ${listed.length > 1 ? "are" : "is"} among my skills.`,
+      );
+  }
   const gaps = [
     ...new Set(
       [

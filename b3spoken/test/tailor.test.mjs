@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { extractText } from '../src/helper/resume/extract.mjs';
 import { buildLibrary } from '../src/helper/resume/library.mjs';
 import { parsePay, scoreJob, makeContext, yearsOfExperience } from '../src/helper/tailor/match.mjs';
-import { planResume, renderResume, coverLetter, renderCoverLetter } from '../src/helper/tailor/tailor.mjs';
+import { planResume, renderResume, coverLetter, renderCoverLetter, libraryText as libraryTextFor } from '../src/helper/tailor/tailor.mjs';
 import { Doc, wrap, textWidth, toWinAnsi } from '../src/helper/tailor/pdf.mjs';
 import { cleanProfile } from '../src/helper/profile.mjs';
 
@@ -20,6 +20,22 @@ test('pay is read from common formats and turned into yearly amounts', () => {
   assert.deepEqual(parsePay('$35/hr'), { min: 72800, max: 72800, unit: 'hour' });
   assert.deepEqual(parsePay('$28 - $32 hourly'), { min: 58240, max: 66560, unit: 'hour' });
   assert.equal(parsePay('We have 3 offices'), null);
+  // Formats from the job boards the pool reads
+  assert.deepEqual(parsePay('CA$40.9K – CA$54.5K'), { min: 40900, max: 54500, unit: 'year' });
+  assert.deepEqual(parsePay('CA$152K – CA$190K • Offers Equity'), { min: 152000, max: 190000, unit: 'year' });
+  assert.deepEqual(parsePay('CAD 101000 – 132500 annual'), { min: 101000, max: 132500, unit: 'year' });
+  assert.deepEqual(parsePay('CAD 135300 – 169100 per-year-salary'), { min: 135300, max: 169100, unit: 'year' });
+  assert.deepEqual(parsePay('CAD 20 – 25 per-hour-wage'), { min: 41600, max: 52000, unit: 'hour' });
+  assert.deepEqual(parsePay('$800 – $1,200 per week'), { min: 41600, max: 62400, unit: 'year' });
+  assert.deepEqual(parsePay('USD 100000 – 140000 yearly'), { min: 137000, max: 191800, unit: 'year', currency: 'USD' });
+  assert.deepEqual(parsePay('$112,000 - $140,00 CAD'), { min: 112000, max: 140000, unit: 'year' }); // a typo in the posting
+  // A lone amount is pay only in the salary field; placeholders and funding news are never pay.
+  assert.equal(parsePay('$220K • Offers Equity'), null);
+  assert.deepEqual(parsePay('$220K • Offers Equity', { salaryField: true }), { min: 220000, max: 220000, unit: 'year' });
+  assert.equal(parsePay('$500 signing bonus'), null);
+  assert.equal(parsePay('We raised $15 million last year'), null);
+  assert.equal(parsePay('CA$1 – CA$999,999'), null);
+  assert.equal(parsePay('$1 — $1 USD'), null);
   assert.ok(Math.abs(yearsOfExperience(lib, new Date(2026, 10, 1)) - 5.4) < 0.3);
 });
 
@@ -200,4 +216,43 @@ test('resume: as many projects as fit on one page, best fit first, at most 2 bul
   const shown = [0, 1, 2, 3, 4, 5].filter(i => text.includes(`Project ${i} (`));
   assert.ok(shown.length >= 4, `expected most projects on the page, got ${shown.length}`);
   for (const i of shown) assert.doesNotMatch(text, new RegExp(`Built part 2 of project ${i} `)); // never a third bullet
+});
+
+test('the pay floor applies to "CA$…K" ranges', () => {
+  const p = cleanProfile({ targetRoles: ['Software Developer'], payFloor: 35, payFloorUnit: 'hour', workAuth: 'citizen', done: true });
+  const ctx = makeContext(lib, text, p, ['Software Developer']);
+  const m = scoreJob({ title: 'Software Developer', company: 'Docebo', salary: 'CA$40.9K – CA$54.5K', description: 'Python and SQL.' }, ctx);
+  assert.equal(m.label, 'Skip');
+  assert.match(m.stops.join(' '), /below your lowest/);
+});
+
+test('French postings need French on the resume', async () => {
+  const { asksForFrench } = await import('../src/helper/tailor/match.mjs');
+  assert.equal(asksForFrench({ title: 'Développeur.euse Wordpress' }), true);
+  assert.equal(asksForFrench({ title: 'Analyst', description: 'Bilingualism (English/French) is required.' }), true);
+  assert.equal(asksForFrench({ title: 'Software Developer', description: 'Build tools with the team. French is an asset.' }), false);
+  const p = cleanProfile({ targetRoles: ['Software Developer'], workAuth: 'citizen', done: true });
+  const job = { title: 'Développeur Python', company: 'Acme', description: 'Python et SQL.' };
+  assert.match(scoreJob(job, makeContext(lib, text, p, ['Software Developer'])).stops.join(' '), /French/);
+  assert.doesNotMatch(scoreJob(job, makeContext(lib, text + '\nLanguages: English, French', p, ['Software Developer'])).stops.join(' '), /French/);
+});
+
+test('the cover letter says "used in the work above" only for skills the quoted work names', () => {
+  const l = buildLibrary('Jo Lee\njo@example.com\nSKILLS\nPython, C++, SQL\nEXPERIENCE\nDeveloper, Acme, 2023 - Present\n- Built a Python service for invoices.\nEDUCATION\nBCIT, 2022');
+  const j = { title: 'Software Developer', company: 'Beta', description: 'We use Python and C++ every day.' };
+  const p = cleanProfile({ targetRoles: ['Software Developer'], workAuth: 'citizen', done: true });
+  const m = scoreJob(j, makeContext(l, libraryTextFor(l), p, ['Software Developer']));
+  const text = coverLetter(planResume(l, j), j, m, {}, new Date(2026, 10, 5)).paragraphs.join(' ');
+  assert.match(text, /asks for Python, which I used in the work above\. My skills also include C\+\+\./);
+  assert.doesNotMatch(text, /C\+\+[^.]*used in the work above/);
+});
+
+test('PDF: names beyond Latin-1 keep their letters in the metadata; emoji are left out; missing letters are reported', async () => {
+  const { Doc, unsupported } = await import('../src/helper/tailor/pdf.mjs');
+  const d = new Doc({ title: 'Nguyễn Văn An - Resume', author: 'Nguyễn Văn An' });
+  d.text(72, 700, 'Shipped it 🚀 ✅ → done ➜ next');
+  const pdf = d.build().toString('latin1');
+  assert.match(pdf, /\/Author <FEFF004E00670075/); // UTF-16, not garbled bytes
+  assert.deepEqual(unsupported('Shipped 🚀 ➜ Nguyễn'), []);
+  assert.deepEqual(unsupported('李明 Li'), ['李', '明']);
 });

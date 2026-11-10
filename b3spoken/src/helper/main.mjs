@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // B3spoken helper: start it, and the board opens in the browser at http://127.0.0.1:<port>/.
 //   node src/helper/main.mjs [--port 4747] [--no-open] [--offline]
-// On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 3 days,
+// On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 14 days,
 // and looks for ChatGPT (Codex) or Claude (Claude Code) on this computer.
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -20,6 +20,7 @@ import {
 } from "./ai.mjs";
 import { createServer } from "./server.mjs";
 import { extractText } from "./resume/extract.mjs";
+import { unsupported } from "./tailor/pdf.mjs";
 import {
   buildLibrary,
   checkAiLibrary,
@@ -497,7 +498,11 @@ export function createApp(
     const resumeResult = renderResumeWithReport(plan);
     writeFileSync(join(folder, files.resume), resumeResult.pdf);
     writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
-    const generationNote = [note, resumeResult.note].filter(Boolean).join(" ");
+    const cantDraw = unsupported(`${JSON.stringify(plan)} ${letter.paragraphs.join(" ")}`);
+    const fontNote = cantDraw.length
+      ? `The resume font can't draw ${cantDraw.slice(0, 8).join(" ")}, so ${cantDraw.length > 1 ? "they show" : "it shows"} as "?" in the PDFs. Write ${cantDraw.length > 1 ? "them" : "it"} in Latin letters in your resume to fix this.`
+      : "";
+    const generationNote = [note, resumeResult.note, fontNote].filter(Boolean).join(" ");
     const made = {
       jobId: id,
       folder,
@@ -563,6 +568,7 @@ export function createApp(
       const list = readJson(pastedFile, []).filter((j) => j.id !== job.id);
       list.unshift({
         ...job,
+        pastedAt: new Date().toISOString(), // a pasted job with no posting date expires 14 days after this
         description: String(job.description || "").slice(0, 20000),
       });
       writeJson(pastedFile, list.slice(0, 200));
@@ -1103,7 +1109,7 @@ export function createApp(
         add(
           "PASS",
           "Job Bank",
-          `${jobBank.jobs.length} postings from the last 3 days, fetched ${new Date(jobBank.fetchedAt).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}.`,
+          `${jobBank.jobs.length} postings from the last 14 days, fetched ${new Date(jobBank.fetchedAt).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}.`,
         );
       else add("WARN", "Job Bank", "Not fetched yet.", "Press Refresh.");
       const pick = settings.ai;
@@ -1386,7 +1392,11 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       } catch (e) {
         throw err(400, `Couldn't read that file: ${e.message}`);
       }
-      if (!got.readable)
+      // Only a PDF can be a scanned picture. A short Word file or pasted text is judged by what's in it (below),
+      // so a short resume with real experience isn't turned away with the wrong reason.
+      if (!got.words)
+        throw err(422, text != null ? "Paste the text of your resume first." : "No text came out of that file. Upload the Word version or paste the text instead.");
+      if (!got.readable && got.kind === "pdf")
         throw err(
           422,
           "Very little text came out of that file (it may be a scanned picture). Upload the Word version or paste the text instead.",
