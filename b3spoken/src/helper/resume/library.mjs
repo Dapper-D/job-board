@@ -108,7 +108,8 @@ export function buildLibrary(text) {
     entry = {
       id: `e${++n}`,
       kind,
-      heading: (dates ? sourceHeading.replace(d[0], "") : sourceHeading)
+      // With the dates taken out, what they leave behind goes too ("…at community events, 2019 - 2023." -> "…at community events").
+      heading: (dates ? sourceHeading.replace(d[0], "").replace(/[\s|,–—.-]+$/, "") : sourceHeading)
         .replace(/[\s|,–—-]+$/, "")
         .trim(),
       dates,

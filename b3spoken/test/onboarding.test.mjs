@@ -110,3 +110,10 @@ test('bullet markers people use come off the bullet text', () => {
     assert.deepEqual(lib.entries[0].bullets.map(b => b.text), ['Built Tableau dashboards for 12 regional managers.', 'Automated weekly SQL reports.'], mark);
   }
 });
+
+test('a heading that ended with its dates and a full stop loses both', () => {
+  const lib = buildLibrary('Grace Lee\ngrace@example.com\nVOLUNTEER\nSt. John Ambulance first aid volunteer at community events, 2019 - 2023.\nEXPERIENCE\nDeveloper, Łódź Systems Sp. z o.o.\n- Built a Python service.');
+  assert.equal(lib.entries[0].heading, 'St. John Ambulance first aid volunteer at community events');
+  assert.equal(lib.entries[0].dates, '2019 - 2023');
+  assert.equal(lib.entries[1].heading, 'Developer, Łódź Systems Sp. z o.o.'); // no dates: left as written
+});
