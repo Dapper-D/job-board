@@ -231,6 +231,8 @@ test('French postings need French on the resume', async () => {
   assert.equal(asksForFrench({ title: 'Développeur.euse Wordpress' }), true);
   assert.equal(asksForFrench({ title: 'Analyst', description: 'Bilingualism (English/French) is required.' }), true);
   assert.equal(asksForFrench({ title: 'Software Developer', description: 'Build tools with the team. French is an asset.' }), false);
+  assert.equal(asksForFrench({ title: 'Registered Nurse', description: 'Excellent English skills. Bilingual proficiency in French is a significant asset but not required.' }), false);
+  assert.equal(asksForFrench({ title: 'Analyst', description: 'Fluency in English and French is required for this role.' }), true);
   const p = cleanProfile({ targetRoles: ['Software Developer'], workAuth: 'citizen', done: true });
   const job = { title: 'Développeur Python', company: 'Acme', description: 'Python et SQL.' };
   assert.match(scoreJob(job, makeContext(lib, text, p, ['Software Developer'])).stops.join(' '), /French/);
@@ -255,4 +257,14 @@ test('PDF: names beyond Latin-1 keep their letters in the metadata; emoji are le
   assert.match(pdf, /\/Author <FEFF004E00670075/); // UTF-16, not garbled bytes
   assert.deepEqual(unsupported('Shipped 🚀 ➜ Nguyễn'), []);
   assert.deepEqual(unsupported('李明 Li'), ['李', '明']);
+});
+
+test('level fit: staff/director titles need 7+ years; co-ops and internships are not for people with 4+ years', () => {
+  const p = cleanProfile({ targetRoles: ['DevOps Engineer', 'Software Developer'], workAuth: 'citizen', done: true });
+  const libFor = years => buildLibrary(`Tom Novak\ntom@example.com\nSKILLS\nPython, AWS\nEXPERIENCE\nDevOps Engineer, Acme, Jan ${2026 - years} - Present\n- Ran AWS infrastructure with Python tooling.\nEDUCATION\nCarleton, 2014`);
+  const score = (years, title) => { const l = libFor(years); return scoreJob({ title, company: 'X', description: 'Python and AWS.' }, makeContext(l, libraryTextFor(l), p, p.targetRoles)); };
+  assert.match(score(5, 'Staff DevOps Engineer').stops.join(' '), /Staff-level title/);
+  assert.doesNotMatch(score(9, 'Staff DevOps Engineer').stops.join(' '), /level title/);
+  assert.match(score(9, 'Cloud & DevOps Engineer Co-op (May 2027)').stops.join(' '), /co-op/);
+  assert.doesNotMatch(score(1, 'Cloud & DevOps Engineer Co-op (May 2027)').stops.join(' '), /co-op/);
 });

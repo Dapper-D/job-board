@@ -194,6 +194,8 @@ export const familiesOf = (text) =>
     ? ["education"]
     : Object.keys(FAMILIES).filter((f) => FAMILIES[f].test(norm(text)));
 
+const HIGH_LEVEL = /\b(staff|principal|distinguished|fellow|director|head of|vp|vice president|chief|senior manager)\b/i;
+const STUDENT_ONLY = /\b(intern(ship)?|co-?op|new grad(uate)?|student|summer analyst)\b/i;
 export const SENIOR =
   /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
 const NO_SPONSOR =
@@ -210,10 +212,13 @@ const YEARS_REQ =
 const FR_WORDS = /\b(le|la|les|des|du|et|pour|avec|vous|nous|une|dans|sur|est|votre|notre|poste|equipe|entreprise|emploi)\b/g;
 const EN_WORDS = /\b(the|and|for|with|you|we|our|your|to|of|in|is|are|team|role|will)\b/g;
 const FR_REQUIRED = /\b(french (is )?(required|essential|mandatory)|(fluent|fluency|proficien\w*) in (both )?(english and )?french|bilingual(ism)? \(?(english|french)[ /]+(english|french)\)?( is)? (required|essential|mandatory)|(must|required to) (be able to )?(speak|write|communicate) (in )?(english and )?french|bilinguisme (est )?(requis|obligatoire|essentiel)|francais (est )?(requis|obligatoire|essentiel)|maitrise du francais)\b/;
+const FR_OPTIONAL = /\b(asset|assets|preferred|nice to have|a plus|bonus|not required|not mandatory|an advantage|desirable|atout|souhaitable)\b/;
 export function asksForFrench(job) {
   const t = norm(`${job.title} ${String(job.description || "").slice(0, 3000)}`);
   const fr = (t.match(FR_WORDS) || []).length, en = (t.match(EN_WORDS) || []).length;
-  return FR_REQUIRED.test(t) || (fr >= 15 && fr > en * 1.5) || /\b\w+\.e?uses?\b|\((trice|ere|euse)\)|\bdeveloppeur|\bconseiller|\bteletravail\b/.test(String(job.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+  // "Proficiency in French is an asset but not required" doesn't ask for French.
+  const req = [...t.matchAll(new RegExp(FR_REQUIRED.source, "g"))].some((m) => !FR_OPTIONAL.test(t.slice(m.index, m.index + m[0].length + 70)));
+  return req || (fr >= 15 && fr > en * 1.5) || /\b\w+\.e?uses?\b|\((trice|ere|euse)\)|\bdeveloppeur|\bconseiller|\bteletravail\b/.test(String(job.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
 }
 const KNOWS_FRENCH = /\b(french|francais|bilingual|bilingue)\b/;
 
@@ -389,6 +394,16 @@ export function scoreJob(job, ctx) {
   if (tooSenior) {
     label = "Skip";
     stops.push("Senior-level title; your resume shows under 3 years");
+  }
+  // Staff, principal, director and higher titles need years of work most resumes under 7 years don't show.
+  if (!tooSenior && HIGH_LEVEL.test(job.title) && ctx.years < 7) {
+    label = "Skip";
+    stops.push(`${HIGH_LEVEL.exec(job.title)[0].replace(/^./, (c) => c.toUpperCase())}-level title; your resume shows about ${ctx.years} years`);
+  }
+  // Internships, co-ops and new-grad programs are for students and graduates, not people with years of work.
+  if (STUDENT_ONLY.test(job.title) && ctx.years >= 4) {
+    label = "Skip";
+    stops.push(`Internship, co-op or new-grad role; your resume shows about ${ctx.years} years of work`);
   }
   // Scam warning signs: asking for money, banking details and the like hide the job; softer signs show a warning.
   const scam = scamSigns(`${job.title} ${job.description || ""}`);
