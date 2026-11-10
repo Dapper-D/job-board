@@ -1,7 +1,10 @@
 # Publishes a B3spoken pre-release when a maintainer pushes a tag like b3spoken-v0.1.0.
-# 1. build (Windows, no secrets): builds and tests the installer, exactly like the Windows build workflow.
+# 1. build (Windows), build-linux and build-mac (no secrets): build and test the installer and the apps.
 # 2. publish (the "release" environment): needs a maintainer's approval; signs SHA256SUMS with the release key
-#    and creates a GitHub pre-release with the installer, SHA256SUMS and SHA256SUMS.sig.
+#    and creates a GitHub pre-release with the Windows installer, the Linux app, the source package,
+#    SHA256SUMS and SHA256SUMS.sig. It doesn't wait for the Mac build.
+# 3. add-mac (the "release" environment again): when the Mac build is done, adds the Mac app to the same release
+#    and signs SHA256SUMS again over every file. Approve it like publish.
 # The release environment must allow b3spoken-v* tags (Settings -> Environments -> release -> deployment tags).
 name: B3spoken release
 on:
@@ -52,11 +55,35 @@ jobs:
           name: installer
           path: b3spoken/dist/B3spoken-Setup-*.exe
           retention-days: 7
-  build-mac-linux:
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+  # Linux and Mac build separately: GitHub's Mac machines are sometimes backed up for a long time, and the
+  # release shouldn't wait for them. Windows and Linux publish as soon as they're built (with your approval);
+  # the Mac app is added to the same release when its build is done (add-mac, approved and signed again).
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: b3spoken
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: npm test
+      - run: node scripts/build-exe.mjs
+      - name: Test the app
+        run: node scripts/exe-smoke.mjs "$PWD/dist/$([ "$RUNNER_OS" = macOS ] && echo B3spoken || echo b3spoken)"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-${{ runner.os }}
+          path: |
+            b3spoken/dist/B3spoken-mac-*.zip
+            b3spoken/dist/B3spoken-linux-*.tar.gz
+          retention-days: 7
+  build-mac:
+    runs-on: macos-latest
     timeout-minutes: 25
     defaults:
       run:
@@ -80,7 +107,7 @@ jobs:
             b3spoken/dist/B3spoken-linux-*.tar.gz
           retention-days: 7
   publish:
-    needs: [build, build-mac-linux]
+    needs: [build, build-linux]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release
@@ -95,8 +122,12 @@ jobs:
           node-version: 22
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          name: installer
           path: b3spoken/dist
-          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: app-Linux
+          path: b3spoken/dist
       - name: Source package (for people who install from source with setup.ps1 / setup.sh)
         shell: bash
         env:
@@ -112,7 +143,7 @@ jobs:
           umask 077
           keyfile="$RUNNER_TEMP/release-signing-key.pem"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
-          B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz | tee "$RUNNER_TEMP/sign.txt"
+          B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz | tee "$RUNNER_TEMP/sign.txt"
           rm -f "$keyfile"
           node scripts/sign-release.mjs --verify dist
       - name: Publish the pre-release
@@ -128,4 +159,54 @@ jobs:
           To check the download: SHA256SUMS lists the installer's SHA-256 and SHA256SUMS.sig is signed with the release key.
 
           $fp"
-          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --prerelease --title "B3spoken ${TAG#b3spoken-v} (preview)" --notes "$notes" --target "$GITHUB_SHA"
+          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --prerelease --title "B3spoken ${TAG#b3spoken-v} (preview)" --notes "$notes" --target "$GITHUB_SHA"
+  # The Mac app joins the release once it's built: SHA256SUMS is made again over every file and signed again.
+  # If the Mac build was cancelled or failed, "Re-run failed jobs" on this run builds it and adds it.
+  add-mac:
+    needs: [build-mac, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: app-macOS
+          path: b3spoken/dist
+      - name: The files already in the release
+        working-directory: b3spoken
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -D dist -p 'B3spoken-Setup-*.exe' -p 'B3spoken-linux-*.tar.gz' -p 'B3spoken-source-*.tar.gz' -p SHA256SUMS -p SHA256SUMS.sig
+          node scripts/sign-release.mjs --verify dist # what's published is untouched before anything is added
+          rm dist/SHA256SUMS dist/SHA256SUMS.sig
+      - name: Sign again with the Mac app
+        working-directory: b3spoken
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then echo "::error::The release environment has no RELEASE_SIGNING_KEY secret"; exit 1; fi
+          umask 077
+          keyfile="$RUNNER_TEMP/release-signing-key.pem"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
+          B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-mac-*.zip dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz
+          rm -f "$keyfile"
+          node scripts/sign-release.mjs --verify dist
+      - name: Add the Mac app to the release
+        working-directory: b3spoken
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/B3spoken-mac-*.zip dist/SHA256SUMS dist/SHA256SUMS.sig
