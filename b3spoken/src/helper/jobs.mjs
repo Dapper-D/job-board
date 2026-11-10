@@ -44,13 +44,19 @@ export const MAX_AGE_DAYS = 14;
 // Board tabs: '' is "To apply" (not tracked yet, or saved); each status has its own tab; 'due' is follow-ups; 'tracked' is all of them.
 export const STATUS_VIEWS = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
 export const VIEWS = ['', 'tracked', 'due', ...STATUS_VIEWS];
+// A job nobody applied to (not tracked, only saved or noted, or pasted in) leaves the board once it's more than
+// 14 days old: from its posting date, else the day it was pasted, else the day the daily scan first saw it.
+// Jobs the person acted on (applied, interview, offer, rejected, not interested) stay in their tabs for good.
+const ACTED = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
+const jobDate = j => Date.parse(j.postedAt || j.pastedAt || j.firstSeen || '');
+export const expired = (j, now = Date.now()) => !ACTED.includes(j.track?.status) && jobDate(j) < now - MAX_AGE_DAYS * 864e5;
 const isDue = (t, today) => !!(t?.followUp && t.followUp <= today && !['rejected', 'not-interested', 'offer'].includes(t.status));
 // How many jobs are in each tab (tracked tabs only; the To apply count comes with the list).
 export function viewCounts(jobs, now = Date.now()) {
   const today = new Date(now).toISOString().slice(0, 10);
   const out = { tracked: 0, due: 0, ...Object.fromEntries(STATUS_VIEWS.map(v => [v, 0])) };
   for (const j of jobs) {
-    const t = j.track; if (!t) continue;
+    const t = j.track; if (!t || expired(j, now)) continue;
     if (t.status || t.notes) out.tracked++;
     if (STATUS_VIEWS.includes(t.status)) out[t.status]++;
     if (isDue(t, today)) out.due++;
@@ -64,6 +70,7 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
   const days = Math.min(MAX_AGE_DAYS, Math.max(1, Number(maxAgeDays) || DEFAULT_AGE_DAYS));
   const cutoff = now - days * 864e5;
   const hits = jobs.filter(j => {
+    if (expired(j, now)) return false;
     if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
     else if (view === 'due') { if (!isDue(j.track, today)) return false; }
     else if (STATUS_VIEWS.includes(view)) { if (j.track?.status !== view) return false; }
@@ -74,7 +81,7 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;
-    if (!j.pasted && !j.track && !(Date.parse(j.postedAt || j.firstSeen) >= cutoff)) return false; // tracked and pasted jobs stay
+    if (!j.pasted && !j.track && !(Date.parse(j.postedAt || j.firstSeen) >= cutoff)) return false; // saved and pasted jobs stay until they expire
     if (words.length) { const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
     return true;
   });

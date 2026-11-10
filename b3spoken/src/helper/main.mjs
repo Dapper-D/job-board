@@ -568,6 +568,7 @@ export function createApp(
       const list = readJson(pastedFile, []).filter((j) => j.id !== job.id);
       list.unshift({
         ...job,
+        pastedAt: new Date().toISOString(), // a pasted job with no posting date expires 14 days after this
         description: String(job.description || "").slice(0, 20000),
       });
       writeJson(pastedFile, list.slice(0, 200));
