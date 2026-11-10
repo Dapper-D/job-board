@@ -4,8 +4,24 @@
 import { appendFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { DESCRIBE_SOURCES, describeJob } from '../src/scan/describe.mjs';
+import { request } from '../src/scan/http.mjs';
 
 const PER_SOURCE = Number(process.argv[2]) || 6;
+const VERBOSE = !process.argv.includes('--quiet');
+const shown = new Set();
+// Where the posting text might be on a page: scripts with data, headings, and the text around common section words.
+async function pageOutline(url) {
+  const u = new URL(url);
+  const html = (await request(url, { allow: [u.hostname, `*.${u.hostname.split('.').slice(-2).join('.')}`], parse: 'text', accept: 'text/html', gapMs: 600 })).text;
+  const out = [`  page ${html.length} bytes`];
+  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]{0,120})/gi)) if (/type=|id=/.test(m[1]) || /window\.|__/.test(m[2])) out.push(`  script ${m[1].trim().slice(0, 80)} :: ${JSON.stringify(m[2].slice(0, 100))}`);
+  for (const m of html.matchAll(/<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/gi)) out.push(`  heading ${JSON.stringify(m[1].replace(/<[^>]+>/g, '').trim().slice(0, 80))}`);
+  for (const w of ['qualifications', 'responsibilities', 'about the job', 'what you', 'description']) {
+    const i = html.toLowerCase().indexOf(w);
+    if (i > -1) out.push(`  near "${w}" @${i}: ${JSON.stringify(html.slice(Math.max(0, i - 200), i + 300))}`);
+  }
+  return out.slice(0, 40);
+}
 const r = await fetch(`https://github.com/${process.env.GITHUB_REPOSITORY || 'Dapper-D/job-board'}/releases/download/job-pool/pool.json.gz`);
 const jobs = JSON.parse(gunzipSync(Buffer.from(await r.arrayBuffer()))).jobs;
 const rows = [];
@@ -18,8 +34,14 @@ for (const source of Object.keys(DESCRIBE_SOURCES)) {
   for (const j of sample) {
     try {
       const got = await describeJob(j);
-      if (got?.description?.length >= 80) { ok++; notes.push(`ok ${new URL(j.url).hostname} (${got.description.length} chars)`); }
+      const d = got?.description || '';
+      if (d.length >= 80) { ok++; notes.push(`ok ${new URL(j.url).hostname} (${d.length} chars): ${JSON.stringify(d.slice(0, 160))}`); }
       else notes.push(`none ${new URL(j.url).hostname}${got?.robots ? ' (robots.txt)' : ''}`);
+      // For a page that gave nothing or very little, show what the page holds, so a reader can be fixed.
+      if (VERBOSE && d.length < 400 && !got?.robots && DESCRIBE_SOURCES[source] === 'page' && !shown.has(source)) {
+        shown.add(source);
+        try { notes.push(...(await pageOutline(j.url))); } catch (e) { notes.push(`  (page not read: ${e.message})`); }
+      }
     } catch (e) { notes.push(`fail ${new URL(j.url).hostname}: ${String(e.message).slice(0, 80)}`); }
   }
   rows.push({ source, empty: empty.length, tried: sample.length, ok, notes });
