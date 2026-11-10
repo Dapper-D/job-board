@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { SOURCES } from '../scan/sources/index.mjs';
 import { dedupe } from '../scan/scan.mjs';
 import { readJson, writeJson } from './paths.mjs';
+import { provincesOf } from './places.mjs';
 
 const JOBBANK_EVERY_MS = 6 * 3600e3; // Job Bank at most every 6 hours (it asks for 5 s between requests)
 const JOBBANK_RETRY_MS = 3600e3; // after a partial result, try again in an hour
@@ -29,15 +30,15 @@ export function mergeJobs(poolJobs = [], jobBankJobs = []) {
 const PROVINCE_NAMES = { BC: 'british columbia', AB: 'alberta', SK: 'saskatchewan', MB: 'manitoba', ON: 'ontario', QC: 'quebec|québec', NB: 'new brunswick', NS: 'nova scotia', PE: 'prince edward island', NL: 'newfoundland|labrador', YT: 'yukon', NT: 'northwest territories', NU: 'nunavut' };
 export const PROVINCES = Object.keys(PROVINCE_NAMES);
 
+// In the province by its name, its code ("Burnaby, BC") or one of its cities ("Burnaby, Canada", "Toronto Office").
 export function inProvince(job, code) {
-  const names = PROVINCE_NAMES[code]; if (!names) return true;
-  const loc = String(job.location || '');
-  return new RegExp(`(,|\\(|\\s-|^)\\s*${code}\\b(?!-)`).test(loc) || new RegExp(`\\b(${names})\\b`, 'i').test(loc);
+  if (!PROVINCE_NAMES[code]) return true;
+  return provincesOf(job.location).has(code);
 }
 
 // Filters for the board. Every filter is optional.
 // Only fresh jobs: posted in the last 3 days at most (the board's choice is 1, 2 or 3 days).
-// Jobs with no posting date can't be shown to be fresh, so they're left out too.
+// A job with no posting date counts from the day the daily scan first saw it (firstSeen); with neither, it's left out.
 export const MAX_AGE_DAYS = 3;
 // Board tabs: '' is "To apply" (not tracked yet, or saved); each status has its own tab; 'due' is follow-ups; 'tracked' is all of them.
 export const STATUS_VIEWS = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
@@ -72,7 +73,7 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;
-    if (!j.pasted && !j.track && !(Date.parse(j.postedAt) >= cutoff)) return false; // tracked and pasted jobs stay
+    if (!j.pasted && !j.track && !(Date.parse(j.postedAt || j.firstSeen) >= cutoff)) return false; // tracked and pasted jobs stay
     if (words.length) { const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
     return true;
   });

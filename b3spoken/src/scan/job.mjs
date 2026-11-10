@@ -61,7 +61,8 @@ export function salaryFromText(text) {
 
 /** Build a normalized job. Returns null when the essentials (title, a real https link) are missing. */
 export function makeJob({ source, company, nativeId, title, url, applyUrl, location, remote, postedAt, description, salary, department, employment, via, canada }) {
-  title = decodeEntities(String(title ?? '')).replace(/\s+/g, ' ').trim();
+  // "Copy of …" is left over from an employer copying an old posting in their hiring system; the job is the same.
+  title = decodeEntities(String(title ?? '')).replace(/\s+/g, ' ').trim().replace(/^copy of\s+/i, '');
   if (!title) return null;
   let link;
   try { link = new URL(url); } catch { return null; }
@@ -105,6 +106,8 @@ export function isCanada(location, remote = false) {
   if (parts.length > 1) return parts.some(p => isCanada(p, remote));
   const low = loc.toLowerCase();
   if (/\bcanada\b|\bcanadian\b|\bcan\b(?= *$)/i.test(loc)) return true;
+  // "Ontario, CA, United States" is Ontario, California; "London, ON" is caught above by its code only when not American.
+  if (/\b(united states|usa|u\.s\.a?)\b/i.test(loc)) return false;
   if (PROVINCES.some(p => low.includes(p))) return true;
   if (CODES.some(c => new RegExp(`(,|\\(|\\s-)\\s*${c}\\b(?!-)`).test(loc))) return true;
   if (CITIES.some(c => new RegExp(`(^|[^a-z])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(low)) && !NOT_CANADA.test(loc)) return true;

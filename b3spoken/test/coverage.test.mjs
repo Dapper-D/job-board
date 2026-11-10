@@ -72,3 +72,9 @@ test('daily discovery: a found board that fails when read goes back to be looked
   assert.equal(discovered.metro.source, undefined);
   assert.equal(discovered.ea.source, 'avature');
 });
+
+test('a US place named like a province is not Canada', () => {
+  assert.equal(isCanada('Ontario, CA, United States'), false);
+  assert.equal(isCanada('Toronto, Ontario, Canada'), true);
+  assert.equal(isCanada('Remote - USA / Remote - Canada', true), true);
+});

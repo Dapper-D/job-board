@@ -6,24 +6,27 @@ import { isMasterDocument, buildMasterLibrary } from "./master.mjs";
 // checkAiLibrary(aiJson, text) accepts an AI's tidier version only where its words are really in the resume;
 // anything the AI reworded or added is flagged, and flagged lines are never used until the person checks them.
 
+// English and French headings (French is matched without its accents: "EXPÉRIENCE" is "experience").
 const SECTION_WORDS = {
-  summary: /^(professional\s+)?(summary|profile|objective|about( me)?)$/i,
+  summary: /^((professional\s+)?(summary|profile|objective|about( me)?)|sommaire|profil( professionnel)?|objectif( de carriere| professionnel)?|a propos( de moi)?)$/i,
   skills:
-    /^(technical\s+|core\s+|key\s+)?(skills|competencies|technologies|tech stack)(\s*&\s*\w+)?$/i,
+    /^((technical\s+|core\s+|key\s+)?(skills|competencies|technologies|tech stack)(\s*&\s*\w+)?|competences( techniques| cles)?|aptitudes|technologies)$/i,
   experience:
-    /^(work\s+|professional\s+|relevant\s+|additional\s+)?(experience|employment|work history|career history)$/i,
-  projects: /^(key\s+|personal\s+|selected\s+|academic\s+)?projects?$/i,
-  education: /^(education|academic background)(\s*&\s*\w+)?$/i,
+    /^((work\s+|professional\s+|relevant\s+|additional\s+)?(experience|employment|work history|career history)|experiences?( professionnelles?| de travail| pertinentes?)?|parcours professionnel|emplois?)$/i,
+  projects: /^((key\s+|personal\s+|selected\s+|academic\s+)?projects?|projets?( personnels| academiques| scolaires| techniques)?)$/i,
+  education: /^((education|academic background)(\s*&\s*\w+)?|formations?( academiques?| scolaires?)?|etudes|scolarite)$/i,
   certifications:
-    /^(certifications?|licen[cs]es?|certificates?)(\s*&\s*\w+)?$/i,
-  volunteer: /^(volunteer(ing)?|volunteer experience|community)$/i,
-  awards: /^(awards?|honou?rs|achievements)$/i,
+    /^(certifications?|licen[cs]es?|certificates?|certificats?|attestations?)(\s*&\s*\w+)?$/i,
+  volunteer: /^(volunteer(ing)?|volunteer experience|community|benevolat|implication communautaire)$/i,
+  awards: /^(awards?|honou?rs|achievements|prix|distinctions)$/i,
 };
-const BULLET = /^\s*[•▪◦‣*\-–\uf0b7]\s+/;
+// "• Built", "- Built"; a round bullet may also touch its text ("•Built", as some PDFs draw it).
+// Other markers people use: "1." "2)", "o Built" (Word's hollow bullet pasted as a letter), ">", "✓", "■", "►", "—".
+const BULLET = /^\s*(?:[•▪◦‣●○■□◆◇►▶➢➤✓✔\uf0b7\uf0a7\uf076\uf0d8\uf0fc]\s*|[*\-–—>]\s+|\d{1,2}[.)]\s+(?=[A-Z])|o\s+(?=[A-Z]))(?=\S)/;
 const MONTH =
-  "(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?";
+  "(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|janv|f[eé]vr|avr|mai|juin|juil|ao[uû]t|d[eé]c)[a-zéû]*\\.?";
 export const DATES = new RegExp(
-  `((${MONTH}\\s+)?(19|20)\\d{2}|present|current|now)(\\s*(–|—|-|to)\\s*((${MONTH}\\s+)?(19|20)\\d{2}|present|current|now))?(\\s*\\(expected\\))?`,
+  `((${MONTH}\\s+)?(19|20)\\d{2}|present|current|now|pr[eé]sent|aujourd'hui|en cours)(\\s*(–|—|-|to|à|au)\\s*((${MONTH}\\s+)?(19|20)\\d{2}|present|current|now|pr[eé]sent|aujourd'hui|en cours))?(\\s*\\(expected\\))?`,
   "i",
 );
 
@@ -39,7 +42,7 @@ export const norm = (s) =>
     .trim();
 
 function sectionOf(line) {
-  const clean = line.replace(/[:\s]+$/, "").trim();
+  const clean = line.replace(/[:\s]+$/, "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (clean.length > 40) return null;
   for (const [kind, re] of Object.entries(SECTION_WORDS))
     if (re.test(clean)) return kind;
@@ -68,6 +71,16 @@ export function buildLibrary(text) {
     .replace(/\f/g, "\n")
     .split(/\r?\n/)
     .map((l) => l.replace(/\t+/g, "  ").trimEnd());
+  // A heading wrapped in the middle of brackets ("Under50 (github.com/… | Next.js, PostgreSQL," / "Prisma)") is one line.
+  for (let i = 0; i < lines.length - 1; i++) {
+    const open = (lines[i].match(/\(/g) || []).length - (lines[i].match(/\)/g) || []).length;
+    const nxt = lines[i + 1].trim();
+    if (open > 0 && nxt && !BULLET.test(lines[i]) && !BULLET.test(nxt) && !sectionOf(nxt) && /\)/.test(nxt)) {
+      lines[i] = `${lines[i].trimEnd()}${/[(/]$/.test(lines[i].trimEnd()) ? "" : " "}${nxt}`;
+      lines.splice(i + 1, 1);
+      i--;
+    }
+  }
   const lib = {
     contact: { name: "", lines: [] },
     summary: "",
@@ -185,7 +198,11 @@ export function buildLibrary(text) {
       continue;
     }
     const last = entry?.bullets.at(-1);
-    if (last && !/[.!?]$/.test(last.text) && /^[a-z(]/.test(line)) {
+    // A wrapped bullet goes on: the next line starts in lower case, or the bullet stopped mid-sentence
+    // ("…from the Greenhouse," / "Lever and Ashby APIs…").
+    const unfinished = (t) =>
+      /[,;:&/-]$|\b(and|or|the|a|an|of|to|for|from|with|in|on|at|by|using|via|into|across|including)$/i.test(t);
+    if (last && !/[.!?]$/.test(last.text) && (/^[a-z(]/.test(line) || unfinished(last.text))) {
       last.text += " " + line;
       continue;
     }

@@ -246,6 +246,79 @@ function pdfObjects(buf) {
   return objs;
 }
 
+// The text runs of one page's content stream, each with where it starts: { x, y, text, em }.
+// Td moves from the start of the current text line, which BT puts back at (0, 0): so each "BT x y Td" (one run,
+// the way many PDF writers draw a link, a bold word or a date pushed right) lands at x y.
+function streamRuns(s, fonts) {
+  const runs = [];
+  let font = null, size = 10, scale = 1, lead = 0, lx = 0, ly = 0, run = null;
+  const start = () => { run = { x: lx, y: ly, text: "", em: size * scale }; runs.push(run); };
+  const add = (txt) => { if (!run) start(); run.text += txt; };
+  const re =
+    /\/([^\s/<>\[\]()]+)\s+[\d.]+\s+Tf|(-?[\d.]+)\s+(-?[\d.]+)\s+T([dD])|(?:-?[\d.]+\s+){4}(-?[\d.]+)\s+(-?[\d.]+)\s+Tm|(-?[\d.]+)\s+TL|T\*|\[((?:\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f\s]*>|-?[\d.]+|\s)*)\]\s*TJ|\(((?:\\.|[^\\)])*)\)\s*(Tj|'|")|<([0-9A-Fa-f\s]*)>\s*Tj|\bBT\b/g;
+  const nextLine = () => { ly -= lead * scale || 12 * scale; run = null; };
+  for (const t of s.matchAll(re)) {
+    if (t[1]) { font = fonts.get(t[1]) || null; size = Number((t[0].match(/([\d.]+)\s+Tf$/) || [])[1]) || size; run = null; continue; }
+    if (t[2] != null) { lx += Number(t[2]) * scale; ly += Number(t[3]) * scale; if (t[4] === "D") lead = -Number(t[3]); run = null; continue; }
+    if (t[5] != null) { lx = Number(t[5]); ly = Number(t[6]); scale = Math.abs(Number(t[0].trim().split(/\s+/)[0])) || 1; run = null; continue; }
+    if (t[7] != null) { lead = Number(t[7]); continue; }
+    if (t[0] === "T*") { nextLine(); continue; }
+    if (t[0] === "BT") { lx = 0; ly = 0; scale = 1; run = null; continue; }
+    if (t[9] != null) { if (t[10] !== "Tj") nextLine(); add(decodeWith(pdfString(t[9]), font)); continue; }
+    if (t[11] != null) { add(decodeWith(hexBytes(t[11]), font)); continue; }
+    for (const part of t[8].matchAll(/\(((?:\\.|[^\\)])*)\)|<([0-9A-Fa-f\s]*)>|(-?[\d.]+)/g)) {
+      if (part[1] != null) add(decodeWith(pdfString(part[1]), font));
+      else if (part[2] != null) add(decodeWith(hexBytes(part[2]), font));
+      else if (Number(part[3]) < -200 && !/\s$/.test(run?.text || "")) add(" ");
+    }
+  }
+  return runs.filter((r) => r.text); // spaces drawn on their own still separate words ("REST" " " "APIs")
+}
+
+// Runs -> lines of text, in the order the page draws them (some writers flip the page, so y can't be trusted for
+// order). Runs on the same baseline join with a space, or two for a wide gap like a
+// tab ("Douglas College  Sept 2023 – Dec 2026"), and none for the small gaps of kerning inside a word ("W" "rote").
+// Glyph widths aren't known, so where a run ends is estimated at half the font size per letter.
+// Two-column resumes (a sidebar of skills beside the experience) are read one column after the other, not across.
+function layoutRuns(runs) {
+  const rows = [];
+  for (const r of runs) {
+    const row = rows.find((w) => Math.abs(w.y - r.y) <= 1);
+    if (row) row.runs.push(r); else rows.push({ y: r.y, runs: [r] });
+  }
+  for (const w of rows) w.runs.sort((a, b) => a.x - b.x);
+  const end = (r) => r.x + [...r.text].length * r.em * 0.5;
+  // Columns: many rows split by a wide gap at about the same place, and what's right of it isn't just dates.
+  const splits = new Map();
+  for (const w of rows)
+    w.runs.forEach((r, i) => {
+      if (i && r.text.trim() && w.runs[i - 1].text.trim() && r.x - end(w.runs[i - 1]) > r.em * 3) {
+        const k = Math.round(r.x / 6) * 6;
+        splits.set(k, [...(splits.get(k) || []), r.text]);
+      }
+    });
+  const [splitX, texts = []] = [...splits].sort((a, b) => b[1].length - a[1].length)[0] || [];
+  const DATEISH = /\b(19|20)\d{2}\b|present|current/i;
+  const columns = texts.length >= 4 && texts.length >= rows.length * 0.25 && texts.filter((t) => DATEISH.test(t) && t.length < 40).length < texts.length / 2;
+  const join = (list) => {
+    let out = "";
+    list.forEach((r, i) => {
+      if (i && !/\s$/.test(out) && !/^\s/.test(r.text)) {
+        const gap = r.x - end(list[i - 1]);
+        if (gap > r.em * 3) out += "  ";
+        else if (gap > r.em) out += " ";
+      }
+      out += r.text;
+    });
+    return out.replace(/\s+$/, "");
+  };
+  if (!columns) return rows.map((w) => join(w.runs)).filter((l) => l.trim());
+  const cut = splitX - 3;
+  const left = rows.map((w) => join(w.runs.filter((r) => r.x < cut))).filter((l) => l.trim());
+  const right = rows.map((w) => join(w.runs.filter((r) => r.x >= cut))).filter((l) => l.trim());
+  return [...left, ...right];
+}
+
 export function pdfText(buf) {
   const raw = buf.toString("latin1");
   if (!raw.startsWith("%PDF")) throw new Error("not a PDF file");
@@ -282,62 +355,7 @@ export function pdfText(buf) {
     }
   }
   const lines = [];
-  for (const s of contents) {
-    let line = "",
-      font = null,
-      y = null,
-      x = 0;
-    const flush = () => {
-      if (line.trim()) lines.push(line.replace(/\s+$/, ""));
-      line = "";
-    };
-    // A new line when the baseline moves; moves along the same line rely on the PDF's own spaces (we don't know glyph widths).
-    const moveTo = (nx, ny) => {
-      if (y === null || Math.abs(ny - y) > 1) flush();
-      x = nx;
-      y = ny;
-    };
-    const re =
-      /\/([^\s/<>\[\]()]+)\s+[\d.]+\s+Tf|(-?[\d.]+)\s+(-?[\d.]+)\s+T[dD]|(?:-?[\d.]+\s+){4}(-?[\d.]+)\s+(-?[\d.]+)\s+Tm|T\*|\[((?:\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f\s]*>|-?[\d.]+|\s)*)\]\s*TJ|\(((?:\\.|[^\\)])*)\)\s*(?:Tj|'|")|<([0-9A-Fa-f\s]*)>\s*Tj|\bBT\b/g;
-    for (const t of s.matchAll(re)) {
-      if (t[1]) {
-        font = fonts.get(t[1]) || null;
-        continue;
-      }
-      if (t[2] != null) {
-        moveTo(x + Number(t[2]), (y ?? 0) + Number(t[3]));
-        continue;
-      }
-      if (t[4] != null) {
-        moveTo(Number(t[4]), Number(t[5]));
-        continue;
-      }
-      if (t[0] === "T*") {
-        flush();
-        continue;
-      }
-      if (t[0] === "BT") {
-        x = 0;
-        continue;
-      }
-      if (t[7] != null) {
-        line += decodeWith(pdfString(t[7]), font);
-        continue;
-      }
-      if (t[8] != null) {
-        line += decodeWith(hexBytes(t[8]), font);
-        continue;
-      }
-      for (const part of t[6].matchAll(
-        /\(((?:\\.|[^\\)])*)\)|<([0-9A-Fa-f\s]*)>|(-?[\d.]+)/g,
-      )) {
-        if (part[1] != null) line += decodeWith(pdfString(part[1]), font);
-        else if (part[2] != null) line += decodeWith(hexBytes(part[2]), font);
-        else if (Number(part[3]) < -200 && !/\s$/.test(line)) line += " ";
-      }
-    }
-    flush();
-  }
+  for (const s of contents) lines.push(...layoutRuns(streamRuns(s, fonts)));
   // A bullet drawn on its own joins the line after it.
   return lines
     .join("\n")
@@ -348,11 +366,11 @@ export function pdfText(buf) {
 export function extractText(buf, filename = "") {
   if (buf.length > MAX_FILE) throw new Error("the file is larger than 10 MB");
   const ext = String(filename).toLowerCase().split(".").pop();
-  let text;
+  let text, kind = "text";
   if (ext === "docx" || buf.subarray(0, 2).toString() === "PK")
-    text = docxText(buf);
+    (text = docxText(buf)), (kind = "docx");
   else if (ext === "pdf" || buf.subarray(0, 4).toString() === "%PDF")
-    text = pdfText(buf);
+    (text = pdfText(buf)), (kind = "pdf");
   else if (ext === "doc")
     throw new Error(
       "old .doc files can’t be read; save it as .docx or PDF, or paste the text",
@@ -363,6 +381,8 @@ export function extractText(buf, filename = "") {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  const words = (text.match(/[A-Za-z]{2,}/g) || []).length;
-  return { text, words, readable: words >= 80 };
+  // Words in any language ("expérience", "développeur" count as one word each).
+  const words = (text.match(/\p{L}{2,}/gu) || []).length;
+  // A scanned page gives next to no words; a short one-page resume still has a few dozen.
+  return { text, words, kind, readable: words >= 25 };
 }

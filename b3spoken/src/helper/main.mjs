@@ -20,6 +20,7 @@ import {
 } from "./ai.mjs";
 import { createServer } from "./server.mjs";
 import { extractText } from "./resume/extract.mjs";
+import { unsupported } from "./tailor/pdf.mjs";
 import {
   buildLibrary,
   checkAiLibrary,
@@ -497,7 +498,11 @@ export function createApp(
     const resumeResult = renderResumeWithReport(plan);
     writeFileSync(join(folder, files.resume), resumeResult.pdf);
     writeFileSync(join(folder, files.letter), renderCoverLetter(plan, letter));
-    const generationNote = [note, resumeResult.note].filter(Boolean).join(" ");
+    const cantDraw = unsupported(`${JSON.stringify(plan)} ${letter.paragraphs.join(" ")}`);
+    const fontNote = cantDraw.length
+      ? `The resume font can't draw ${cantDraw.slice(0, 8).join(" ")}, so ${cantDraw.length > 1 ? "they show" : "it shows"} as "?" in the PDFs. Write ${cantDraw.length > 1 ? "them" : "it"} in Latin letters in your resume to fix this.`
+      : "";
+    const generationNote = [note, resumeResult.note, fontNote].filter(Boolean).join(" ");
     const made = {
       jobId: id,
       folder,
@@ -1386,7 +1391,11 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       } catch (e) {
         throw err(400, `Couldn't read that file: ${e.message}`);
       }
-      if (!got.readable)
+      // Only a PDF can be a scanned picture. A short Word file or pasted text is judged by what's in it (below),
+      // so a short resume with real experience isn't turned away with the wrong reason.
+      if (!got.words)
+        throw err(422, text != null ? "Paste the text of your resume first." : "No text came out of that file. Upload the Word version or paste the text instead.");
+      if (!got.readable && got.kind === "pdf")
         throw err(
           422,
           "Very little text came out of that file (it may be a scanned picture). Upload the Word version or paste the text instead.",
