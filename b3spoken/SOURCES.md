@@ -45,7 +45,7 @@ These are the public job feeds employers publish through their hiring software, 
 
 | Source | What we read | Notes |
 | --- | --- | --- |
-| Job Bank (Government of Canada) | `www.jobbank.gc.ca/jobsearch/feed/jobSearchRSSfeed` | Public search feed. robots.txt asks for 5 seconds between requests, which we follow. Job Bank refuses connections from cloud servers, so this runs on each person's own computer with their own search words, newest first, stopping at postings older than 3 days |
+| Job Bank (Government of Canada) | `www.jobbank.gc.ca/jobsearch/feed/jobSearchRSSfeed` | Public search feed. robots.txt asks for 5 seconds between requests, which we follow. Job Bank refuses connections from cloud servers, so this runs on each person's own computer with their own search words, newest first, stopping at postings older than 14 days (the longest board choice) |
 
 ## Job sites (remote jobs)
 

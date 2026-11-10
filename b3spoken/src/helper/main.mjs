@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // B3spoken helper: start it, and the board opens in the browser at http://127.0.0.1:<port>/.
 //   node src/helper/main.mjs [--port 4747] [--no-open] [--offline]
-// On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 3 days,
+// On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 14 days,
 // and looks for ChatGPT (Codex) or Claude (Claude Code) on this computer.
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -1108,7 +1108,7 @@ export function createApp(
         add(
           "PASS",
           "Job Bank",
-          `${jobBank.jobs.length} postings from the last 3 days, fetched ${new Date(jobBank.fetchedAt).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}.`,
+          `${jobBank.jobs.length} postings from the last 14 days, fetched ${new Date(jobBank.fetchedAt).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}.`,
         );
       else add("WARN", "Job Bank", "Not fetched yet.", "Press Refresh.");
       const pick = settings.ai;

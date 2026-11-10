@@ -6,7 +6,7 @@
 // - the page is locked down with a strict Content-Security-Policy.
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { queryJobs, PROVINCES, VIEWS, viewCounts } from './jobs.mjs';
+import { queryJobs, PROVINCES, VIEWS, viewCounts, DEFAULT_AGE_DAYS } from './jobs.mjs';
 
 import { readAsset } from './assets.mjs';
 const page = f => readAsset(`src/helper/public/${f}`);
@@ -53,7 +53,7 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'GET /api/jobs') {
         const p = Object.fromEntries(url.searchParams);
         const province = PROVINCES.includes(p.province) ? p.province : '';
-        const page = queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || 3, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: VIEWS.includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' });
+        const page = queryJobs(app.jobs(), { q: String(p.q || '').slice(0, 200), province, remote: p.remote, source: p.source, maxAgeDays: Number(p.maxAgeDays) || DEFAULT_AGE_DAYS, offset: Math.max(0, Number(p.offset) || 0), limit: Math.max(1, Number(p.limit) || 50), sort: p.sort === 'date' ? 'date' : 'score', view: VIEWS.includes(p.view) ? p.view : '', minLabel: ['Good', 'Strong'].includes(p.minLabel) ? p.minLabel : '' });
         return send(res, 200, { ...page, jobs: page.jobs.map(j => { const r = app.reviewOf?.(j.id); return r ? { ...j, review: r } : j; }), counts: viewCounts(app.jobs()) }); // AI traps are found when jobs are scored (see main.mjs)
       }
       const conM = url.pathname.match(/^\/api\/jobs\/(.+)\/contacts$/);

@@ -18,7 +18,8 @@ test('board tabs: To apply holds only jobs not acted on; each status has its own
   const jobs = [
     { id: 'a', title: 'A', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 60 } },
     { id: 's', title: 'S', location: 'Vancouver, BC', postedAt: '2026-11-04T00:00:00Z', match: { label: 'Good', score: 55 }, track: { status: 'saved' } },
-    { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-20T00:00:00Z', match: { label: 'Strong', score: 90 } },
+    { id: 'old', title: 'Old', location: 'Vancouver, BC', postedAt: '2026-10-25T00:00:00Z', match: { label: 'Strong', score: 90 } },
+    { id: 'ancient', title: 'Ancient', location: 'Vancouver, BC', postedAt: '2026-10-01T00:00:00Z', match: { label: 'Strong', score: 95 } },
     { id: 'nodate', title: 'No date', location: 'Vancouver, BC', match: { label: 'Strong', score: 90 } },
     { id: 'b', title: 'B', location: 'Vancouver, BC', match: { label: 'Strong', score: 80 }, track: { status: 'not-interested' } },
     { id: 'c', title: 'C', location: 'Toronto, ON', match: { label: 'Skip', score: 10 }, track: { status: 'applied', followUp: '2026-11-01' } },
@@ -27,7 +28,9 @@ test('board tabs: To apply holds only jobs not acted on; each status has its own
   const now = Date.parse('2026-11-05T12:00:00Z');
   const ids = o => queryJobs(jobs, { now, ...o }).jobs.map(j => j.id);
   assert.deepEqual(ids({}), ['a', 's']); // applied, rejected and not-interested jobs leave To apply; old and undated jobs hidden
-  assert.deepEqual(ids({ maxAgeDays: 30 }), ['a', 's']); // never more than 3 days
+  assert.deepEqual(ids({ maxAgeDays: 14 }), ['old', 'a', 's']); // the 14-day choice reaches back further
+  assert.deepEqual(ids({ maxAgeDays: 30 }), ['old', 'a', 's']); // never more than 14 days ('ancient' stays hidden)
+  assert.deepEqual(ids({ maxAgeDays: 7 }), ['a', 's']);
   assert.deepEqual(ids({ maxAgeDays: 1 }), ['s']); // a saved job stays even when older than the window
   assert.deepEqual(ids({ view: 'applied' }), ['c']); // tracked jobs show in their tab whatever their age or score
   assert.deepEqual(ids({ view: 'rejected' }), ['r']);

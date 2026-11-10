@@ -15,8 +15,8 @@ export async function refreshJobBank(dir, settings, { now = Date.now(), force = 
   if (!force && have && now - have.fetchedAt < (have.missed ? JOBBANK_RETRY_MS : JOBBANK_EVERY_MS) && JSON.stringify(have.keywords) === JSON.stringify(settings.keywords || [])) return have;
   const missed = [];
   const get = fetchJobs || (t => SOURCES.jobbank.fetchJobs(t, { now, onError: e => missed.push({ keyword: e.keyword || '', error: e.code || e.message }) }));
-  log('checking Job Bank for postings from the last 3 days…');
-  const jobs = (await get({ keywords: settings.keywords || [], maxAgeDays: 3, maxPages: 40 })).filter(j => j.canada);
+  log(`checking Job Bank for postings from the last ${MAX_AGE_DAYS} days…`);
+  const jobs = (await get({ keywords: settings.keywords || [], maxAgeDays: MAX_AGE_DAYS, maxPages: 40 })).filter(j => j.canada);
   const saved = { fetchedAt: now, keywords: settings.keywords || [], jobs, ...(missed.length ? { missed } : {}) };
   writeJson(file, saved);
   log(`Job Bank: ${jobs.length} postings`);
@@ -37,9 +37,10 @@ export function inProvince(job, code) {
 }
 
 // Filters for the board. Every filter is optional.
-// Only fresh jobs: posted in the last 3 days at most (the board's choice is 1, 2 or 3 days).
+// Fresh jobs first: the board shows the last 3 days unless the person picks 24 hours, 2 days, 7 days or 14 days.
 // A job with no posting date counts from the day the daily scan first saw it (firstSeen); with neither, it's left out.
-export const MAX_AGE_DAYS = 3;
+export const DEFAULT_AGE_DAYS = 3;
+export const MAX_AGE_DAYS = 14;
 // Board tabs: '' is "To apply" (not tracked yet, or saved); each status has its own tab; 'due' is follow-ups; 'tracked' is all of them.
 export const STATUS_VIEWS = ['applied', 'interview', 'offer', 'rejected', 'not-interested'];
 export const VIEWS = ['', 'tracked', 'due', ...STATUS_VIEWS];
@@ -56,11 +57,11 @@ export function viewCounts(jobs, now = Date.now()) {
   }
   return out;
 }
-export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = MAX_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = DEFAULT_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
   const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
   const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
-  const days = Math.min(MAX_AGE_DAYS, Math.max(1, Number(maxAgeDays) || MAX_AGE_DAYS));
+  const days = Math.min(MAX_AGE_DAYS, Math.max(1, Number(maxAgeDays) || DEFAULT_AGE_DAYS));
   const cutoff = now - days * 864e5;
   const hits = jobs.filter(j => {
     if (view === 'tracked') { if (!j.track?.status && !j.track?.notes) return false; }
