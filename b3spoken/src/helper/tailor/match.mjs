@@ -2,12 +2,13 @@
 // Score 0-100 with plain reasons. Hard stops (pay below their floor, sponsorship refused when they need it,
 // citizenship or clearance they don't have, an industry they want to avoid) make a job "Skip", and Skip jobs
 // are never shown.
-import { norm } from '../resume/library.mjs';
-import { yearly } from '../profile.mjs';
-import { scamSigns } from './scam.mjs';
+import { norm } from "../resume/library.mjs";
+import { yearly } from "../profile.mjs";
+import { scamSigns } from "./scam.mjs";
 
 // Skills and tools we look for in postings (plus everything in the person's own skills list).
-export const VOCAB = `python java javascript typescript c# c++ golang rust ruby php kotlin swift scala sql nosql bash powershell
+export const VOCAB =
+  `python java javascript typescript c# c++ golang rust ruby php kotlin swift scala sql nosql bash powershell
 react angular vue next.js node node.js express django flask fastapi spring .net rails graphql restful api apis grpc html css tailwind
 postgresql mysql mongodb redis elasticsearch kafka rabbitmq spark airflow dbt snowflake bigquery databricks pandas numpy
 aws azure gcp cloud docker kubernetes terraform ansible jenkins github actions gitlab ci/cd linux unix git jira
@@ -20,144 +21,371 @@ excel power bi tableau looker dashboards analytics statistics
 help desk troubleshooting tickets itil servicenow windows macos office 365 microsoft 365
 agile scrum stakeholders documentation project management
 customer service sales crm salesforce hubspot marketing seo content social media
-accounting bookkeeping quickbooks reconciliation payroll gaap ifrs`.split(/\s+/).filter(Boolean);
-const MULTI = ['github actions', 'ci/cd', 'machine learning', 'prompt engineering', 'incident response', 'active directory', 'zero trust', 'iso 27001', 'soc 2', 'power bi', 'help desk', 'office 365', 'microsoft 365', 'project management', 'customer service', 'social media', 'unit testing', 'automated testing'];
-const TERMS = [...new Set([...MULTI, ...VOCAB.filter(v => !MULTI.some(m => m.split(' ').includes(v)))])];
+accounting bookkeeping quickbooks reconciliation payroll gaap ifrs`
+    .split(/\s+/)
+    .filter(Boolean);
+const MULTI = [
+  "github actions",
+  "ci/cd",
+  "machine learning",
+  "prompt engineering",
+  "incident response",
+  "active directory",
+  "zero trust",
+  "iso 27001",
+  "soc 2",
+  "power bi",
+  "help desk",
+  "office 365",
+  "microsoft 365",
+  "project management",
+  "customer service",
+  "social media",
+  "unit testing",
+  "automated testing",
+];
+const TERMS = [
+  ...new Set([
+    ...MULTI,
+    ...VOCAB.filter((v) => !MULTI.some((m) => m.split(" ").includes(v))),
+  ]),
+];
 
-const re = t => new RegExp(`(^|[^a-z0-9+#.])${t.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}($|[^a-z0-9+#])`);
+const re = (t) =>
+  new RegExp(
+    `(^|[^a-z0-9+#.])${t.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}($|[^a-z0-9+#])`,
+  );
 const RE = new Map();
-const has = (textNorm, t) => { let r = RE.get(t); if (!r) RE.set(t, (r = re(t))); return r.test(textNorm); };
+const has = (textNorm, t) => {
+  let r = RE.get(t);
+  if (!r) RE.set(t, (r = re(t)));
+  return r.test(textNorm);
+};
 
 export function termsIn(textNorm, extra = []) {
-  return [...new Set([...TERMS, ...extra.map(norm).filter(x => x.length > 1)])].filter(t => has(textNorm, t));
+  return [
+    ...new Set([...TERMS, ...extra.map(norm).filter((x) => x.length > 1)]),
+  ].filter((t) => has(textNorm, t));
 }
 
 // "$90,000 - $110,000", "$45/hr", "35–45 per hour", "120k". Returns { min, max, unit } in dollars per year or null.
 export function parsePay(text) {
-  const s = String(text || '').replace(/,/g, '');
-  const m = s.match(/\$\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:-|–|—|to)\s*\$?\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum|annually)|(hourly|annually|per annum))?/i)
-    || s.match(/\$\s?(\d+(?:\.\d+)?)\s?(k)?()()\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum)|(hourly|annually))/i);
+  const s = String(text || "").replace(/,/g, "");
+  const m =
+    s.match(
+      /\$\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:-|–|—|to)\s*\$?\s?(\d+(?:\.\d+)?)\s?(k)?\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum|annually)|(hourly|annually|per annum))?/i,
+    ) ||
+    s.match(
+      /\$\s?(\d+(?:\.\d+)?)\s?(k)?()()\s*(?:(?:per|an|a|\/)\s*(hour|hr|year|yr|annum)|(hourly|annually))/i,
+    );
   if (!m) return null;
-  let a = Number(m[1]) * (m[2] ? 1000 : 1), b = m[3] ? Number(m[3]) * (m[4] || m[2] ? 1000 : 1) : a;
+  let a = Number(m[1]) * (m[2] ? 1000 : 1),
+    b = m[3] ? Number(m[3]) * (m[4] || m[2] ? 1000 : 1) : a;
   if (b < a) [a, b] = [b, a];
-  const unitWord = (m[5] || m[6] || '').toLowerCase();
+  const unitWord = (m[5] || m[6] || "").toLowerCase();
   const hourly = /^h/.test(unitWord) || (!unitWord && b < 300);
   if (!hourly && b < 1000) return null; // a stray number, not pay
   const f = hourly ? 2080 : 1;
-  return { min: Math.round(a * f), max: Math.round(b * f), unit: hourly ? 'hour' : 'year' };
+  return {
+    min: Math.round(a * f),
+    max: Math.round(b * f),
+    unit: hourly ? "hour" : "year",
+  };
 }
 
 // Years of work experience from the library's experience dates.
 export function yearsOfExperience(lib, now = new Date()) {
-  const M = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-  const when = s => { const m = String(s).toLowerCase().match(/(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?((?:19|20)\d{2})/); return m ? new Date(Number(m[2]), m[1] ? M[m[1]] : 0) : null; };
-  let months = 0;
+  const M = {
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
+  };
+  const when = (s) => {
+    const m = String(s)
+      .toLowerCase()
+      .match(
+        /(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?((?:19|20)\d{2})/,
+      );
+    return m ? new Date(Number(m[2]), m[1] ? M[m[1]] : 0, 1) : null;
+  };
+  // A separator must be a dash or the whole word "to", not the "to" in October.
+  // Count distinct calendar months so simultaneous jobs do not inflate tenure.
+  const months = new Set();
+  const thisMonth = now.getFullYear() * 12 + now.getMonth();
   for (const e of lib?.entries || []) {
-    if (e.kind !== 'experience' || !e.dates) continue;
-    const [a, b] = String(e.dates).split(/\s*(?:–|—|-|to)\s*/);
-    const start = when(a), end = /present|current|now/i.test(b || '') ? now : when(b) || start;
-    if (start && end && end >= start) months += (end - start) / (30.44 * 864e5) + 1;
+    if (e.kind !== "experience" || !e.dates) continue;
+    const [a, b] = String(e.dates).split(/\s*(?:[–—-]|\bto\b)\s*/i);
+    const start = when(a),
+      end = /present|current|now/i.test(b || "") ? now : when(b) || start;
+    if (!start || !end || end < start) continue;
+    const from = start.getFullYear() * 12 + start.getMonth();
+    const until = Math.min(thisMonth, end.getFullYear() * 12 + end.getMonth());
+    for (let month = from; month <= until; month++) months.add(month);
   }
-  return Math.round((months / 12) * 10) / 10;
+  return Math.round((months.size / 12) * 10) / 10;
 }
 
 // Job families, judged from job titles. A job outside every family the person's roles belong to is a different field
 // (for example a mechanical engineer or a lab technician that happens to mention Python), and never shows.
 const FAMILIES = {
-  software: /\b(software|developer|programmer|full[- ]?stack|front[- ]?end|back[- ]?end|web|mobile|ios|android|sdet|qa|quality assurance|test automation|(software|web|application|applications|platform|solutions|systems|data|ml|ai|devops|qa|test|integration|automation|cloud|security|support|backend|frontend) engineer(ing)?)\b/,
-  security: /\b(security|cyber|cybersecurity|soc (analyst|specialist|operator|tier)|siem|vulnerability|penetration|pen ?test(er)?|incident response|threat|iam|identity and access|access management|grc|(it|security|cyber|information|technology|data) (governance|compliance|risk)|privacy engineer|infosec)\b/,
+  software:
+    /\b(software|developer|programmer|full[- ]?stack|front[- ]?end|back[- ]?end|web|mobile|ios|android|sdet|qa|quality assurance|test automation|(software|web|application|applications|platform|solutions|systems|data|ml|ai|devops|qa|test|integration|automation|cloud|security|support|backend|frontend) engineer(ing)?)\b/,
+  security:
+    /\b(security|cyber|cybersecurity|soc (analyst|specialist|operator|tier)|siem|vulnerability|penetration|pen ?test(er)?|incident response|threat|iam|identity and access|access management|grc|(it|security|cyber|information|technology|data) (governance|compliance|risk)|privacy engineer|infosec)\b/,
   it: /\b(it|help ?desk|service ?desk|desktop support|technical support|tech support|support (analyst|specialist|technician|engineer)|systems? (administrator|analyst|specialist)|sysadmin|network (administrator|analyst|engineer|technician)|infrastructure|endpoint|it (analyst|specialist|technician|coordinator))\b/,
   ai: /\b(ai|machine learning|ml|llm|artificial intelligence|nlp|prompt|data scien(ce|tist)|genai|generative)\b/,
   data: /\b(data (analyst|engineer|specialist)|analytics|business intelligence|bi (analyst|developer)|database|dba|reporting analyst)\b/,
-  cloud: /\b(cloud|devops|sre|site reliability|platform engineer|aws|azure|gcp)\b/,
-  business: /\b(business (systems )?analyst|product analyst|systems analyst|technical analyst|solutions (analyst|consultant)|implementation (specialist|consultant)|product (manager|owner)|project (manager|coordinator)|program (manager|coordinator)|scrum master)\b/,
+  cloud:
+    /\b(cloud|devops|sre|site reliability|platform engineer|aws|azure|gcp)\b/,
+  business:
+    /\b(business (systems )?analyst|product analyst|systems analyst|technical analyst|solutions (analyst|consultant)|implementation (specialist|consultant)|product (manager|owner)|project (manager|coordinator)|program (manager|coordinator)|scrum master)\b/,
   // Fields outside tech, so the same check works for anyone's resume.
-  healthcare: /\b(nurse|nursing|rn|lpn|physician|doctor|pharmac(y|ist)|dental|dentist|hygienist|therapist|physiotherap(y|ist)|care aide|health care|healthcare|clinical|medical|patient|paramedic|caregiver|personal support worker|psw|radiolog|sonograph|optometr|veterinar)\w*\b/,
-  finance: /\b(accountant|accounting|bookkeep(er|ing)|payroll|audit(or)?|tax|financial (analyst|advisor|planner)|finance|controller|accounts (payable|receivable)|credit analyst|underwrit(er|ing)|actuar(y|ial)|investment|banking|bank teller|teller|treasury)\b/,
-  sales: /\b(sales|account (executive|manager)|business development|bdr|sdr|retail (associate|sales)|cashier|store (associate|manager)|merchandis(er|ing))\b/,
-  marketing: /\b(marketing|seo|content (writer|strategist|creator|marketing)|copywriter|social media|brand|communications|public relations|pr (specialist|coordinator)|growth)\b/,
-  people: /\b(human resources|hr|recruit(er|ing|ment)|talent acquisition|people (partner|operations)|benefits|compensation)\b/,
-  customer: /\b(customer (service|support|success|care|experience)|call cent(er|re)|client (service|support)s?|contact cent(er|re))\b/,
-  design: /\b(designer|design|ux|ui|graphic|illustrat(or|ion)|animator|video editor|photographer|art director)\b/,
-  operations: /\b(warehouse|logistics|supply chain|procurement|purchasing|inventory|shipping|receiving|forklift|driver|delivery|dispatch(er)?|fleet|operations (associate|coordinator|manager|specialist)|buyer)\b/,
-  legal: /\b(lawyer|legal|paralegal|counsel|attorney|law clerk|compliance (officer|advisor|specialist|analyst)|regulatory)\b/,
-  education: /\b(teacher|lecturer|professor|instructor|tutor|educator|faculty|early childhood|ece|education assistant|teaching)\b/,
-  trades: /\b(electrician|plumber|carpenter|welder|mechanic|technician|millwright|hvac|machinist|labourer|laborer|construction|apprentice|journeyman|installer|maintenance)\b/,
-  engineering: /\b((mechanical|electrical|civil|chemical|structural|manufacturing|process|industrial|hardware|mechatronics|environmental|geotechnical|mining|aerospace) engineer(ing)?|drafter|cad)\b/,
-  science: /\b(scientist|laborator(y|ies)|lab (technician|assistant)|research (assistant|associate)|chemist|biolog(y|ist)|microbiolog)\w*\b/,
-  hospitality: /\b(chef|cook|kitchen|server|bartender|barista|host(ess)?|housekeep(er|ing)|hotel|restaurant|food service|dishwasher|front desk)\b/,
-  admin: /\b(administrative|admin assistant|office (manager|assistant|administrator)|receptionist|executive assistant|data entry|clerk|coordinator)\b/,
+  healthcare:
+    /\b(nurse|nursing|rn|lpn|physician|doctor|pharmac(y|ist)|dental|dentist|hygienist|therapist|physiotherap(y|ist)|care aide|health care|healthcare|clinical|medical|patient|paramedic|caregiver|personal support worker|psw|radiolog|sonograph|optometr|veterinar)\w*\b/,
+  finance:
+    /\b(accountant|accounting|bookkeep(er|ing)|payroll|audit(or)?|tax|financial (analyst|advisor|planner)|finance|controller|accounts (payable|receivable)|credit analyst|underwrit(er|ing)|actuar(y|ial)|investment|banking|bank teller|teller|treasury)\b/,
+  sales:
+    /\b(sales|account (executive|manager)|business development|bdr|sdr|retail (associate|sales)|cashier|store (associate|manager)|merchandis(er|ing))\b/,
+  marketing:
+    /\b(marketing|seo|content (writer|strategist|creator|marketing)|copywriter|social media|brand|communications|public relations|pr (specialist|coordinator)|growth)\b/,
+  people:
+    /\b(human resources|hr|recruit(er|ing|ment)|talent acquisition|people (partner|operations)|benefits|compensation)\b/,
+  customer:
+    /\b(customer (service|support|success|care|experience)|call cent(er|re)|client (service|support)s?|contact cent(er|re))\b/,
+  design:
+    /\b(designer|design|ux|ui|graphic|illustrat(or|ion)|animator|video editor|photographer|art director)\b/,
+  operations:
+    /\b(warehouse|logistics|supply chain|procurement|purchasing|inventory|shipping|receiving|forklift|driver|delivery|dispatch(er)?|fleet|operations (associate|coordinator|manager|specialist)|buyer)\b/,
+  legal:
+    /\b(lawyer|legal|paralegal|counsel|attorney|law clerk|compliance (officer|advisor|specialist|analyst)|regulatory)\b/,
+  education:
+    /\b(teacher|lecturer|professor|instructor|tutor|educator|faculty|early childhood|ece|education assistant|teaching)\b/,
+  trades:
+    /\b(electrician|plumber|carpenter|welder|mechanic|technician|millwright|hvac|machinist|labourer|laborer|construction|apprentice|journeyman|installer|maintenance)\b/,
+  engineering:
+    /\b((mechanical|electrical|civil|chemical|structural|manufacturing|process|industrial|hardware|mechatronics|environmental|geotechnical|mining|aerospace) engineer(ing)?|drafter|cad)\b/,
+  science:
+    /\b(scientist|laborator(y|ies)|lab (technician|assistant)|research (assistant|associate)|chemist|biolog(y|ist)|microbiolog)\w*\b/,
+  hospitality:
+    /\b(chef|cook|kitchen|server|bartender|barista|host(ess)?|housekeep(er|ing)|hotel|restaurant|food service|dishwasher|front desk)\b/,
+  admin:
+    /\b(administrative|admin assistant|office (manager|assistant|administrator)|receptionist|executive assistant|data entry|clerk|coordinator)\b/,
 };
 // A teaching post names a subject ("Lecturer, Cybersecurity") but the job is teaching.
-export const familiesOf = text => (FAMILIES.education.test(norm(text)) ? ['education'] : Object.keys(FAMILIES).filter(f => FAMILIES[f].test(norm(text))));
+export const familiesOf = (text) =>
+  FAMILIES.education.test(norm(text))
+    ? ["education"]
+    : Object.keys(FAMILIES).filter((f) => FAMILIES[f].test(norm(text)));
 
-export const SENIOR = /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
-const NO_SPONSOR = /\b(no|not|unable to|cannot|can't|will not|won't)\s+(provide\s+|offer\s+)?(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|sponsorship is not (available|provided)/i;
-const CITIZEN_ONLY = /\b(canadian citizenship (is )?required|must be a canadian citizen|citizens only)\b/i;
-const CLEARANCE = /\b(secret|top secret|enhanced reliability)\s+(security\s+)?clearance\b|\bclearance (is )?required\b/i;
-const YEARS_REQ = /(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?(?:\s+of)?(?:\s+\w+){0,4}\s+experience/i;
+export const SENIOR =
+  /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
+const NO_SPONSOR =
+  /\b(no|not|unable to|cannot|can't|will not|won't)\s+(provide\s+|offer\s+)?(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|sponsorship is not (available|provided)/i;
+const CITIZEN_ONLY =
+  /\b(canadian citizenship (is )?required|must be a canadian citizen|citizens only)\b/i;
+const CLEARANCE =
+  /\b(secret|top secret|enhanced reliability)\s+(security\s+)?clearance\b|\bclearance (is )?required\b/i;
+const YEARS_REQ =
+  /(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?(?:\s+of)?(?:\s+\w+){0,4}\s+experience/i;
 
 // ctx: { resumeNorm, skills (strings), years, roles (search roles), profile }
 export function makeContext(lib, resumeText, profile, roles) {
-  return { resumeNorm: norm(resumeText), skills: (lib?.skills || []).flatMap(s => s.items), years: yearsOfExperience(lib), roles: roles || [], profile: profile || {} };
+  return {
+    resumeNorm: norm(resumeText),
+    skills: (lib?.skills || []).flatMap((s) => s.items),
+    years: yearsOfExperience(lib),
+    roles: roles || [],
+    profile: profile || {},
+  };
 }
 
 export function scoreJob(job, ctx) {
   const p = ctx.profile;
-  const text = norm(`${job.title} ${job.department || ''} ${job.description || ''}`);
-  const reasons = [], stops = [];
+  const text = norm(
+    `${job.title} ${job.department || ""} ${job.description || ""}`,
+  );
+  const reasons = [],
+    stops = [];
   // Hard stops
   const pay = parsePay(job.salary) || parsePay(job.description);
-  const floor = yearly(p.payFloor, p.payFloorUnit), goal = yearly(p.payGoal, p.payGoalUnit);
-  if (pay && floor && pay.max < floor) stops.push(`Pay tops out at $${pay.max.toLocaleString()} a year, below your lowest ($${floor.toLocaleString()})`);
-  if (p.workAuth === 'needs-sponsorship' && NO_SPONSOR.test(job.description || '')) stops.push('Says it won’t sponsor a work permit');
-  if (p.workAuth && p.workAuth !== 'citizen' && (CITIZEN_ONLY.test(job.description || '') || /\bsecret\b.*clearance|clearance.*\bsecret\b/i.test(job.description || ''))) stops.push('Needs Canadian citizenship or a security clearance');
-  for (const ind of p.avoidIndustries || []) if (ind && new RegExp(`\\b${norm(ind).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(norm(`${job.company} ${job.title} ${job.description || ''}`))) stops.push(`Industry you want to avoid: ${ind}`);
+  const floor = yearly(p.payFloor, p.payFloorUnit),
+    goal = yearly(p.payGoal, p.payGoalUnit);
+  if (pay && floor && pay.max < floor)
+    stops.push(
+      `Pay tops out at $${pay.max.toLocaleString()} a year, below your lowest ($${floor.toLocaleString()})`,
+    );
+  if (
+    p.workAuth === "needs-sponsorship" &&
+    NO_SPONSOR.test(job.description || "")
+  )
+    stops.push("Says it won’t sponsor a work permit");
+  if (
+    p.workAuth &&
+    p.workAuth !== "citizen" &&
+    (CITIZEN_ONLY.test(job.description || "") ||
+      /\bsecret\b.*clearance|clearance.*\bsecret\b/i.test(
+        job.description || "",
+      ))
+  )
+    stops.push("Needs Canadian citizenship or a security clearance");
+  for (const ind of p.avoidIndustries || [])
+    if (
+      ind &&
+      new RegExp(`\\b${norm(ind).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(
+        norm(`${job.company} ${job.title} ${job.description || ""}`),
+      )
+    )
+      stops.push(`Industry you want to avoid: ${ind}`);
   // Skills
   const wanted = termsIn(text, ctx.skills);
   // "API" and "APIs" are the same skill.
-  const onResume = t => has(ctx.resumeNorm, t) || has(ctx.resumeNorm, `${t}s`) || (t.endsWith('s') && has(ctx.resumeNorm, t.slice(0, -1)));
+  const onResume = (t) =>
+    has(ctx.resumeNorm, t) ||
+    has(ctx.resumeNorm, `${t}s`) ||
+    (t.endsWith("s") && has(ctx.resumeNorm, t.slice(0, -1)));
   const have = wanted.filter(onResume);
-  const missing = wanted.filter(t => !onResume(t));
+  const missing = wanted.filter((t) => !onResume(t));
   // One matching word out of one isn't a strong signal, so a posting has to name at least 4 skills to score full marks.
-  const skillFit = wanted.length ? have.length / Math.max(wanted.length, 4) : 0.1;
+  const skillFit = wanted.length
+    ? have.length / Math.max(wanted.length, 4)
+    : 0.1;
   // Skill names as the person or the posting writes them.
-  const pretty = t => ctx.skills.find(x => norm(x) === t) || (String(job.description || '').match(new RegExp(`(?<![A-Za-z0-9])${t.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![A-Za-z0-9])`, 'i')) || [t])[0];
-  if (have.length) reasons.push(`You have ${have.slice(0, 6).map(pretty).join(', ')}`);
-  if (missing.length) reasons.push(`Not on your resume: ${missing.slice(0, 5).map(pretty).join(', ')}`);
+  const pretty = (t) =>
+    ctx.skills.find((x) => norm(x) === t) ||
+    (String(job.description || "").match(
+      new RegExp(
+        `(?<![A-Za-z0-9])${t.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?![A-Za-z0-9])`,
+        "i",
+      ),
+    ) || [t])[0];
+  if (have.length)
+    reasons.push(`You have ${have.slice(0, 6).map(pretty).join(", ")}`);
+  if (missing.length)
+    reasons.push(
+      `Not on your resume: ${missing.slice(0, 5).map(pretty).join(", ")}`,
+    );
   // Title vs the roles they're searching for
   const titleN = norm(job.title);
-  const titleWords = new Set(titleN.split(' '));
+  const titleWords = new Set(titleN.split(" "));
   // Field: the job's title has to belong to one of the families the person's roles are in (or closely match a role).
   const mine = [...new Set(ctx.roles.flatMap(familiesOf))];
-  const titleFit = Math.max(0, ...ctx.roles.map(r => { const w = norm(r).split(' ').filter(x => x.length > 1 && !['and', 'the', 'of'].includes(x)); return w.length ? (w.filter(x => titleWords.has(x) || titleWords.has(x.replace(/s$/, ''))).length / w.length) ** 2 : 0; }));
-  if (titleFit >= 0.99) reasons.push('Title matches a role you picked');
-  const fields = familiesOf(`${job.title} ${job.department || ''}`);
+  const titleFit = Math.max(
+    0,
+    ...ctx.roles.map((r) => {
+      const w = norm(r)
+        .split(" ")
+        .filter((x) => x.length > 1 && !["and", "the", "of"].includes(x));
+      return w.length
+        ? (w.filter(
+            (x) => titleWords.has(x) || titleWords.has(x.replace(/s$/, "")),
+          ).length /
+            w.length) **
+            2
+        : 0;
+    }),
+  );
+  if (titleFit >= 0.99) reasons.push("Title matches a role you picked");
+  const fields = familiesOf(`${job.title} ${job.department || ""}`);
   // Roles that fit no known field (an unusual job title) fall back to sharing a word with the job's title.
-  if (titleFit < 0.3 && (mine.length ? !fields.some(f => mine.includes(f)) : titleFit === 0)) stops.push('A different field from the roles you picked');
+  if (
+    titleFit < 0.3 &&
+    (mine.length ? !fields.some((f) => mine.includes(f)) : titleFit === 0)
+  )
+    stops.push("A different field from the roles you picked");
   // Seniority and years
   let seniority = 1;
-  const req = (job.description || '').match(YEARS_REQ);
+  const req = (job.description || "").match(YEARS_REQ);
   const yearsReq = req ? Number(req[1]) : null;
   if (yearsReq != null && yearsReq <= 20) {
-    if (ctx.years + 1 < yearsReq) { seniority -= Math.min(0.6, (yearsReq - ctx.years) * 0.12); reasons.push(`Asks for ${yearsReq}+ years; your resume shows about ${ctx.years}`); }
+    if (ctx.years + 1 < yearsReq) {
+      seniority -= Math.min(0.6, (yearsReq - ctx.years) * 0.12);
+      reasons.push(
+        `Asks for ${yearsReq}+ years; your resume shows about ${ctx.years}`,
+      );
+    }
   }
   const tooSenior = SENIOR.test(job.title) && ctx.years < 3;
-  if (SENIOR.test(job.title) && ctx.years < 5) { seniority -= tooSenior ? 0.7 : 0.35; reasons.push('Senior-level title'); }
-  if (/\b(junior|jr\.?|entry[- ]level|new grad|graduate|intern|co-?op|associate)\b/i.test(job.title)) { seniority = Math.min(1, seniority + 0.1); reasons.push('Entry-level or junior'); }
+  if (SENIOR.test(job.title) && ctx.years < 5) {
+    seniority -= tooSenior ? 0.7 : 0.35;
+    reasons.push("Senior-level title");
+  }
+  if (
+    /\b(junior|jr\.?|entry[- ]level|new grad|graduate|intern|co-?op|associate)\b/i.test(
+      job.title,
+    )
+  ) {
+    seniority = Math.min(1, seniority + 0.1);
+    reasons.push("Entry-level or junior");
+  }
   // Pay
   let payFit = 0.5;
   if (pay) {
-    if (goal && pay.max >= goal) { payFit = 1; reasons.push(`Pay reaches your goal (up to $${pay.max.toLocaleString()} a year)`); }
-    else if (floor && pay.max >= floor) { payFit = 0.7; reasons.push(`Pay meets your floor (up to $${pay.max.toLocaleString()} a year)`); }
+    if (goal && pay.max >= goal) {
+      payFit = 1;
+      reasons.push(
+        `Pay reaches your goal (up to $${pay.max.toLocaleString()} a year)`,
+      );
+    } else if (floor && pay.max >= floor) {
+      payFit = 0.7;
+      reasons.push(
+        `Pay meets your floor (up to $${pay.max.toLocaleString()} a year)`,
+      );
+    }
   }
-  const score = Math.round(100 * Math.max(0, Math.min(1, 0.45 * skillFit + 0.3 * titleFit + 0.15 * Math.max(0, seniority) + 0.1 * payFit)));
-  let label = stops.length ? 'Skip' : score >= 70 ? 'Strong' : score >= 50 ? 'Good' : score >= 30 ? 'Stretch' : 'Skip';
+  const score = Math.round(
+    100 *
+      Math.max(
+        0,
+        Math.min(
+          1,
+          0.45 * skillFit +
+            0.3 * titleFit +
+            0.15 * Math.max(0, seniority) +
+            0.1 * payFit,
+        ),
+      ),
+  );
+  let label = stops.length
+    ? "Skip"
+    : score >= 70
+      ? "Strong"
+      : score >= 50
+        ? "Good"
+        : score >= 30
+          ? "Stretch"
+          : "Skip";
   // Senior, lead, staff or manager titles are hidden for people with under 3 years on their resume (they can still paste or track one).
-  if (tooSenior) { label = 'Skip'; stops.push('Senior-level title; your resume shows under 3 years'); }
+  if (tooSenior) {
+    label = "Skip";
+    stops.push("Senior-level title; your resume shows under 3 years");
+  }
   // Scam warning signs: asking for money, banking details and the like hide the job; softer signs show a warning.
-  const scam = scamSigns(`${job.title} ${job.description || ''}`);
-  if (scam.stop.length) { label = 'Skip'; stops.push(`Scam warning signs: it ${scam.stop.join('; it ')}`); }
-  if (!stops.length && label === 'Skip') stops.push('Too far from your resume and roles');
-  return { score: stops.length ? Math.min(score, 29) : score, label, reasons, stops, have, missing, pay, ...(scam.stop.length || scam.warn.length ? { scam: { stop: scam.stop, warn: scam.warn } } : {}) };
+  const scam = scamSigns(`${job.title} ${job.description || ""}`);
+  if (scam.stop.length) {
+    label = "Skip";
+    stops.push(`Scam warning signs: it ${scam.stop.join("; it ")}`);
+  }
+  if (!stops.length && label === "Skip")
+    stops.push("Too far from your resume and roles");
+  return {
+    score: stops.length ? Math.min(score, 29) : score,
+    label,
+    reasons,
+    stops,
+    have,
+    missing,
+    pay,
+    ...(scam.stop.length || scam.warn.length
+      ? { scam: { stop: scam.stop, warn: scam.warn } }
+      : {}),
+  };
 }
