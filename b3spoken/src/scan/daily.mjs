@@ -14,6 +14,7 @@ import { scanEmployers, dedupe } from './scan.mjs';
 import { verifyFeedJobs } from './verify.mjs';
 import { SOURCES } from './sources/index.mjs';
 import { discover, norm as nameKey } from './discover.mjs';
+import { describeMissing, previousDescriptions } from './describe.mjs';
 
 const DESCRIPTION_MAX = 8000;
 
@@ -102,6 +103,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const { pool, report, dropped, newBoards, knownBoards, counts } = await buildPool([...employers, ...extra], { log: console.log, known });
   forgetFailed(discovered, report);
   const firstSeen = stampFirstSeen(pool, prev.firstSeen || {});
+  // Read the descriptions the job lists leave out (Workday, SuccessFactors...), keeping those read on earlier days.
+  const described = await describeMissing(pool, await previousDescriptions(arg('--previous-pool')), prev.descriptionMisses || {}, { log: console.log });
+  counts.descriptions = { read: described.read, carried: described.carried, missed: described.missed, left: described.left, empty: pool.filter(j => !j.description).length };
   const generatedAt = new Date().toISOString();
   const attribution = Object.values(SOURCES).filter(s => s.feed).map(s => ({ source: s.id, name: s.label }));
   const body = JSON.stringify({ version: 1, generatedAt, country: 'CA', count: pool.length, attribution,
@@ -111,7 +115,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   writeFileSync(join(out, 'pool.json.gz'), gz);
   const meta = { version: 1, generatedAt, country: 'CA', count: pool.length, bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex'), ...counts };
   writeFileSync(join(out, 'pool-meta.json'), JSON.stringify(meta, null, 2));
-  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards, knownBoards, discovered, firstSeen }, null, 2));
+  writeFileSync(join(out, 'report.json'), JSON.stringify({ generatedAt, employers: report, dropped, newBoards, knownBoards, discovered, firstSeen, descriptionMisses: described.misses }, null, 2));
   const failed = report.filter(r => !r.ok);
   const md = [`## Daily job pool: ${pool.length} unique jobs in Canada`, '',
     `- Unique jobs: ${counts.uniqueJobs} (from ${counts.listingsSeen} listings; ${counts.duplicatesMerged} duplicates merged, so each job is shown and counted once)`,
@@ -120,6 +124,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     `- Employers that failed today: ${failed.length}${failed.length ? ' (' + failed.slice(0, 10).map(f => f.name).join(', ') + ')' : ''}`,
     `- New employer boards found through job sites: ${newBoards.length}`,
     `- Listed employers found by discovery (scanned today): ${extra.length}; still not found: ${Object.values(discovered).filter(d => d.none).length}`,
+    `- Descriptions read from job pages today: ${described.read}; kept from earlier days: ${described.carried}; pages with none: ${described.missed}; left for tomorrow: ${described.left}; jobs still without one: ${counts.descriptions.empty}`,
     `- pool.json.gz: ${(gz.length / 1e6).toFixed(1)} MB, sha256 ${meta.sha256.slice(0, 16)}…`, ''].join('\n');
   console.log('\n' + md);
   console.log('NEWBOARDS ' + JSON.stringify(newBoards));

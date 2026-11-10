@@ -52,6 +52,9 @@ jobs:
       - run: npm run live-check
       - name: Updater finds, downloads and verifies the newest real release
         run: node scripts/update-check.mjs
+      - name: Job descriptions read from real job pages (information only)
+        run: node scripts/description-check.mjs
+        continue-on-error: true
       - name: Recruiter contacts for a few real employers (information only)
         run: node scripts/contacts-check.mjs
         continue-on-error: true

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['b3spoken/src/scan/daily.mjs', 'b3spoken/src/scan/verify.mjs', '.github/workflows/b3spoken-daily.yml']
+    paths: ['b3spoken/src/scan/daily.mjs', 'b3spoken/src/scan/verify.mjs', 'b3spoken/src/scan/describe.mjs', '.github/workflows/b3spoken-daily.yml']
 permissions:
   contents: read
 concurrency:
