@@ -8,7 +8,7 @@ What's built so far is in [`b3spoken/`](b3spoken/); see [Build status](#build-st
 
 ## Install B3spoken (testers)
 
-Get it from the [B3spoken releases](https://github.com/Dapper-D/job-board/releases?q=b3spoken&expanded=true), the ones tagged `b3spoken-v…`, **not** the release marked "Latest". That one is the old Job Hunt Kit.
+Get it from the [latest release](https://github.com/Dapper-D/job-board/releases/latest) (from 0.1.12 on, B3spoken releases are marked Latest; earlier ones are under the [B3spoken releases](https://github.com/Dapper-D/job-board/releases?q=b3spoken&expanded=true)).
 
 - **Installer:** Windows `B3spoken-Setup-<version>.exe`, Mac `B3spoken-mac-…zip`, Linux `B3spoken-linux-…tar.gz`.
 - **From source, so you can read every file first:** download `B3spoken-source-<version>.tar.gz` (or this branch's code zip) and unpack it. On Windows, **double-click `setup.cmd`**; it unblocks the downloaded files and runs `setup.ps1` without changing any PowerShell settings. On Mac and Linux, run `bash setup.sh`. Setup only checks for Node.js 22, adds a B3spoken shortcut and starts the app. B3spoken has no other packages: everything it runs is in that folder. `uninstall.cmd` (Windows) or `uninstall.sh` removes it again.

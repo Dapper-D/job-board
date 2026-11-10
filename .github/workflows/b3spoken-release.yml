@@ -1,7 +1,7 @@
-# Publishes a B3spoken pre-release when a maintainer pushes a tag like b3spoken-v0.1.0.
+# Publishes a B3spoken release (marked Latest) when a maintainer pushes a tag like b3spoken-v0.1.0.
 # 1. build (Windows), build-linux and build-mac (no secrets): build and test the installer and the apps.
 # 2. publish (the "release" environment): needs a maintainer's approval; signs SHA256SUMS with the release key
-#    and creates a GitHub pre-release with the Windows installer, the Linux app, the source package,
+#    and creates the GitHub release (marked Latest) with the Windows installer, the Linux app, the source package,
 #    SHA256SUMS and SHA256SUMS.sig. It doesn't wait for the Mac build.
 # 3. add-mac (the "release" environment again): when the Mac build is done, adds the Mac app to the same release
 #    and signs SHA256SUMS again over every file. Approve it like publish.
@@ -146,7 +146,7 @@ jobs:
           B3SPOKEN_RELEASE_KEY="$keyfile" node scripts/sign-release.mjs dist/B3spoken-Setup-*.exe dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz | tee "$RUNNER_TEMP/sign.txt"
           rm -f "$keyfile"
           node scripts/sign-release.mjs --verify dist
-      - name: Publish the pre-release
+      - name: Publish the release
         working-directory: b3spoken
         shell: bash
         env:
@@ -154,12 +154,12 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           fp="$(grep -o 'Release key fingerprint: .*' "$RUNNER_TEMP/sign.txt" | head -1)"
-          notes="B3spoken preview for testers. Windows: download B3spoken-Setup and run it. Mac (Apple silicon): download the mac zip, open it, then right-click B3spoken and choose Open. Linux: unpack the linux tar.gz and run ./b3spoken. Prefer to see every file? Download B3spoken-source, unpack it and run setup.ps1 (Windows) or bash setup.sh (Mac, Linux). B3spoken opens in your browser.
+          notes="Windows: download B3spoken-Setup and run it. Mac (Apple silicon): download the mac zip, open it, then right-click B3spoken and choose Open. Linux: unpack the linux tar.gz and run ./b3spoken. Prefer to see every file? Download B3spoken-source, unpack it and run setup.ps1 (Windows) or bash setup.sh (Mac, Linux). B3spoken opens in your browser.
           Windows may warn that the app is from an unknown publisher (it isn't code-signed yet): choose More info, then Run anyway.
           To check the download: SHA256SUMS lists the installer's SHA-256 and SHA256SUMS.sig is signed with the release key.
 
           $fp"
-          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --prerelease --title "B3spoken ${TAG#b3spoken-v} (preview)" --notes "$notes" --target "$GITHUB_SHA"
+          gh release create "$TAG" dist/B3spoken-Setup-*.exe dist/B3spoken-linux-*.tar.gz dist/B3spoken-source-*.tar.gz dist/SHA256SUMS dist/SHA256SUMS.sig --latest --title "B3spoken ${TAG#b3spoken-v}" --notes "$notes" --target "$GITHUB_SHA"
   # The Mac app joins the release once it's built: SHA256SUMS is made again over every file and signed again.
   # If the Mac build was cancelled or failed, "Re-run failed jobs" on this run builds it and adds it.
   add-mac:
