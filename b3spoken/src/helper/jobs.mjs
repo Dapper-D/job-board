@@ -75,9 +75,10 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     else if (view === 'due') { if (!isDue(j.track, today)) return false; }
     else if (STATUS_VIEWS.includes(view)) { if (j.track?.status !== view) return false; }
     else if (j.track?.status && j.track.status !== 'saved') return false; // To apply: jobs you've acted on move to their own tab
+    // Tracked tabs show every job in them, whatever the filters, so each tab holds exactly what its count says.
+    if (view) return true;
     if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
     if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
-    if (view) return true;
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;

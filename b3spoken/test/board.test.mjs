@@ -80,3 +80,25 @@ test('jobs nobody applied to leave the board after 14 days; applied ones stay in
   assert.deepEqual(viewCounts(jobs, now), { tracked: 3, due: 1, applied: 1, interview: 1, offer: 0, rejected: 0, 'not-interested': 0 });
   assert.equal(expired({ postedAt: old }, Date.parse('2026-11-14T00:00:00Z')), false); // exactly 13 days: still there
 });
+
+test('every tab holds exactly as many jobs as its count says, whatever the filters', async () => {
+  const { viewCounts, VIEWS } = await import('../src/helper/jobs.mjs');
+  const now = Date.parse('2026-11-20T12:00:00Z');
+  const labels = ['Skip', 'Stretch', 'Good', 'Strong'], statuses = ['', 'saved', 'applied', 'interview', 'offer', 'rejected', 'not-interested'];
+  let seed = 7; const rnd = n => (seed = (seed * 1103515245 + 12345) % 2147483648) % n;
+  const jobs = Array.from({ length: 400 }, (_, i) => {
+    const st = statuses[rnd(statuses.length)];
+    return { id: `j${i}`, title: `Job ${i}`, location: ['Burnaby, Canada', 'Toronto, ON', 'Remote (Canada)'][rnd(3)], remote: !rnd(3),
+      postedAt: new Date(now - rnd(20) * 864e5).toISOString(), match: { label: labels[rnd(4)], score: rnd(100) },
+      ...(st || !rnd(5) ? { track: { status: st, notes: rnd(4) ? '' : 'note', followUp: rnd(3) ? '' : '2026-11-15' } } : {}) };
+  });
+  const counts = viewCounts(jobs, now);
+  for (const minLabel of ['', 'Good', 'Strong']) for (const province of ['', 'BC']) for (const maxAgeDays of [1, 3, 14]) {
+    for (const view of VIEWS.filter(Boolean)) {
+      const r = queryJobs(jobs, { now, view, minLabel, province, maxAgeDays, limit: 1000 });
+      assert.equal(r.total, counts[view], `${view} with ${JSON.stringify({ minLabel, province, maxAgeDays })}`);
+      let seen = 0; for (let off = 0; off < r.total; off += 200) seen += queryJobs(jobs, { now, view, minLabel, province, maxAgeDays, offset: off, limit: 200 }).jobs.length;
+      assert.equal(seen, r.total); // paging through the tab shows every one
+    }
+  }
+});

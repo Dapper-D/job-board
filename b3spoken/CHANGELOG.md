@@ -1,5 +1,25 @@
 # B3spoken changelog
 
+## 0.1.12
+
+### More of the right jobs on your board
+- **Jobs listed by city now count for their province.** "Burnaby, Canada", "Surrey, Canada", "Toronto Office" or "SAANICH STORE" were missed by the BC (or Ontario…) filter; a nurse in Surrey saw no jobs at all. Places with the same name elsewhere (Richmond, Virginia; Ontario, California) are kept out.
+- **Choose how far back the board looks:** Last 24 hours, 2 days, **3 days** (as before), 7 days or 14 days. Job Bank is read for 14 days so the longer choices include it.
+- **Jobs you haven't applied to leave after 14 days** (saved, noted and pasted ones too). Applied, interview, offer, rejected and not-interested jobs stay in their tabs.
+- **Jobs whose hiring system gives no posting date** (EA, many banks and governments) now show, from the day the daily scan first saw them, and the daily scan now reads their full job descriptions, so they're matched on what the posting asks for and checked for hidden AI instructions.
+- **Tab counts match the list.** The Applied, Interview and other tabs could show a count that didn't match the jobs in them when the "Good or better" filter was on, and the count above the list didn't change when a job moved to another tab.
+
+### Better matches
+- The pay floor works for more pay formats ("CA$40.9K – CA$54.5K", "CAD 101000 annual", weekly, monthly; US dollars are converted).
+- Co-ops and internships aren't shown to people with 4+ years of work; staff, principal and director titles need 7+ years.
+- Postings in French, or that require French, need French on your resume ("French is an asset" doesn't count as required).
+
+### Resumes and documents
+- Short resumes and short Word files are no longer turned away as "a scanned picture"; French headings and dates are read; more bullet styles (1., o, ✓, ■…) come off cleanly.
+- Uploading a resume PDF that B3spoken made now reads back correctly; two-column PDFs are read one column at a time.
+- The cover letter only says a skill was "used in the work above" when that work names it.
+- PDFs: emoji are left out, accented names stay intact in the file details, and you're told if the font can't draw a letter in your name.
+
 ## 0.1.11
 
 ### Application answers on every card
