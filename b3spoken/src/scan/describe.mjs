@@ -32,45 +32,49 @@ function element(html, start) {
   return html.slice(start, start + 60000);
 }
 
-// The longest string under a "description"-like key anywhere in a JSON value (Next.js page data and the like).
-function longestDescription(v, depth = 0) {
-  let best = '';
-  if (!v || typeof v !== 'object' || depth > 12) return best;
+// Posting text under description-like keys anywhere in a JSON value (Next.js or React Router page data).
+// A description can be one string, or an object of parts ({ company, role }), or sit beside its sections
+// (Apple: jobSummary, responsibilities, minimum and preferred qualifications), so every match is collected.
+const DESC_KEY = /^(description|descriptionHtml|jobDescription|job_description|descriptionPlain|jobSummary|responsibilities|minimumQualifications|preferredQualifications|keyQualifications|educationAndExperience|additionalRequirements)$/i;
+function descriptionParts(v, out = [], depth = 0, under = false) {
+  if (!v || typeof v !== 'object' || depth > 14) return out;
   for (const [k, x] of Object.entries(v)) {
-    if (typeof x === 'string' && /^(description|descriptionHtml|jobDescription|job_description|descriptionPlain|content)$/i.test(k) && x.length > best.length) best = x;
-    else if (x && typeof x === 'object') { const y = longestDescription(x, depth + 1); if (y.length > best.length) best = y; }
+    const hit = under || DESC_KEY.test(k);
+    if (typeof x === 'string') { if (hit && x.length >= 40 && !out.includes(x)) out.push(x); }
+    else if (x && typeof x === 'object') descriptionParts(x, out, depth + 1, hit && !Array.isArray(v) && DESC_KEY.test(k) && !Array.isArray(x));
   }
-  return best;
+  return out;
 }
+const fromData = data => htmlToText(descriptionParts(data).join('\n'));
 
-/** The job posting's text from its web page, or '' when the page has none we can find. */
+/** The job posting's text from its web page, or '' when the page has none we can find. Of everything found, the longest wins. */
 export function descriptionFromHtml(html) {
   const s = String(html || '');
+  const found = [];
   // 1. Structured data many hiring systems add for search engines: a JobPosting with its description.
   for (const m of s.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
       const data = JSON.parse(m[1].trim());
       for (const d of [].concat(data, data?.['@graph'] || [])) {
-        if (d && /JobPosting/i.test([].concat(d['@type'] || '').join(' ')) && d.description) {
-          const t = htmlToText(decodeEntities(String(d.description)));
-          if (t.length >= MIN_CHARS) return t;
-        }
+        if (d && /JobPosting/i.test([].concat(d['@type'] || '').join(' ')) && d.description) found.push(htmlToText(decodeEntities(String(d.description))));
       }
     } catch {}
   }
-  // 2. Page data of single-page sites (Next.js and similar).
+  // 2. Page data of single-page sites: Next.js, and React Router ("window.__staticRouterHydrationData = JSON.parse(...)").
   for (const m of s.matchAll(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/gi)) {
-    try { const t = htmlToText(longestDescription(JSON.parse(m[1]))); if (t.length >= MIN_CHARS) return t; } catch {}
+    try { found.push(fromData(JSON.parse(m[1]))); } catch {}
   }
-  // 3. Marked-up page parts: schema.org microdata, then the class names the common hiring systems use.
-  const marks = [/<[a-z][a-z0-9]*\b[^>]*\bitemprop=["']description["'][^>]*>/i,
-    /<[a-z][a-z0-9]*\b[^>]*\bclass=["'][^"']*\b(?:jobdescription|job-description|jobDescription|job_description|jobDescriptionText|description__text|job-details__description|article__content)\b[^"']*["'][^>]*>/i,
-    /<[a-z][a-z0-9]*\b[^>]*\bid=["'](?:jobdescription|job-description|jobDescription|job_description|content)["'][^>]*>/i];
-  for (const re of marks) {
-    const m = s.match(re);
-    if (m) { const t = htmlToText(element(s, m.index)); if (t.length >= MIN_CHARS) return t; }
+  for (const m of s.matchAll(/window\.__staticRouterHydrationData\s*=\s*JSON\.parse\("((?:\\.|[^"\\])*)"\)/g)) {
+    try { found.push(fromData(JSON.parse(JSON.parse('"' + m[1] + '"'))?.loaderData)); } catch {}
   }
-  return '';
+  // 3. Marked-up page parts: schema.org microdata, then the class names the common hiring systems use. A page can
+  // have several (Avature: "General Information", then "Description & Requirements"), so each one is read.
+  const marks = [/<[a-z][a-z0-9]*\b[^>]*\bitemprop=["']description["'][^>]*>/gi,
+    /<[a-z][a-z0-9]*\b[^>]*\bclass=["'][^"']*\b(?:jobdescription|job-description|jobDescription|job_description|jobDescriptionText|description__text|job-details__description|article__content)\b[^"']*["'][^>]*>/gi,
+    /<[a-z][a-z0-9]*\b[^>]*\bid=["'](?:jobdescription|job-description|jobDescription|job_description)["'][^>]*>/gi];
+  for (const re of marks) for (const m of s.matchAll(re)) found.push(htmlToText(element(s, m.index)));
+  const best = found.filter(t => t.length >= MIN_CHARS).sort((a, b) => b.length - a.length)[0];
+  return best || '';
 }
 
 // ---- One job, by hiring system ----
@@ -110,6 +114,18 @@ const READERS = {
     const o = (await request(`${u.origin}${u.pathname.replace(/\/$/, '')}/detail`, { allow: ['*.bamboohr.com'], parse: 'json', gapMs: 400, retries: 1 })).json?.result?.jobOpening || {};
     return { description: htmlToText(o.description || ''), postedAt: iso(o.datePosted) };
   },
+  // Rippling: the board's own job API (the page itself is a shell with a privacy notice); the page if that fails.
+  async rippling(j) {
+    const m = new URL(j.url).pathname.match(/^\/([^/]+)\/jobs\/([^/?#]+)/);
+    if (m) {
+      try {
+        const data = (await request(`https://ats.rippling.com/api/v2/board/${m[1]}/jobs/${m[2]}`, { allow: ['ats.rippling.com'], parse: 'json', gapMs: 400, retries: 1 })).json;
+        const description = fromData(data);
+        if (description.length >= MIN_CHARS) return { description, postedAt: iso(data?.createdOn || data?.created_at) };
+      } catch {}
+    }
+    return READERS.page(j);
+  },
   // Everything else: the job's own web page, where robots.txt allows reading it.
   async page(j) {
     const u = new URL(j.url), allow = allowFor(u.hostname);
@@ -118,7 +134,8 @@ const READERS = {
   },
 };
 // Hiring systems whose lists come without descriptions. Feeds and APIs that include them aren't read again.
-export const DESCRIBE_SOURCES = { workday: 'workday', oraclecloud: 'oraclecloud', bamboohr: 'bamboohr', successfactors: 'page', avature: 'page', eightfold: 'page', rippling: 'page', google: 'page', apple: 'page', taleo: 'page', lever: 'page' };
+export const DESCRIBE_SOURCES = { workday: 'workday', oraclecloud: 'oraclecloud', bamboohr: 'bamboohr', successfactors: 'page', avature: 'page', eightfold: 'page', rippling: 'rippling', apple: 'page', taleo: 'page', lever: 'page' };
+// Not read: Google (its job pages hold no posting text; it's filled in by the browser), CSOD (the same).
 
 export async function describeJob(j) {
   const how = DESCRIBE_SOURCES[j.source];

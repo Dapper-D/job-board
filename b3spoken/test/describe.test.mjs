@@ -15,6 +15,16 @@ test('reading a posting out of a job page: structured data, page data, microdata
   const av = `<section><div class="article__content article__content--rich-text"><p>${LONG}</p></div></section>`;
   assert.equal(descriptionFromHtml(av), LONG);
   assert.equal(descriptionFromHtml('<html><body><div class="jobdescription">Apply now</div></body></html>'), ''); // too short to be a posting
+  // Avature: a short "General Information" part first, then the real "Description & Requirements" part.
+  const ea = `<div class="article__content"><div>Locations : Vancouver, British Columbia, Canada Role ID 216602 Worker Type Regular Employee Studio EA SPORTS</div></div>
+    <h3>Description &amp; Requirements</h3><div class="article__content article__content--rich-text"><p>${LONG}</p><p>${LONG}</p></div>`;
+  assert.match(descriptionFromHtml(ea), /^You will build[\s\S]*teams on new features\.$/);
+  // Rippling-style page data: the description in parts, beside a longer privacy notice under another key.
+  const rp = `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { privacy: { content: 'We value your privacy. '.repeat(20) }, job: { description: { company: '<p>D-Wave builds quantum computers in Burnaby and Palo Alto.</p>', role: `<p>${LONG}</p>` } } } } })}</script>`;
+  assert.match(descriptionFromHtml(rp), /^D-Wave builds[\s\S]*payments services/);
+  // Apple: React Router page data with the posting's sections.
+  const ap = `<script>window.__staticRouterHydrationData = JSON.parse(${JSON.stringify(JSON.stringify({ loaderData: { root: { appType: 'external' }, jobDetails: { jobsData: { jobSummary: LONG, minimumQualifications: '<ul><li>3+ years selling Apple products in a retail store.</li></ul>' } } } }))});</script>`;
+  assert.match(descriptionFromHtml(ap), /payments services[\s\S]*• 3\+ years selling Apple/);
 });
 
 test('detail addresses for Workday and Oracle jobs', () => {
