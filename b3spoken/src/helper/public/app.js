@@ -154,6 +154,9 @@ async function loadCounts() {
   try {
     const r = await api(`/api/jobs?${query("", 0, 1)}`);
     showCounts(r.counts, r.total);
+    // The count above the list follows too (a job moved to another tab leaves this one).
+    const n = view ? r.counts?.[view] ?? 0 : r.total;
+    $("count").textContent = `${n.toLocaleString()} ${n === 1 ? "job" : "jobs"}`;
   } catch {}
 }
 function showCounts(c = {}, toApply = null) {
