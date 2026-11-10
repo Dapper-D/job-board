@@ -1,5 +1,15 @@
 # B3spoken changelog
 
+## 0.1.13
+
+### Fewer wrong matches
+- "Quality Assurance" jobs count as software testing only when the posting is about software. A blood-bank or lab QA role was showing as a strong match for developers.
+- "Help Desk Technician" (and other IT roles with "technician" in them) no longer brings in trade jobs like parts or lab technicians. A store's "Customer Service Desk" job is no longer treated as an IT service desk.
+
+### Fixes
+- The Health check no longer says your AI is fine when it's installed but was never chosen in setup. It now says to choose it, since AI reviews and drafts only use an AI you picked.
+- Resume headings that ended with dates and a full stop ("…community events, 2019 - 2023.") no longer keep a stray ", ." once the dates are moved to the dates column.
+
 ## 0.1.12
 
 ### More of the right jobs on your board

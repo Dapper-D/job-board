@@ -269,3 +269,15 @@ test('AI reviews come with the job cards: new jobs reviewed on their own (daily 
     assert.deepEqual(app.careerSaved().answered, { 'qa analyst': 'yes', 'python developer': 'no' });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('health check: an AI that is installed but never chosen in setup is a WARN, not a PASS', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'b3-health-'));
+  try {
+    const app = createApp(dir, { offline: true, log: () => {}, deps: { detect: async () => ({ claude: { label: 'Claude (Claude Code)', installed: true, working: true, version: '2.1.0' } }), checkForUpdate: async () => null } });
+    const ai = async () => (await app.healthCheck()).items.find(i => i.name === 'Your AI');
+    assert.equal(app.settings().ai, 'auto');
+    assert.equal((await ai()).status, 'WARN'); assert.match((await ai()).fix, /choose Claude/);
+    app.saveSettings({ ...app.settings(), ai: 'claude' });
+    assert.equal((await ai()).status, 'PASS');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

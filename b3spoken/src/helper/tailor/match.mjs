@@ -189,11 +189,23 @@ const FAMILIES = {
     /\b(administrative|admin assistant|office (manager|assistant|administrator)|receptionist|executive assistant|data entry|clerk|coordinator)\b/,
 };
 // A teaching post names a subject ("Lecturer, Cybersecurity") but the job is teaching.
-export const familiesOf = (text) =>
-  FAMILIES.education.test(norm(text))
-    ? ["education"]
-    : Object.keys(FAMILIES).filter((f) => FAMILIES[f].test(norm(text)));
+// "Technician", "installer" or "maintenance" alone make a title a trade ("Parts Technician"), but beside another
+// field's words they only describe the level ("Help Desk Technician" is IT, not a trade).
+// A store's "Customer Service Desk" is customer service, not an IT service desk.
+const GENERIC_TRADE = /\b(technician|installer|maintenance|apprentice)\b/g;
+export const familiesOf = (text) => {
+  const t = norm(text).replace(/\bcustomer service desk\b/g, "customer service");
+  if (FAMILIES.education.test(t)) return ["education"];
+  const out = Object.keys(FAMILIES).filter((f) => FAMILIES[f].test(t));
+  return out.length > 1 && out.includes("trades") && !FAMILIES.trades.test(t.replace(GENERIC_TRADE, " "))
+    ? out.filter((f) => f !== "trades")
+    : out;
+};
 
+const QA_WORDS = /\b(qa|quality assurance)\b/g;
+const QA_ONLY = /\b(qa|quality assurance)\b/;
+const SOFTWARE_TITLE = /\b(software|developer|programmer|sdet|test automation|automation|web|mobile|application|game|engineer)\b/;
+const SOFTWARE_QA = /\b(software|test automation|automated tests?|test cases|test plans|selenium|cypress|playwright|jest|pytest|api testing|regression testing|bug tracking|jira|agile|ci\/cd)\b/;
 const HIGH_LEVEL = /\b(staff|principal|distinguished|fellow|director|head of|vp|vice president|chief|senior manager)\b/i;
 const STUDENT_ONLY = /\b(intern(ship)?|co-?op|new grad(uate)?|student|summer analyst)\b/i;
 export const SENIOR =
@@ -321,7 +333,11 @@ export function scoreJob(job, ctx) {
     }),
   );
   if (titleFit >= 0.99) reasons.push("Title matches a role you picked");
-  const fields = familiesOf(`${job.title} ${job.department || ""}`);
+  let fields = familiesOf(`${job.title} ${job.department || ""}`);
+  // "Quality Assurance" is software testing only when the posting is about software; in a lab, a plant or a
+  // blood bank it's quality control of products, a different field.
+  if (fields.includes("software") && QA_ONLY.test(norm(job.title)) && !SOFTWARE_TITLE.test(norm(job.title).replace(QA_WORDS, " ")) && !SOFTWARE_QA.test(text))
+    fields = fields.filter((f) => f !== "software");
   // Roles that fit no known field (an unusual job title) fall back to sharing a word with the job's title.
   if (
     titleFit < 0.3 &&

@@ -1134,7 +1134,15 @@ export function createApp(
             ? Object.keys(found).find((k) => found[k].working)
             : pick;
         const a = id && found[id];
-        if (a?.working)
+        // "auto" means none was picked in setup: B3spoken doesn't use an AI it found until the person chooses it.
+        if (a?.working && pick === "auto")
+          add(
+            "WARN",
+            "Your AI",
+            `${a.label} is installed, but it isn't chosen, so B3spoken doesn't use it yet.`,
+            `Open Edit setup and choose ${a.label} in the AI step.`,
+          );
+        else if (a?.working)
           add(
             "PASS",
             "Your AI",

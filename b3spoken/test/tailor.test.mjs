@@ -268,3 +268,23 @@ test('level fit: staff/director titles need 7+ years; co-ops and internships are
   assert.match(score(9, 'Cloud & DevOps Engineer Co-op (May 2027)').stops.join(' '), /co-op/);
   assert.doesNotMatch(score(1, 'Cloud & DevOps Engineer Co-op (May 2027)').stops.join(' '), /co-op/);
 });
+
+test('"Quality Assurance" counts as software testing only when the posting is about software', () => {
+  const p = cleanProfile({ targetRoles: ['QA Analyst', 'Software Developer'], workAuth: 'citizen', done: true });
+  const ctx = makeContext(lib, text, p, p.targetRoles);
+  const lab = scoreJob({ title: 'Quality Assurance Associate', company: 'Canadian Blood Services', description: 'Review batch records and deviations under GMP for blood products; support audits and compliance documentation.' }, ctx);
+  assert.match(lab.stops.join(' '), /different field/);
+  const sw = scoreJob({ title: 'Quality Assurance Analyst', company: 'Acme', description: 'Write test cases and automated tests with Playwright for our web app; log bugs in Jira.' }, ctx);
+  assert.doesNotMatch(sw.stops.join(' '), /different field/);
+  assert.doesNotMatch(scoreJob({ title: 'Software QA Engineer', company: 'Acme', description: 'Quality checks.' }, ctx).stops.join(' '), /different field/);
+});
+
+test('fields: a help desk technician is IT, not a trade; a store customer service desk is not an IT service desk', async () => {
+  const { familiesOf } = await import('../src/helper/tailor/match.mjs');
+  assert.deepEqual(familiesOf('Help Desk Technician'), ['it']);
+  assert.deepEqual(familiesOf('Journey Person Parts Technician'), ['trades']);
+  assert.deepEqual(familiesOf('Industrial Electrician'), ['trades']);
+  assert.ok(familiesOf('Field Service Technician, Network Infrastructure').includes('it'));
+  assert.deepEqual(familiesOf('Customer Service Desk Associate'), ['customer']);
+  assert.ok(familiesOf('IT Service Desk Analyst').includes('it'));
+});
