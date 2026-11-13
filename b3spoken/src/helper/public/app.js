@@ -35,6 +35,9 @@ const ago = (iso) => {
   return d <= 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`;
 };
 
+// Cards on screen whose PDFs can appear when the morning's documents finish: job id -> show them.
+const cardFiles = new Map();
+let prepSeen = "";
 let offset = 0,
   timer,
   view = "",
@@ -115,6 +118,11 @@ function trackerControls(j) {
   more.append(el("summary", null, "Notes"), notes);
   box.append(lab("Status", sel), lab("Follow up on", date), due, more);
   return box;
+}
+async function showReadyDocs() {
+  const t = await api("/api/tracker");
+  docs = t.documents || {};
+  for (const [id, ready] of [...cardFiles]) if (docs[id]) ready(docs[id]);
 }
 async function loadDue() {
   const t = await api("/api/tracker");
@@ -439,10 +447,13 @@ function card(j) {
     }
   });
   row.append(make, files, revBtn, ansBtn, prepBtn, conBtn, helpBtn);
-  if (docs[j.id]) {
-    showFiles(files, j.id, { files: docs[j.id], note: docs[j.id].note });
+  const ready = (d) => {
+    showFiles(files, j.id, { files: d, note: d.note });
     make.textContent = "Make them again";
-  }
+    cardFiles.delete(j.id);
+  };
+  if (docs[j.id]) ready(docs[j.id]);
+  else cardFiles.set(j.id, ready);
   if (j.moreLocations)
     row.append(el("span", "badge", `+${j.moreLocations} more locations`));
   li.append(row, revBox, ansBox, prepBox, conBox, helpBox, trackerControls(j));
@@ -469,6 +480,13 @@ async function download(jobId, kind, name) {
 function showFiles(box, jobId, d) {
   box.replaceChildren();
   if (d.note) box.append(el("span", "problems", d.note));
+  const both = el("button", "small", "Download both");
+  both.type = "button";
+  both.addEventListener("click", async () => {
+    await download(jobId, "resume", d.files.resume);
+    await download(jobId, "letter", d.files.letter);
+  });
+  box.append(both);
   for (const [kind, label] of [
     ["resume", "Resume PDF"],
     ["letter", "Cover letter PDF"],
@@ -878,10 +896,12 @@ async function load(reset = true) {
   if (reset) {
     offset = 0;
     $("list").replaceChildren();
+    cardFiles.clear();
   }
   const r = await api(`/api/jobs?${query(view, offset, 50)}`);
   r.jobs.forEach((j) => $("list").append(card(j)));
   offset += r.jobs.length;
+  if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
   $("count").textContent =
     `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
   if (view) loadCounts();
@@ -916,8 +936,14 @@ async function status() {
     );
   else if (s.preparing?.running)
     parts.push(`Making documents ${s.preparing.done}/${s.preparing.total}`);
-  else if (s.preparing?.total)
-    parts.push(`Documents ready for ${s.preparing.total} new matches`);
+  else if (s.preparing?.ready)
+    parts.push(`Resume and cover letter ready for ${s.preparing.ready} jobs`);
+  // As the morning's documents are made, the cards on screen get their download buttons without a reload.
+  const prepNow = s.preparing ? `${s.preparing.running}|${s.preparing.done}|${s.preparing.ai}` : "";
+  if (prepNow !== prepSeen && cardFiles.size) {
+    prepSeen = prepNow;
+    showReadyDocs().catch(() => {});
+  }
   $("status").textContent = s.refreshing ? "Updating jobs…" : parts.join(" · ");
   if (s.newIdeas && !s.refreshing) {
     const b = el(
@@ -1157,11 +1183,18 @@ async function update() {
 // Keeps the status line (and document progress) current.
 setInterval(() => status().catch(() => {}), 5000);
 
+// While the morning's jobs come in, the board shows yesterday's (when there are any), then today's once they're ready.
+let shownWhileRefreshing = false;
 async function poll() {
   const s = await status().catch(() => null);
   if (s && !s.refreshing) {
+    shownWhileRefreshing = false;
     await load();
     return;
+  }
+  if (s?.scores && !shownWhileRefreshing) {
+    shownWhileRefreshing = true;
+    await load().catch(() => {});
   }
   setTimeout(poll, 2000);
 }

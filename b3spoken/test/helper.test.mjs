@@ -131,13 +131,14 @@ test('one-click AI install and sign-in use each company\u2019s official installe
   assert.match((await testAi('claude', async () => { throw new Error('Please run /login'); })).error, /Not signed in/);
 });
 
-test('documents are made ahead of time for Strong and Good matches from the last 3 days', async () => {
+test('documents are made ahead of time for every match on the board (last 14 days), and made again when the resume changes', async () => {
   const dir = tmp();
-  const fresh = new Date(Date.now() - 864e5).toISOString(), old = new Date(Date.now() - 10 * 864e5).toISOString();
+  const fresh = new Date(Date.now() - 864e5).toISOString(), week = new Date(Date.now() - 9 * 864e5).toISOString(), old = new Date(Date.now() - 20 * 864e5).toISOString();
   const desc = 'Python, Flask, REST APIs, pytest, Docker, PostgreSQL and GitHub Actions.';
   const jobs = [
     makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 1, title: 'Software Developer', url: 'https://boards.greenhouse.io/acme/jobs/1', location: 'Vancouver, BC', postedAt: fresh, description: desc }),
     makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 2, title: 'Software Developer II', url: 'https://boards.greenhouse.io/acme/jobs/2', location: 'Vancouver, BC', postedAt: old, description: desc }),
+    makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 4, title: 'Junior Python Developer', url: 'https://boards.greenhouse.io/acme/jobs/4', location: 'Burnaby, Canada', postedAt: week, description: desc }),
     makeJob({ source: 'greenhouse', company: 'Acme', nativeId: 3, title: 'Store Associate', url: 'https://boards.greenhouse.io/acme/jobs/3', location: 'Vancouver, BC', postedAt: fresh, description: 'Stock shelves.' }),
   ];
   const { gz, meta } = makePool(jobs);
@@ -148,8 +149,16 @@ test('documents are made ahead of time for Strong and Good matches from the last
   await app.refresh();
   for (let i = 0; i < 50 && !(await app.status()).preparing?.total; i++) await new Promise(r => setTimeout(r, 20));
   for (let i = 0; i < 200 && (await app.status()).preparing?.running; i++) await new Promise(r => setTimeout(r, 20));
-  const made = JSON.parse(readFileSync(join(dir, 'documents', 'index.json'), 'utf8'));
-  assert.deepEqual(Object.values(made).map(d => d.files.resume), ['Jordan Lee - Resume - Acme - Software Developer.pdf']); // old and unmatched jobs skipped
+  const made = () => JSON.parse(readFileSync(join(dir, 'documents', 'index.json'), 'utf8'));
+  assert.deepEqual(Object.values(made()).map(d => d.files.resume).sort(), ['Jordan Lee - Resume - Acme - Junior Python Developer.pdf', 'Jordan Lee - Resume - Acme - Software Developer.pdf']); // a 20-day-old job and an unmatched one skipped
+  assert.equal(Object.keys(app.documentIndex()).length, 2); // ready to download
+  // A new answer changes the documents: the next status check makes them again.
+  app.saveProfile({ ...app.profile(), payGoal: 120000 });
+  assert.equal(Object.keys(app.documentIndex()).length, 0); // the old ones no longer count
+  await app.status();
+  for (let i = 0; i < 200 && (await app.status()).preparing?.running !== false; i++) await new Promise(r => setTimeout(r, 20));
+  for (let i = 0; i < 200 && Object.keys(app.documentIndex()).length < 2; i++) await new Promise(r => setTimeout(r, 20));
+  assert.equal(Object.keys(app.documentIndex()).length, 2);
 });
 
 test('Job Bank problems are explained in plain words, and a partial result is retried within the hour', async () => {
