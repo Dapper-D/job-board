@@ -1,5 +1,16 @@
 # B3spoken changelog
 
+## 0.1.14
+
+### Your documents are ready when the jobs are
+- **Every match on the board gets its resume and cover letter made in the morning**, right after the day's jobs come in: all Stretch-or-better jobs from the last 14 days (up to 200), best first. Before, only Good-or-better jobs from the last 3 days were made ahead; Stretch jobs and older ones waited for a click, one at a time.
+- **Cards show their PDFs as soon as they're made**, without reloading the page, with a **Download both** button for the resume and cover letter together.
+- When you change your resume or setup answers, the documents are made again without a click.
+
+### Faster
+- The board keeps answering while the morning's jobs are scored. It used to freeze for 15–20 seconds, and opening it then could fail. Yesterday's jobs show until today's are ready.
+- Scoring skips jobs too old to reach the board, and remembers each posting's checks, so refreshes take less time.
+
 ## 0.1.13
 
 ### Fewer wrong matches

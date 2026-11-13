@@ -245,15 +245,32 @@ export function makeContext(lib, resumeText, profile, roles) {
   };
 }
 
+// What a job says doesn't change when the person's resume or answers do, so it's worked out once per job:
+// its normalized text, pay, whether it asks for French, and scam signs. Scoring all of a day's jobs again after
+// a change of answers then takes a fraction of the time.
+const FEATURES = new WeakMap();
+function featuresOf(job) {
+  let f = FEATURES.get(job);
+  if (!f) {
+    f = {
+      text: norm(`${job.title} ${job.department || ""} ${job.description || ""}`),
+      pay: parsePay(job.salary, { salaryField: true }) || parsePay(job.description),
+      french: asksForFrench(job),
+      scam: scamSigns(`${job.title} ${job.description || ""}`),
+    };
+    FEATURES.set(job, f);
+  }
+  return f;
+}
+
 export function scoreJob(job, ctx) {
   const p = ctx.profile;
-  const text = norm(
-    `${job.title} ${job.department || ""} ${job.description || ""}`,
-  );
+  const feat = featuresOf(job);
+  const text = feat.text;
   const reasons = [],
     stops = [];
   // Hard stops
-  const pay = parsePay(job.salary, { salaryField: true }) || parsePay(job.description);
+  const pay = feat.pay;
   const floor = yearly(p.payFloor, p.payFloorUnit),
     goal = yearly(p.payGoal, p.payGoalUnit);
   if (pay && floor && pay.max < floor)
@@ -282,7 +299,7 @@ export function scoreJob(job, ctx) {
       )
     )
       stops.push(`Industry you want to avoid: ${ind}`);
-  if (!KNOWS_FRENCH.test(ctx.resumeNorm) && asksForFrench(job))
+  if (!KNOWS_FRENCH.test(ctx.resumeNorm) && feat.french)
     stops.push("Asks for French; your resume doesn’t mention it");
   // Skills
   const wanted = termsIn(text, ctx.skills);
@@ -422,7 +439,7 @@ export function scoreJob(job, ctx) {
     stops.push(`Internship, co-op or new-grad role; your resume shows about ${ctx.years} years of work`);
   }
   // Scam warning signs: asking for money, banking details and the like hide the job; softer signs show a warning.
-  const scam = scamSigns(`${job.title} ${job.description || ""}`);
+  const scam = feat.scam;
   if (scam.stop.length) {
     label = "Skip";
     stops.push(`Scam warning signs: it ${scam.stop.join("; it ")}`);
