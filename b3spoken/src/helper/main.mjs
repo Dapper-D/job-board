@@ -42,6 +42,7 @@ import { makeContext, scoreJob, yearsOfExperience } from "./tailor/match.mjs";
 import { checkLink } from "./paste.mjs";
 import { VERSION } from "./version.mjs";
 import { findContacts, draftEmail } from "./contacts.mjs";
+import { addressFor } from "./places.mjs";
 import {
   findKits,
   readKit,
@@ -228,7 +229,7 @@ export function createApp(
   const documentStamp = () =>
     createHash("sha256")
       .update(
-        "resume-layout-v2|" +
+        "resume-layout-v2|job-city-address|" +
           JSON.stringify(ob.library()) +
           "|" +
           JSON.stringify(ob.profile()),
@@ -964,7 +965,7 @@ export function createApp(
       ...found,
       hunter: !!readJson(secretsFile, {}).hunterKey,
       draft: draftEmail(
-        { name: lib?.contact?.name || "", contact: lib?.contact?.lines || [] },
+        { name: lib?.contact?.name || "", contact: addressFor(lib?.contact?.lines || [], job) },
         job,
         plan,
         found.contacts?.[0],

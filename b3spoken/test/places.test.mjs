@@ -55,3 +55,30 @@ test('undated jobs keep the day the scan first saw them', () => {
   assert.equal(pool[0].firstSeen, undefined);
   assert.equal(pool[1].firstSeen, '2026-11-01');
 });
+
+// ---- Private build: the job's city as the address ----
+import { jobCity, addressFor } from '../src/helper/places.mjs';
+import { planResume } from '../src/helper/tailor/tailor.mjs';
+
+test('private build: the first city a posting names, with its province', () => {
+  const is = (loc, want) => assert.equal(jobCity(loc), want, loc);
+  is('Surrey, BC', 'Surrey, BC'); is('Burnaby, Canada', 'Burnaby, BC'); is('Toronto Office', 'Toronto, ON');
+  is('SAANICH STORE - 7055', 'Saanich, BC'); is('CA-BC-Vancouver', 'Vancouver, BC'); is('North Vancouver, BC', 'North Vancouver, BC');
+  is('Vancouver / Toronto / Montreal', 'Vancouver, BC'); is('London, United Kingdom / Toronto, ON', 'Toronto, ON');
+  is('Toronto, ON (Remote)', 'Toronto, ON'); is('Tofino, BC', 'Tofino, BC'); is("St. John's, NL", "St. John's, NL");
+  is('Portage la Prairie, MB', 'Portage la Prairie, MB'); is('Montréal, Québec, CA, H3A 0A8', 'Montreal, QC');
+  for (const none of ['Remote', 'Canada', 'Remote - Canada', 'British Columbia', 'Remote, ON', 'Lower Mainland, BC', 'GTA', 'Various Locations, BC',
+    'Ontario, CA, United States', 'Kirkland, WA', 'Richmond, Virginia', '']) is(none, '');
+});
+
+test('private build: the resume address becomes the job\'s city; everything else on the line stays', () => {
+  const j = { location: 'Toronto, ON' };
+  assert.deepEqual(addressFor(['Surrey, BC | 778-555-0100 | a@gmail.com | github.com/me | linkedin.com/in/me'], j), ['Toronto, ON | 778-555-0100 | a@gmail.com | github.com/me | linkedin.com/in/me']);
+  assert.deepEqual(addressFor(['123 Main St, Surrey, BC V3T 1A1 • a@b.com'], j), ['Toronto, ON • a@b.com']);
+  assert.deepEqual(addressFor(['604-555-1234 | a@b.com', 'Burnaby, British Columbia'], j), ['604-555-1234 | a@b.com', 'Toronto, ON']);
+  assert.deepEqual(addressFor(['a@b.com | 604-555-1234'], j), ['Toronto, ON | a@b.com | 604-555-1234']); // no address on the resume: added first
+  assert.deepEqual(addressFor(['Surrey, BC | a@b.com'], { location: 'Remote' }), ['Surrey, BC | a@b.com']); // no city in the posting: unchanged
+  const lib = { contact: { name: 'A B', lines: ['Surrey, BC | a@b.com'] }, summary: '', skills: [], entries: [{ kind: 'experience', heading: 'Developer, Acme', dates: '2022 - 2024', details: [], bullets: [{ text: 'Built internal tools in Python.' }] }] };
+  assert.deepEqual(planResume(lib, { title: 'Developer', company: 'Acme', location: 'Calgary, Alberta', description: '' }).contact, ['Calgary, AB | a@b.com']);
+  assert.deepEqual(lib.contact.lines, ['Surrey, BC | a@b.com']); // the saved resume itself is never changed
+});

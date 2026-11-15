@@ -1,5 +1,11 @@
 # B3spoken changelog
 
+## 0.1.15 (private build)
+
+- **The address on each resume and cover letter is the job's city.** A job in Toronto gets "Toronto, ON" where your own city was; a job listing several cities uses the first one. Jobs that name no city (Remote, Canada, a province only, "Lower Mainland") keep your own address. The recruiter email draft uses the same address.
+- Documents already made are made again with the new address.
+- This build is published as a pre-release and only updates to other private builds.
+
 ## 0.1.14
 
 ### Your documents are ready when the jobs are

@@ -1,7 +1,9 @@
 // Updates: finds a newer B3spoken release on GitHub, downloads it, and installs it only if it is signed with
 // the release key built into this app. The person's own files (resume, answers, tracker, documents) live in
 // their data folder and are never touched by an update.
-//   1. GET api.github.com/repos/Dapper-D/job-board/releases: the newest b3spoken-v* release above this version.
+//   1. GET api.github.com/repos/Dapper-D/job-board/releases: the newest b3spoken-v*-private release above this version.
+//      This is the private build: it only ever updates to another private build (tags ending -private, published as
+//      pre-releases), never to a public one, and the public app never picks up a private one.
 //   2. Download its installer, SHA256SUMS and SHA256SUMS.sig.
 //   3. Check the signature (Ed25519, release-key.json) and the installer's SHA-256. Any mismatch: nothing runs.
 //   4. Windows: run the installer silently, then reopen B3spoken from the same folder. Other systems: show the link.
@@ -28,8 +30,8 @@ export function newer(a, b) { // is version a newer than b?
 export function pickRelease(releases, current) {
   let best = null;
   for (const r of releases || []) {
-    if (r.draft || !/^b3spoken-v\d+\.\d+\.\d+$/.test(r.tag_name || '')) continue;
-    const v = r.tag_name.slice('b3spoken-v'.length);
+    if (r.draft || !/^b3spoken-v\d+\.\d+\.\d+-private$/.test(r.tag_name || '')) continue;
+    const v = r.tag_name.slice('b3spoken-v'.length, -'-private'.length);
     if (!newer(v, current) || (best && !newer(v, best.version))) continue;
     const asset = name => (r.assets || []).find(a => a.name === name);
     const installer = (r.assets || []).find(a => /^B3spoken-Setup-\d+\.\d+\.\d+\.exe$/.test(a.name));

@@ -89,3 +89,52 @@ export function provincesOf(location) {
   }
   return out;
 }
+
+// ---- Private build: the address on each resume and cover letter is the job's own city ----
+// Areas that aren't one city ("Lower Mainland", "GTA") can't be an address, so they're passed over.
+const REGIONS = new Set(['tri-cities', 'lower mainland', 'fraser valley', 'metro vancouver', 'greater vancouver', 'vancouver island',
+  'okanagan', 'rocky view', 'gta', 'greater toronto area', 'kawartha lakes']);
+const SMALL = new Set(['la', 'le', 'du', 'de', 'des', 'sur']);
+const titleCase = name => name.split(' ').map(w => w.split('-').map((x, i) =>
+  i && SMALL.has(x) ? x : /^d'/.test(x) ? "d'" + x.slice(2, 3).toUpperCase() + x.slice(3) : x.charAt(0).toUpperCase() + x.slice(1)).join('-'))
+  .map((w, i) => (i && SMALL.has(w.toLowerCase()) ? w.toLowerCase() : w)).join(' ').replace(/^Val-d'/, "Val-d'");
+const CITY_RES = PLACES.filter(([name]) => !REGIONS.has(name)).map(([name, code]) => [new RegExp(`(^|[^a-z])${esc(name)}(?![a-z])`), name, code]);
+
+/** jobCity("Burnaby, Canada / Toronto Office") -> "Burnaby, BC": the first city the posting names, with its province.
+ *  '' when the posting names no city in Canada ("Remote", "Canada", "British Columbia"). */
+export function jobCity(location) {
+  for (const part of String(location || '').split(/\s+\/\s+|\s*[;•|]\s*/)) {
+    if (!part.trim() || (COUNTRY.test(part) && !/\bcanada\b/i.test(part))) continue;
+    const here = provincesOf(part);
+    if (!here.size) continue;
+    const low = ` ${fold(part)} `;
+    // The city that comes first in this part, longest name winning ("North Vancouver" over "Vancouver").
+    let best = null;
+    for (const [re, name, code] of CITY_RES) {
+      const m = re.exec(low);
+      if (m && here.has(code) && (!best || m.index < best.at || (m.index === best.at && name.length > best.name.length))) best = { at: m.index, name, code };
+    }
+    if (best) return `${titleCase(best.name)}, ${best.code}`;
+    // A town that isn't in the list, written "Tofino, BC" or "Tofino, British Columbia".
+    const town = /^\s*([A-Za-zÀ-ÿ.'’-]+(?: [A-Za-zÀ-ÿ.'’-]+){0,3})\s*,/.exec(part);
+    if (town && here.size === 1 && !provincesOf(town[1]).size && !/\b(remote|canada|hybrid|office|store|various|multiple)\b/i.test(town[1]))
+      return `${titleCase(town[1].toLowerCase())}, ${[...here][0]}`;
+  }
+  return '';
+}
+
+/** The resume's contact lines with the person's own city replaced by the job's ("Surrey, BC | 604…" -> "Toronto, ON | 604…").
+ *  The piece replaced is the one that names a place in Canada and isn't an email, phone number or web address.
+ *  With no such piece, the job's city goes first. A job that names no city leaves the lines as they are. */
+export function addressFor(lines, job) {
+  const city = jobCity(job?.location);
+  if (!city || !lines?.length) return lines || [];
+  let done = false;
+  const out = lines.map(line => line.split(/(\s+[|•·]\s+)/).map(piece => {
+    if (done || /^\s+[|•·]\s+$/.test(piece) || /@|https?:|www\.|\.(com|ca|io|dev|net|org)\b|\d{3}[\s.-]?\d{4}/i.test(piece) || !provincesOf(piece).size) return piece;
+    done = true;
+    return city;
+  }).join(''));
+  if (!done) out[0] = `${city} | ${out[0]}`;
+  return out;
+}

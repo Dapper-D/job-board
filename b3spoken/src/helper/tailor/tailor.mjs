@@ -11,6 +11,7 @@
 import { Doc, wrap, textWidth } from "./pdf.mjs";
 import { norm, requireResumeContent } from "../resume/library.mjs";
 import { termsIn } from "./match.mjs";
+import { addressFor } from "../places.mjs";
 
 const PAGE = { w: 612, h: 792, margin: 50 };
 const LINK = [0.02, 0.27, 0.58]; // dark blue for links; reads as a link, prints fine
@@ -162,7 +163,7 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
   const headline = cleanTitle(job.title);
   return {
     name: lib.contact?.name || "",
-    contact: (lib.contact?.lines || []).slice(0, 2),
+    contact: addressFor((lib.contact?.lines || []).slice(0, 2), job), // private build: the job's own city
     headline, // the role sought (used in the summary and file names, never printed as a title held)
     summary: withSeeking(summary, headline),
     skills,
