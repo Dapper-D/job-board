@@ -2,6 +2,8 @@
 
 ## 0.1.15 (private build)
 
+- A job open to several regions ("Remote - US / Remote - Canada") now lists its Canadian places first, so it doesn't read as a job you can't take.
+
 - **The address on each resume and cover letter is the job's city.** A job in Toronto gets "Toronto, ON" where your own city was; a job listing several cities uses the first one. Jobs that name no city (Remote, Canada, a province only, "Lower Mainland") keep your own address. The recruiter email draft uses the same address.
 - Documents already made are made again with the new address.
 - This build is published as a pre-release and only updates to other private builds.

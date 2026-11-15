@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { provincesOf } from '../src/helper/places.mjs';
 import { inProvince, queryJobs } from '../src/helper/jobs.mjs';
+import * as jobsMod from '../src/helper/jobs.mjs';
 import { stampFirstSeen } from '../src/scan/daily.mjs';
 
 const P = l => [...provincesOf(l)].sort().join(',');
@@ -81,4 +82,16 @@ test('private build: the resume address becomes the job\'s city; everything else
   const lib = { contact: { name: 'A B', lines: ['Surrey, BC | a@b.com'] }, summary: '', skills: [], entries: [{ kind: 'experience', heading: 'Developer, Acme', dates: '2022 - 2024', details: [], bullets: [{ text: 'Built internal tools in Python.' }] }] };
   assert.deepEqual(planResume(lib, { title: 'Developer', company: 'Acme', location: 'Calgary, Alberta', description: '' }).contact, ['Calgary, AB | a@b.com']);
   assert.deepEqual(lib.contact.lines, ['Surrey, BC | a@b.com']); // the saved resume itself is never changed
+});
+
+test('a job open to several regions lists its Canadian places first', () => {
+  const { canadaFirst } = jobsMod;
+  assert.deepEqual(canadaFirst('Remote - US / Remote - Canada / United States'.split(' / '), true), ['Remote - Canada', 'Remote - US', 'United States']);
+  assert.deepEqual(canadaFirst('Remote (United Kingdom) / Remote (Canada)'.split(' / '), true), ['Remote (Canada)', 'Remote (United Kingdom)']);
+  assert.deepEqual(canadaFirst(['Toronto, ON', 'Montreal, QC'], false), ['Toronto, ON', 'Montreal, QC']); // all Canadian: order kept
+  assert.deepEqual(canadaFirst(['New York, NY', 'London, UK'], true), ['New York, NY', 'London, UK']); // none Canadian: order kept
+  assert.deepEqual(canadaFirst(['Vancouver, BC'], false), ['Vancouver, BC']);
+  // The board's own list leads with the Canadian place.
+  const j = { id: 'x', title: 'Developer', company: 'Acme', location: 'Remote US / Remote Canada', remote: true, postedAt: new Date().toISOString(), description: 'Build things' };
+  assert.equal(jobsMod.queryJobs([j], { sort: 'date' }).jobs[0].location, 'Remote Canada / Remote US');
 });

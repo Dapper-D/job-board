@@ -5,6 +5,7 @@ import { SOURCES } from '../scan/sources/index.mjs';
 import { dedupe } from '../scan/scan.mjs';
 import { readJson, writeJson } from './paths.mjs';
 import { provincesOf } from './places.mjs';
+import { isCanada } from '../scan/job.mjs';
 
 const JOBBANK_EVERY_MS = 6 * 3600e3; // Job Bank at most every 6 hours (it asks for 5 s between requests)
 const JOBBANK_RETRY_MS = 3600e3; // after a partial result, try again in an hour
@@ -63,6 +64,9 @@ export function viewCounts(jobs, now = Date.now()) {
   }
   return out;
 }
+export const canadaFirst = (places, remote = false) => places.length < 2 ? places
+  : [...places].sort((a, b) => Number(isCanada(b, remote)) - Number(isCanada(a, remote))); // stable: same-country places keep their order
+
 export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = DEFAULT_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
   const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
@@ -87,8 +91,10 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     return true;
   });
   // The list shows the first 3 places; the full job (GET /api/jobs/<id>) keeps them all.
+  // One posting open to several regions ("Remote - US / Remote - Canada") shows its Canadian places first,
+  // so it doesn't read as a job you can't take.
   const slim = ({ description, ...rest }) => {
-    const places = String(rest.location || '').split(' / ');
+    const places = canadaFirst(String(rest.location || '').split(' / '), rest.remote);
     return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: String(description || '').slice(0, 280) };
   };
   if (sort === 'score') hits.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0) || String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
