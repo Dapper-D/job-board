@@ -239,14 +239,15 @@ test('French postings need French on the resume', async () => {
   assert.doesNotMatch(scoreJob(job, makeContext(lib, text + '\nLanguages: English, French', p, ['Software Developer'])).stops.join(' '), /French/);
 });
 
-test('the cover letter says "used in the work above" only for skills the quoted work names', () => {
+test('the cover letter never says a skill was used in work that doesn’t name it', () => {
   const l = buildLibrary('Jo Lee\njo@example.com\nSKILLS\nPython, C++, SQL\nEXPERIENCE\nDeveloper, Acme, 2023 - Present\n- Built a Python service for invoices.\nEDUCATION\nBCIT, 2022');
   const j = { title: 'Software Developer', company: 'Beta', description: 'We use Python and C++ every day.' };
   const p = cleanProfile({ targetRoles: ['Software Developer'], workAuth: 'citizen', done: true });
   const m = scoreJob(j, makeContext(l, libraryTextFor(l), p, ['Software Developer']));
   const text = coverLetter(planResume(l, j), j, m, {}, new Date(2026, 10, 5)).paragraphs.join(' ');
-  assert.match(text, /asks for Python, which I used in the work above\. My skills also include C\+\+\./);
-  assert.doesNotMatch(text, /C\+\+[^.]*used in the work above/);
+  assert.match(text, /asks for Python and C\+\+, both of which I bring\./); // on the resume's skills list
+  assert.doesNotMatch(text, /used in the work above/);
+  assert.doesNotMatch(text.replace(/^[^.]*\./, ''), /C\+\+/); // and nowhere credited to the invoice work
 });
 
 test('PDF: names beyond Latin-1 keep their letters in the metadata; emoji are left out; missing letters are reported', async () => {

@@ -58,7 +58,7 @@ import {
 } from "./updater.mjs";
 import { insideExe } from "./assets.mjs";
 import { fileURLToPath } from "node:url";
-import { queryJobs as queryList, MAX_AGE_DAYS } from "./jobs.mjs";
+import { queryJobs as queryList, MAX_AGE_DAYS, PREP_MIN_SCORE } from "./jobs.mjs";
 import { buildPrep, PREP_PROMPT, cleanQuestions } from "./tailor/prep.mjs";
 import { cleanEntry, dueToday } from "./tracker.mjs";
 import { CAREER_PROMPT, cleanCareer, withMarket } from "./tailor/career.mjs";
@@ -217,7 +217,7 @@ export function createApp(
   }
 
   // Makes the resume and cover letter ahead of time for every job on the board (every match from the last 14 days,
-  // Stretch and up, best first, up to PREP_LIMIT), so each card has its PDFs ready to download in the morning.
+  // scoring PREP_MIN_SCORE or more, best first, up to PREP_LIMIT), so each card has its PDFs ready to download in the morning.
   // Quick rule-based versions first for all of them (a fraction of a second each), then, with an AI connected,
   // the AI picks the order for the best ones. When the resume or answers change, they're made again.
   let preparing = null,
@@ -253,6 +253,7 @@ export function createApp(
       remote: settings.remote,
       maxAgeDays: MAX_AGE_DAYS,
       minLabel: "Stretch",
+      minScore: PREP_MIN_SCORE,
       limit: PREP_LIMIT,
     }).jobs;
     const index = readJson(join(dir, "documents", "index.json"), {});

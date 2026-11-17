@@ -146,7 +146,7 @@ export function yearsOfExperience(lib, now = new Date()) {
 // (for example a mechanical engineer or a lab technician that happens to mention Python), and never shows.
 const FAMILIES = {
   software:
-    /\b(software|developer|programmer|full[- ]?stack|front[- ]?end|back[- ]?end|web|mobile|ios|android|sdet|qa|quality assurance|test automation|(software|web|application|applications|platform|solutions|systems|data|ml|ai|devops|qa|test|integration|automation|cloud|security|support|backend|frontend) engineer(ing)?)\b/,
+    /\b(software|developer|programmer|full[- ]?stack|front[- ]?end|back[- ]?end|web|mobile (apps?|applications?|developer|engineer)|ios|android|sdet|qa|quality assurance|test automation|(software|web|application|applications|platform|solutions|systems|data|ml|ai|devops|qa|test|integration|automation|cloud|security|support|backend|frontend) engineer(ing)?)\b/,
   security:
     /\b(security|cyber|cybersecurity|soc (analyst|specialist|operator|tier)|siem|vulnerability|penetration|pen ?test(er)?|incident response|threat|iam|identity and access|access management|grc|(it|security|cyber|information|technology|data) (governance|compliance|risk)|privacy engineer|infosec)\b/,
   it: /\b(it|help ?desk|service ?desk|desktop support|technical support|tech support|support (analyst|specialist|technician|engineer)|systems? (administrator|analyst|specialist)|sysadmin|network (administrator|analyst|engineer|technician)|infrastructure|endpoint|it (analyst|specialist|technician|coordinator))\b/,
@@ -193,9 +193,21 @@ const FAMILIES = {
 // field's words they only describe the level ("Help Desk Technician" is IT, not a trade).
 // A store's "Customer Service Desk" is customer service, not an IT service desk.
 const GENERIC_TRADE = /\b(technician|installer|maintenance|apprentice)\b/g;
+// Some titles borrow a tech word but the job is another trade: guarding a store ("Asset Protection Associate -
+// Security License Required"), keeping the books ("Accountant (Systems Analyst)"), selling ("OT Security Sales
+// Specialist") or building physical machines ("Cryogenic Systems Engineer"). The trade decides the field.
+const GUARDING = /\b(asset protection|loss prevention|security (guard|officer|licen[cs]e|patrol|supervisor|concierge)|event security|mobile patrol)\b/;
+const CYBER = /\b(cyber|cybersecurity|information|it|network|application|cloud|data|product|software|infosec|soc)\b/;
+const OTHER_TRADE = [
+  ["finance", /\b(accountant|bookkeeper)\b/],
+  ["sales", /\bsales (specialist|associate|representative|rep|executive|manager|consultant|advisor)\b|\baccount executive\b/],
+  ["engineering", /\b(cryogenic|mechanical|electrical|civil|chemical|structural|hydraulic|geotechnical|mining|aerospace|avionics)\b.*\bengineer/],
+];
 export const familiesOf = (text) => {
   const t = norm(text).replace(/\bcustomer service desk\b/g, "customer service");
   if (FAMILIES.education.test(t)) return ["education"];
+  if (GUARDING.test(t) && !CYBER.test(t)) return ["protective"];
+  for (const [family, re] of OTHER_TRADE) if (re.test(t)) return [family];
   const out = Object.keys(FAMILIES).filter((f) => FAMILIES[f].test(t));
   return out.length > 1 && out.includes("trades") && !FAMILIES.trades.test(t.replace(GENERIC_TRADE, " "))
     ? out.filter((f) => f !== "trades")
@@ -210,6 +222,15 @@ const HIGH_LEVEL = /\b(staff|principal|distinguished|fellow|director|head of|vp|
 const STUDENT_ONLY = /\b(intern(ship)?|co-?op|new grad(uate)?|student|summer analyst)\b/i;
 export const SENIOR =
   /\b(senior|sr\.?|staff|principal|lead|manager|director|head of|architect|vp|vice president|chief|expert|distinguished|fellow)\b/i;
+// "Software Engineer III", "Analyst IV", "SOC Analyst, Tier III", "Systems Analyst 3": level 3 and up is a senior
+// grade even without the word. ("IV Therapy" and "Analyst (3 positions)" are not levels.)
+const LEVEL_ROMAN = /[A-Za-z)]\s+(III|IV|V|VI)(?=\s*(?:$|[,\-–—(/:|[]))/;
+const LEVEL_NUMBER = /\b(?:tier|level|lvl)[ -]?(?:[3-6]|iii|iv|v)\b|\b(?:analyst|engineer|developer|specialist|administrator|programmer|technician|consultant|scientist|designer)\s+[3-6]\b(?!\s*(?:positions?|months?|years?|days?|weeks?))/i;
+export const seniorTitle = (title) => { const t = String(title || ""); return SENIOR.test(t) || LEVEL_ROMAN.test(t) || LEVEL_NUMBER.test(t); };
+// A remote job whose title names another part of the world ("(LatAm, Remote)", "- EMEA") isn't open to people in
+// Canada, even when its long country list happens to include Canada.
+const OTHER_REGION = /\b(latam|latin america|emea|apac|mena|anz|europe|european|eu|uk|united kingdom|us only|us[- ]based|usa|united states|india|philippines|brazil|mexico|africa|asia|australia)\b/i;
+const THIS_REGION = /\b(canada|canadian|north america|namer|americas|global|worldwide|anywhere)\b/i;
 const NO_SPONSOR =
   /\b(no|not|unable to|cannot|can't|will not|won't)\s+(provide\s+|offer\s+)?(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|sponsorship is not (available|provided)/i;
 const CITIZEN_ONLY =
@@ -230,7 +251,10 @@ export function asksForFrench(job) {
   const fr = (t.match(FR_WORDS) || []).length, en = (t.match(EN_WORDS) || []).length;
   // "Proficiency in French is an asset but not required" doesn't ask for French.
   const req = [...t.matchAll(new RegExp(FR_REQUIRED.source, "g"))].some((m) => !FR_OPTIONAL.test(t.slice(m.index, m.index + m[0].length + 70)));
-  return req || (fr >= 15 && fr > en * 1.5) || /\b\w+\.e?uses?\b|\((trice|ere|euse)\)|\bdeveloppeur|\bconseiller|\bteletravail\b/.test(String(job.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+  // "Bilingual Data Engineer" in Canada means English and French, unless the title names another language.
+  const titleN = norm(job.title);
+  const bilingual = /\bbiling(ual|ue)\b/.test(titleN) && (/\b(french|francais)\b/.test(titleN) || !/\b(mandarin|cantonese|chinese|spanish|punjabi|hindi|korean|japanese|portuguese|arabic|german|tagalog|vietnamese|italian)\b/.test(titleN));
+  return req || bilingual || (fr >= 15 && fr > en * 1.5) || /\b\w+\.e?uses?\b|\((trice|ere|euse)\)|\bdeveloppeur|\bconseiller|\bteletravail\b/.test(String(job.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
 }
 const KNOWS_FRENCH = /\b(french|francais|bilingual|bilingue)\b/;
 
@@ -301,6 +325,8 @@ export function scoreJob(job, ctx) {
       stops.push(`Industry you want to avoid: ${ind}`);
   if (!KNOWS_FRENCH.test(ctx.resumeNorm) && feat.french)
     stops.push("Asks for French; your resume doesn’t mention it");
+  const region = job.remote && !THIS_REGION.test(job.title) && OTHER_REGION.exec(job.title || "");
+  if (region) stops.push(`Remote, but for another region only (${region[0]})`);
   // Skills
   const wanted = termsIn(text, ctx.skills);
   // "API" and "APIs" are the same skill.
@@ -373,8 +399,8 @@ export function scoreJob(job, ctx) {
       );
     }
   }
-  const tooSenior = SENIOR.test(job.title) && ctx.years < 3;
-  if (SENIOR.test(job.title) && ctx.years < 5) {
+  const tooSenior = seniorTitle(job.title) && ctx.years < 3;
+  if (seniorTitle(job.title) && ctx.years < 5) {
     seniority -= tooSenior ? 0.7 : 0.35;
     reasons.push("Senior-level title");
   }
@@ -423,6 +449,12 @@ export function scoreJob(job, ctx) {
         : score >= 30
           ? "Stretch"
           : "Skip";
+  // Good and Strong are for the roles the person picked: a title sharing no word with any of them is a Stretch at
+  // most, however many of its skills are on the resume.
+  if (titleFit === 0 && (label === "Strong" || label === "Good")) {
+    label = "Stretch";
+    reasons.push("Title isn’t one of the roles you picked");
+  }
   // Senior, lead, staff or manager titles are hidden for people with under 3 years on their resume (they can still paste or track one).
   if (tooSenior) {
     label = "Skip";
