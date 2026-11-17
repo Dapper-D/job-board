@@ -1,6 +1,8 @@
 // Structured career inventories are source banks, not one-page resumes.
 // Keep instructions/evidence notes out of application bullets.
-const BULLET = /^[•▪◦‣*\-–\uf0b7]\s+/;
+// PDFs often give "•Supported 80 students" with no space after the dot. A dash or a star is a bullet only with a
+// space after it ("-5 C storage" and "**Bold**" are text).
+const BULLET = /^(?:[•▪◦‣\uf0b7]\s*|[*\-–]\s+)/;
 const heading = (line) =>
   line
     .replace(/^#{1,6}\s+/, "")
@@ -67,6 +69,13 @@ const meta =
 const nonClaim =
   /\b(?:do not|don't|never claim|always retain|before selecting|avoid claiming|inspect actual|include only when|current academic record)\b/i;
 
+// Where a master file keeps who the person is, and what its lines look like.
+const IDENTITY = /\b(identity|contact|personal (details|information|info))\b/i;
+const NAME_LABEL = /^(full |legal |preferred )?name$/;
+const CONTACT_LABEL = /^(e-?mail|phone|mobile|cell|tel|telephone|linkedin|github|portfolio|website|web|location|address|city|based in)$/;
+const CONTACT_VALUE = /@|linkedin\.com|github\.com|\b\d{3}[- .]\d{3}[- .]\d{4}\b/;
+const COVER = /specification|master source|^verified|^master\b/i;
+
 export function isMasterDocument(text) {
   const lines = String(text).split(/\r?\n/);
   const relevant = lines.filter((l) => sectionHeader(l) && kind(l) !== "notes");
@@ -103,6 +112,7 @@ export function buildMasterLibrary(text) {
     notes: [],
   };
   let section = "contact",
+    fieldLine = -1,
     entry = null,
     bullet = "",
     field = "",
@@ -158,7 +168,8 @@ export function buildMasterLibrary(text) {
     const line = raw.replace(/\*\*/g, "");
     if (sectionHeader(line)) {
       flush();
-      section = kind(line);
+      // "1. CANDIDATE IDENTITY AND CONTACT": the name, email and phone live there, not above the first section.
+      section = kind(line) === "notes" && IDENTITY.test(heading(line)) ? "contact" : kind(line);
       entry = null;
       field = "";
       continue;
@@ -169,15 +180,31 @@ export function buildMasterLibrary(text) {
       continue;
     }
     if (section === "contact") {
-      if (
-        !lib.contact.name &&
-        !/specification|master source|^verified|^master\b/i.test(line)
-      )
-        lib.contact.name = line;
-      else if (
-        /@|linkedin\.com|github\.com|\b\d{3}[- .]\d{3}[- .]\d{4}\b/.test(line)
-      )
-        lib.contact.lines.push(line);
+      // "Name: Jo Example", "Email: jo@example.com | Phone: 604-555-0100": the label names the field, the value is kept.
+      const pieces = line.split(/\s+\|\s+/).map((piece) => {
+        const m = piece.match(/^([A-Za-z][A-Za-z /-]{1,28}?)\s*:\s*(\S.*)$/);
+        return m && !/^https?$/i.test(m[1]) ? { label: m[1].toLowerCase(), value: m[2].trim() } : { label: "", value: piece.trim() };
+      });
+      const named = pieces.find((x) => NAME_LABEL.test(x.label));
+      if (named && !lib.contact.name) lib.contact.name = named.value;
+      const fields = pieces.filter((x) => CONTACT_LABEL.test(x.label));
+      if (named || fields.length) {
+        // One field a line ("Phone: …", then "Email: …") still makes one contact line, in the order written.
+        if (fields.length) {
+          const values = fields.map((x) => x.value).join(" | ");
+          if (fieldLine < 0) fieldLine = lib.contact.lines.push(values) - 1;
+          else lib.contact.lines[fieldLine] += ` | ${values}`;
+        }
+        continue;
+      }
+      if (pieces.some((x) => x.label)) continue; // "Work authorization: …" and other notes about the person
+      if (CONTACT_VALUE.test(line)) lib.contact.lines.push(line);
+      else if (COVER.test(line)) {
+        // "JO EXAMPLE - MASTER CAREER SPECIFICATION": the name is the part before the title.
+        const own = line.match(/^(.{3,40}?)\s+[—–|:-]\s+/);
+        if (!lib.contact.name && own && !COVER.test(own[1]) && /^[A-Za-z][A-Za-z.' -]+$/.test(own[1]) && own[1].trim().split(/\s+/).length <= 4)
+          lib.contact.name = own[1].trim();
+      } else if (!lib.contact.name && !/\d/.test(line)) lib.contact.name = line;
       continue;
     }
     if (section === "notes") continue;

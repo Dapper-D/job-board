@@ -1,5 +1,12 @@
 # B3spoken changelog
 
+## 0.1.17
+
+### Master-format resumes ("1. IDENTITY", "2. PROFESSIONAL SUMMARY"…)
+- **Your name and contact details are read wherever the file keeps them.** A file that opened with a title and kept the name, email and phone in a numbered "Identity" or "Contact" section came out headed "Your Name" with no contact line, and its PDFs were named "Resume - Resume - …". Lines written as fields ("Name: …", "Email: … | Phone: …") are read without their labels, and an email line is never taken for the name.
+- **Bullets with no space after the dot are read** ("•Supported 80 students"), as many PDFs give them. Before, such a file showed titles only and could not make a resume.
+- If your resume came out as "Your Name", click **Read it** again after updating.
+
 ## 0.1.16
 
 ### Fewer wrong matches
