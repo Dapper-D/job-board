@@ -63,7 +63,10 @@ export function viewCounts(jobs, now = Date.now()) {
   }
   return out;
 }
-export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = DEFAULT_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', view = '' } = {}) {
+// Resumes and cover letters are made ahead of time only for matches at or above this score. Weaker Stretch matches stay
+// on the board, and their documents are made when the person asks for them.
+export const PREP_MIN_SCORE = 45;
+export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays = DEFAULT_AGE_DAYS, source = '', offset = 0, limit = 50, now = Date.now(), sort = 'score', showSkipped = false, minLabel = '', minScore = 0, view = '' } = {}) {
   const today = new Date(now).toISOString().slice(0, 10);
   const LABELS = ['Stretch', 'Good', 'Strong'];
   const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
@@ -79,6 +82,7 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     if (view) return true;
     if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
     if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
+    if (minScore && j.match && !j.pasted && !j.track && !((j.match.score ?? 0) >= minScore)) return false;
     if (source && j.source !== source) return false;
     if (remote === 'only' && !j.remote) return false;
     if (province && !(inProvince(j, province) || (remote !== 'no' && j.remote))) return false;

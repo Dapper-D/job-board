@@ -528,6 +528,14 @@ const andList = (a) =>
   a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a.at(-1)}`;
 const lowerFirst = (s) =>
   s.replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase()).replace(/\.$/, "");
+// "Built a service." -> "I built a service"; "Developing a platform." (work still going on) -> "I am developing a platform".
+const iDid = (text) => {
+  const t = lowerFirst(text);
+  return /^[a-z]+ing\b/.test(t) ? `I am ${t}` : `I ${t}`;
+};
+// Words a posting uses that aren't tools or methods, and words too vague to name as a gap.
+const SOFT_WORD = /^(stakeholders?|documentation|agile|scrum|project management|customer service|tickets|troubleshooting|requirements|analytics|statistics|dashboards|content|marketing|sales|audit|compliance)$/;
+const VAGUE_GAP = /^(cloud|security|networking|help desk|crm)$/;
 function splitHeading(h) {
   // "Software Developer, Northwind Logistics" -> ["Software Developer", "Northwind Logistics"]
   const m = String(h).match(/^(.+?)(?:,| — | – | - | at | @ )\s*(.+)$/);
@@ -582,8 +590,12 @@ export function coverLetter(
         "i",
       ),
     ) || [t])[0];
+  // The work closest to the job leads, in the same order as the resume.
+  const work = plan.projectsFirst
+    ? [...plan.projects, ...plan.experience]
+    : [...plan.experience, ...plan.projects];
   const points = [];
-  for (const e of [...plan.experience, ...plan.projects]) {
+  for (const e of work) {
     const b = e.bullets[0];
     if (!b) continue;
     const [role, org] = splitHeading(e.heading);
@@ -591,38 +603,41 @@ export function coverLetter(
     const place = /,/.test(String(e.heading).split(/,\s*/).slice(1).join(","))
       ? e.heading.split(/,\s*/).slice(1).join(", ")
       : ""; // "Intern, Lagos, Nigeria": a place, not an employer
+    const did = iDid(b.text);
     points.push(
       e.kind === "projects"
-        ? `In my ${name} project, I ${lowerFirst(b.text)}.`
+        ? `In my ${name} project, ${did}.`
         : place
-          ? `As ${article(role)} ${role} in ${place}, I ${lowerFirst(b.text)}.`
+          ? `As ${article(role)} ${role} in ${place}, ${did}.`
           : org
-            ? `As ${article(role)} ${role} at ${org}, I ${lowerFirst(b.text)}.`
-            : `In my work as ${role}, I ${lowerFirst(b.text)}.`,
+            ? `As ${article(role)} ${role} at ${org}, ${did}.`
+            : `In my work as ${role}, ${did}.`,
     );
     if (points.length === 3) break;
   }
-  if (points.length) out.push(points.join(" "));
-  // "Used in the work above" only for skills the quoted work really names; the rest are only on the skills list.
-  if (match?.have?.length) {
-    const said = norm(points.join(" "));
-    const shown = match.have.slice(0, 4).filter((t) =>
-      new RegExp(`(?<![a-z0-9])${norm(t).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?![a-z0-9+#])`).test(said),
+  // Opens with the tools and methods the posting asks for that are on the resume. Words like "stakeholders" or
+  // "documentation" aren't things a person "brings" or "uses", so they stay out of the sentence.
+  // "APIs" beside "REST APIs" says the same thing twice.
+  const tools = (match?.have || [])
+    .filter((t, _, all) => !SOFT_WORD.test(t) && !all.some((o) => o !== t && new RegExp(`(^| )${norm(t).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}( |$)`).test(norm(o))))
+    .slice(0, 4);
+  if (tools.length)
+    out.push(
+      `The ${title} role at ${company} asks for ${andList(tools.map(pretty))}, ${tools.length > 2 ? "all of which" : tools.length === 2 ? "both of which" : "which"} I bring.`,
     );
-    const listed = match.have.slice(0, 4).filter((t) => !shown.includes(t));
-    if (shown.length)
-      out.push(
-        `The posting asks for ${andList(shown.map(pretty))}, which I used in the work above.${listed.length ? ` My skills also include ${andList(listed.map(pretty))}.` : ""}`,
-      );
-    else
-      out.push(
-        `The posting asks for ${andList(listed.map(pretty))}, which ${listed.length > 1 ? "are" : "is"} among my skills.`,
-      );
-  }
+  if (points.length) out.push(points.join(" "));
+  // Gaps: concrete tools only. A vague word ("cloud", "security") isn't a gap worth raising, and neither is one the
+  // resume covers under a longer word (it says "Cybersecurity").
+  const onPage = norm(
+    [
+      ...plan.skills.flatMap((g) => g.items),
+      ...[...plan.experience, ...plan.projects, ...(plan.education || [])].flatMap((e) => [e.heading, ...(e.details || []), ...(e.bullets || []).map((x) => x.text)]),
+    ].join(" "),
+  );
   const gaps = [
     ...new Set(
       [
-        ...(match?.missing || []).slice(0, 3),
+        ...(match?.missing || []).filter((t) => !SOFT_WORD.test(t) && !VAGUE_GAP.test(t) && !onPage.includes(norm(t))).slice(0, 3),
         ...(profile.missingSkills || []).filter((s) =>
           norm(job.description || "").includes(norm(s)),
         ),
