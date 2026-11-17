@@ -1,5 +1,25 @@
 # B3spoken changelog
 
+## 0.1.16 (private build)
+
+Same as the public 0.1.16, with the job-city address below.
+
+### Fewer wrong matches
+- **Guarding a store isn't cybersecurity.** "Asset Protection Associate - Security License Required", "Event Security Officer" and "Loss Prevention" jobs no longer match security roles. "Information Security Officer" still does.
+- **A tech word inside another trade's title no longer makes it a tech job:** "Logyard/Mobile Equipment Supervisor", "Cryogenic Systems Engineer", "Accountant (Systems Analyst)" and "Security Sales Specialist" are hidden for people looking for software, security or IT work.
+- **Level III and up counts as senior.** "Software Engineer III", "Analyst IV", "SOC Analyst, Tier III" and "Systems Analyst 3" are hidden for people with under 3 years, like titles that say "Senior".
+- **"Bilingual" in a title asks for French**, unless the title names another language.
+- **Remote jobs for another region are hidden.** A remote job titled "(LatAm, Remote)", "- EMEA" or "(UK)" is not open to people in Canada, even when its country list includes Canada.
+- **Good and Strong are for the roles you picked.** A title that shares no word with any of your roles is a Stretch at most, however many of its skills are on your resume.
+
+### Cover letters (made without an AI)
+- The letter opens with the tools the posting asks for that are on your resume, then your closest work. Projects lead when your projects fit the job better than your jobs, the same order as the resume.
+- Fixed "I developing a platform": a line about work still going on now reads "I am developing".
+- Words that aren't tools ("stakeholders", "documentation") are no longer listed as things you "used".
+- The gap sentence names concrete tools only. It no longer lists vague words ("cloud", "security") or anything your resume covers under a longer word ("Cybersecurity").
+
+### Documents
+- Resumes and cover letters are made ahead of time for matches scoring 45 or more. Weaker Stretch matches stay on the board; their documents are made when you ask. Jobs you saved or added always get theirs.
 ## 0.1.15 (private build)
 
 - A job open to several regions ("Remote - US / Remote - Canada") now lists its Canadian places first, so it doesn't read as a job you can't take.
