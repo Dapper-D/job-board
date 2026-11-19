@@ -43,6 +43,8 @@ test("fromSource gives back the resume's own spelling, or nothing", () => {
   // A name is not the first half of an email address or a web link.
   assert.equal(fromSource("jo.example@mail.com\ngithub.com/jo-example\nJo Example", "Jo Example"), "Jo Example");
   assert.equal(fromSource("Wi-Fi and accounts", "Wi-Fi and accounts"), "Wi-Fi and accounts");
+  // The same words in the summary don't win over the line written exactly as asked.
+  assert.equal(fromSource("Backend developer working in Java.\nQuillfeather Payments\nBackend Developer", "Backend Developer"), "Backend Developer");
   assert.equal(fromSource("validated as-\n  built layouts.", "validated as-built layouts."), "validated as-built layouts.");
   // Two bullets run together are not one line of the resume.
   assert.equal(fromSource(SOURCE, "Built a React dashboard that shows delivery times for 40 warehouse sites. Wrote Jest tests for the order service.", { oneItem: true }), "");
@@ -71,6 +73,12 @@ test("a heading or dates that wrap onto the next line are still found, in either
   ] }) });
   assert.equal(lib.entries[0].heading, "Douglas College — Post-Baccalaureate Diploma in Computer Information Systems (Emerging Technologies)");
   assert.equal(lib.entries[1].dates, "February 2023– September 2023");
+});
+
+test("an employer on the line above the title is not run into the heading", async () => {
+  const src = "SUMMARY\nBackend developer working in Java.\nEXPERIENCE\nQuillfeather Payments\nBackend Developer\n- Built REST APIs.";
+  const { lib } = await readResume(src, { provider: "claude", ask: reply({ entries: [{ kind: "experience", title: "Backend Developer", organization: "Quillfeather Payments", bullets: ["Built REST APIs."] }] }) });
+  assert.equal(lib.entries[0].heading, "Backend Developer — Quillfeather Payments");
 });
 
 test("name and contact details come from the resume, without their labels", async () => {
@@ -105,6 +113,9 @@ test("when the AI fails, B3spoken's own reading is kept with a warning", async (
     assert.equal(lib.source, "rules");
     assert.ok(warnings.some((w) => /B3spoken's own reader/.test(w)), warnings.join(" / "));
   }
+  // A free plan out of requests for the day is said in plain words.
+  const limit = await readResume(SOURCE, { provider: "codex", ask: async () => { throw new Error("ChatGPT (Codex) stopped with an error: You've hit your usage limit. Upgrade to Plus"); } });
+  assert.match(limit.warnings[0], /usage limit is used up for now/);
   const none = await readResume(SOURCE, { provider: "" });
   assert.equal(none.usedAi, false);
 });

@@ -37,8 +37,9 @@ document.addEventListener("click", (e) => {
   if (go) show(go.dataset.go);
 });
 // The AIs B3spoken can use, and how each one is named on the resume card.
-const AIS = ["codex", "claude", "gemini"];
-const READ_BY = { rules: "B3spoken", codex: "ChatGPT", claude: "Claude", gemini: "Gemini" };
+const AIS = ["codex", "claude"]; // run by B3spoken; Chrome's built-in AI runs in this page instead
+const READ_BY = { rules: "B3spoken", codex: "ChatGPT", claude: "Claude", chrome: "Chrome's built-in AI" };
+const canRead = (ai) => AIS.includes(ai) || ai === "chrome";
 const msg = (box, text) => {
   $(box).hidden = !text;
   $(box).textContent = text || "";
@@ -46,8 +47,9 @@ const msg = (box, text) => {
 
 // ---- 1. AI ----
 const PLANS = {
-  codex: "Needs a ChatGPT Plus, Pro or Business plan.",
-  claude: "Needs a Claude Pro or Max plan.",
+  codex:
+    "Works with any ChatGPT plan, including the free one (the free plan has a small daily limit; when it runs out, B3spoken uses its own reader until it resets). If you don\u2019t want ChatGPT to learn from your resume, open ChatGPT, go to Settings, then Data controls, and turn off \u201cImprove the model for everyone\u201d.",
+  claude: "Needs a paid Claude plan (Pro or Max). Claude\u2019s free plan doesn\u2019t include Claude Code, which B3spoken uses.",
 };
 const SIGNIN_HELP = {
   codex:
@@ -156,8 +158,8 @@ async function drawAi() {
       "chrome",
       "Chrome built-in AI",
       chrome
-        ? "Available in this browser"
-        : "Not available in this browser (needs desktop Chrome and a strong enough computer)",
+        ? "Free and private: it runs on this computer and nothing is sent anywhere. The first time, Chrome downloads its AI (a few GB), which can take a while. It reads your resume a part at a time, so it\u2019s slower than ChatGPT or Claude."
+        : "Not available in this browser. It needs desktop Chrome (version 148 or newer) on Windows 10 or 11, a Mac or Linux, with 16 GB of memory and 22 GB of free disk space. Open B3spoken in Chrome to use it.",
       chrome,
     ],
     [
@@ -200,7 +202,7 @@ $("aiNext").addEventListener("click", async () => {
     method: "PUT",
     body: JSON.stringify({ ...settings, ai }),
   });
-  $("tidy").hidden = !AIS.includes(ai);
+  $("tidy").hidden = !canRead(ai);
   show("resume");
 });
 
@@ -276,6 +278,7 @@ function drawLibrary() {
 // checked version replaces the first one. Anything either reader may have missed is said in plain words.
 const showWarnings = (w) => msg("resumeMsg", (w || []).join(" "));
 async function readWithAi() {
+  if (settings.ai === "chrome") return readWithChrome();
   $("tidy").disabled = $("upload").disabled = true;
   $("tidy").textContent = "Your AI is reading it…";
   try {
@@ -308,7 +311,53 @@ async function upload(body) {
   } finally {
     $("upload").disabled = false;
   }
-  if (aiOn()) await readWithAi();
+  if (canRead(settings.ai)) await readWithAi();
+}
+
+// Chrome's built-in AI is small, so B3spoken splits the resume and Chrome reads one part at a time on this
+// computer. The answers go back to B3spoken, which keeps only what is word for word in the resume.
+const LANG = { expectedInputs: [{ type: "text", languages: ["en"] }], expectedOutputs: [{ type: "text", languages: ["en"] }] };
+async function readWithChrome() {
+  const say = (t) => ($("tidy").textContent = t);
+  if (!("LanguageModel" in self))
+    return msg("resumeMsg", "Chrome\u2019s built-in AI isn\u2019t available in this browser, so the version B3spoken read is shown. Open B3spoken in desktop Chrome 148 or newer to use it.");
+  $("tidy").disabled = $("upload").disabled = true;
+  say("Chrome\u2019s AI is getting ready\u2026");
+  let base;
+  try {
+    const avail = await LanguageModel.availability(LANG).catch(() => LanguageModel.availability());
+    if (avail === "unavailable")
+      throw new Error("This computer can\u2019t run Chrome\u2019s built-in AI (it needs 16 GB of memory and 22 GB of free disk space)");
+    const plan = await api("/api/resume/chrome-plan");
+    const opts = {
+      initialPrompts: [{ role: "system", content: plan.system }],
+      monitor(m) {
+        m.addEventListener("downloadprogress", (e) => say(`Downloading Chrome\u2019s AI (first time only)\u2026 ${Math.round((e.loaded || 0) * 100)}%`));
+      },
+    };
+    base = await LanguageModel.create({ ...opts, ...LANG }).catch(() => LanguageModel.create(opts));
+    const answers = [];
+    for (let i = 0; i < plan.prompts.length; i++) {
+      say(`Chrome\u2019s AI is reading part ${i + 1} of ${plan.prompts.length}\u2026`);
+      const s = await base.clone();
+      try {
+        answers.push(await s.prompt(plan.prompts[i], { responseConstraint: plan.schema, omitResponseConstraintInput: true }));
+      } catch {
+        answers.push("");
+      } finally {
+        s.destroy();
+      }
+    }
+    lib = await api("/api/resume/ai", { method: "POST", body: JSON.stringify({ provider: "chrome", answers }) });
+    drawLibrary();
+    showWarnings(lib.warnings);
+  } catch (e) {
+    msg("resumeMsg", `${e.message}. The version B3spoken read is kept.`);
+  } finally {
+    base?.destroy();
+    $("tidy").disabled = $("upload").disabled = false;
+    say("Read it again with my AI");
+  }
 }
 $("upload").addEventListener("click", () => {
   const f = $("file").files[0];
@@ -538,7 +587,7 @@ async function drawKit() {
   drawLibrary();
   fillQuestions();
   if (!profile.done) drawKit().catch(() => {});
-  $("tidy").hidden = !AIS.includes(settings.ai);
+  $("tidy").hidden = !canRead(settings.ai);
   show("ai");
 })().catch((e) => {
   document.querySelector("main").textContent =

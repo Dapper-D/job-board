@@ -28,6 +28,7 @@ import {
   requireResumeContent,
 } from "./resume/library.mjs";
 import { readResume, rulesWarnings } from "./resume/aireader.mjs";
+import { chromePlan } from "./resume/chromeread.mjs";
 import { suggestRoles, checkTarget } from "./roles.mjs";
 import { cleanProfile, searchRoles } from "./profile.mjs";
 import { ask } from "./ai.mjs";
@@ -1480,12 +1481,15 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
     },
     // Read it with the person's AI: the AI says where each part is, and only the resume's own words are kept
     // (resume/aireader.mjs). If the AI fails, B3spoken's own reading is kept and the answer says why.
-    async resumeWithAi(provider) {
-      if (!AI_PROVIDERS.includes(provider))
-        throw err(400, "pick ChatGPT (Codex), Claude (Claude Code) or Gemini");
+    // Chrome's built-in AI runs in the setup page, so for it the page sends the answers it got (answers).
+    async resumeWithAi(provider, answers) {
+      const chrome = provider === "chrome";
+      if (!AI_PROVIDERS.includes(provider) && !chrome)
+        throw err(400, "pick ChatGPT (Codex), Claude (Claude Code) or Chrome's built-in AI");
+      if (chrome && !Array.isArray(answers)) throw err(400, "send what Chrome's AI answered");
       const text = resumeText();
       if (!text) throw err(409, "upload a resume first");
-      const { lib, ai, usedAi, warnings } = await readResume(text, { provider, ask });
+      const { lib, ai, usedAi, warnings } = await readResume(text, chrome ? { provider, answers: answers.map(String) } : { provider, ask });
       const ruleRoles = suggestRoles(text);
       const aiRoles = (Array.isArray(ai?.roles) ? ai.roles : [])
         .slice(0, 8)
@@ -1508,6 +1512,12 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       lib.warnings = warnings;
       if (usedAi || !existsSync(libFile)) writeJson(libFile, lib);
       return lib;
+    },
+    // The prompts the setup page runs in Chrome's built-in AI, one per part of the resume.
+    chromeReadPlan() {
+      const text = resumeText();
+      if (!text) throw err(409, "upload a resume first");
+      return chromePlan(text);
     },
     library: () => readJson(libFile, null),
     // The person checks a flagged line: confirm it, or change the words themselves.

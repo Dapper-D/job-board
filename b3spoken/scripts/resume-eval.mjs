@@ -3,14 +3,17 @@
 //   node scripts/resume-eval.mjs                 rules reader only
 //   node scripts/resume-eval.mjs --ai claude     rules reader and Claude (codex, claude or gemini)
 //   node scripts/resume-eval.mjs --ai claude --only master,linkedin --details
+//   node scripts/resume-eval.mjs --ai claude --parts 900   reads part by part, the way Chrome's built-in AI does
+//                                                        (the AI named stands in for Chrome's on-device model)
 // Every person and resume in the set is invented, so this is safe to run anywhere.
 import { buildLibrary } from "../src/helper/resume/library.mjs";
-import { readWithAi } from "../src/helper/resume/aireader.mjs";
+import { readWithAi, readResume } from "../src/helper/resume/aireader.mjs";
+import { chromePlan } from "../src/helper/resume/chromeread.mjs";
 import { ask } from "../src/helper/ai.mjs";
 import { corpus, scoreLibrary } from "../test/fixtures/resume-corpus/score.mjs";
 
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : ""; };
-const ai = arg("--ai"), only = arg("--only").split(",").filter(Boolean), details = process.argv.includes("--details");
+const ai = arg("--ai"), parts = Number(arg("--parts")) || 0, only = arg("--only").split(",").filter(Boolean), details = process.argv.includes("--details");
 const items = corpus().filter((c) => !only.length || only.includes(c.layout) || only.includes(c.id));
 
 async function pool(list, n, fn) {
@@ -23,7 +26,17 @@ const rows = await pool(items, ai ? 4 : 1, async (c) => {
   const rules = scoreLibrary(buildLibrary(c.text), c.person, c.text);
   let viaAi = null;
   if (ai) {
-    try { viaAi = scoreLibrary((await readWithAi(c.text, { provider: ai, ask })).lib, c.person, c.text); }
+    try {
+      let r;
+      if (parts) {
+        const plan = chromePlan(c.text, parts);
+        const answers = [];
+        for (const p of plan.prompts) answers.push(await ask(ai, `${plan.system}\n\n${p}`).catch(() => ""));
+        r = await readResume(c.text, { provider: "chrome", answers });
+        if (!r.usedAi) throw new Error(r.warnings[0]);
+      } else r = await readWithAi(c.text, { provider: ai, ask });
+      viaAi = scoreLibrary(r.lib, c.person, c.text);
+    }
     catch (e) { viaAi = { score: 0, checks: {}, misses: [`AI failed: ${e.message.slice(0, 120)}`], extra: [] }; }
   }
   return { c, rules, viaAi };

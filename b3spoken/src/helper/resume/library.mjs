@@ -41,7 +41,7 @@ export const norm = (s) =>
     .replace(/[^a-z0-9%$+#./'"-]+/g, " ")
     .trim();
 
-function sectionOf(line) {
+export function sectionOf(line) {
   const clean = line.replace(/[:\s]+$/, "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (clean.length > 40) return null;
   for (const [kind, re] of Object.entries(SECTION_WORDS))

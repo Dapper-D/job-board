@@ -4,6 +4,8 @@
 // so an AI can't reword, merge or invent a line. Anything it can't find in the resume is left out (and the
 // person is told). Without an AI, or if the AI fails, B3spoken's own rule-based reader is used.
 import { buildLibrary, hasResumeContent, parseAiJson, norm } from "./library.mjs";
+import { mergeAnswers } from "./chromeread.mjs";
+import { LIMIT, LIMIT_HELP } from "../ai.mjs";
 
 export const READ_PROMPT = (text) => `You are reading one person's resume so a program can store its parts. Reply with only JSON.
 Copy every value character for character from the resume: same words, spelling, punctuation and capitals.
@@ -50,7 +52,11 @@ const MARKER_LINE = /\n[ \t]*(?:[•▪◦‣●○■□◆◇►▶➢➤✓�
 
 /** The resume's own text for `phrase` (punctuation, dashes and capitals as written), or "" when it isn't there.
  *  oneItem: one line item (not two bullets run together). singleLine: no line breaks. wrapped: may wrap, not into a bullet. */
-export function fromSource(src, phrase, { oneItem = false, singleLine = false, wrapped = false, all = null } = {}) {
+export function fromSource(src, phrase, opts = {}) {
+  // Written exactly as asked first ("Backend Developer" the job title, not "Backend developer" in the summary).
+  return findSpan(src, phrase, { ...opts, sameCase: true }) || findSpan(src, phrase, opts);
+}
+function findSpan(src, phrase, { oneItem = false, singleLine = false, wrapped = false, all = null, sameCase = false } = {}) {
   const mine = tokens(phrase), want = mine.map((x) => x.t);
   if (!want.length) return "";
   const have = all || sourceTokens(src);
@@ -76,6 +82,7 @@ export function fromSource(src, phrase, { oneItem = false, singleLine = false, w
     if (/^[("'“$]/.test(p)) while (start > 0 && /[("'“$]/.test(src[start - 1])) start--;
     if (/[.)%!?"'”]$/.test(p)) while (end < src.length && /[.)%!?"'”]/.test(src[end])) end++;
     const span = src.slice(start, end);
+    if (sameCase && src.slice(have[i].start, have[i + want.length - 1].end).replace(/\s+/g, " ") !== ph.slice(mine[0].start, mine.at(-1).end).replace(/\s+/g, " ")) continue;
     if (singleLine && /\n/.test(span)) continue;
     if (wrapped && MARKER_LINE.test(span)) continue; // may wrap onto the next line, but not run into a bullet
     if (oneItem && (MARKER_LINE.test(span) || /[.!?]\s*\n\s*[A-Z]/.test(span))) continue;
@@ -129,9 +136,9 @@ export function libraryFromAi(ai, text, source) {
     const org = find(str(e?.organization), { wrapped: true });
     // "Student Assistant — Douglas College": the resume's own line when title and employer share one.
     // (Kept only when something like " — ", ", " or " | " joins them; title and employer on separate lines get " — ".)
-    const joined = [`${title} ${org}`, `${org} ${title}`];
+    const joined = [`${title} ${org}`.toLowerCase(), `${org} ${title}`.toLowerCase()];
     const together = org && [find(`${str(e.title || e.heading)} ${str(e.organization)}`, { wrapped: true }), find(`${str(e.organization)} ${str(e.title || e.heading)}`, { wrapped: true })]
-      .find((x) => x && !joined.includes(x));
+      .find((x) => x && !joined.includes(x.toLowerCase()));
     const heading = org && !norm(title).includes(norm(org)) ? together || `${title} — ${org}` : title;
     if (lib.entries.some((x) => norm(x.heading) === norm(heading))) continue;
     const id = `e${++n}`;
@@ -171,16 +178,24 @@ export function rulesWarnings(lib) {
 }
 
 /** Reads a resume: with the person's AI when one is connected, otherwise (or if it fails) with the rules. */
-export async function readResume(text, { provider = "", ask = null } = {}) {
+// answers: the raw answers Chrome's built-in AI gave for each part of the resume (chromeread.mjs), read in the browser.
+export async function readResume(text, { provider = "", ask = null, answers = null } = {}) {
   const rules = buildLibrary(text);
-  if (!provider || !ask) return { lib: rules, usedAi: false, ai: null, warnings: rulesWarnings(rules) };
+  if (!provider || !(ask || answers)) return { lib: rules, usedAi: false, ai: null, warnings: rulesWarnings(rules) };
   try {
-    const ai = parseAiJson(await ask(provider, READ_PROMPT(text), { timeoutMs: 240_000 }));
+    let ai, unread = 0;
+    if (answers) {
+      const parsed = [];
+      for (const a of answers.slice(0, 40)) { try { parsed.push(parseAiJson(a)); } catch { unread++; } }
+      ai = mergeAnswers(parsed);
+    } else ai = parseAiJson(await ask(provider, READ_PROMPT(text), { timeoutMs: 240_000 }));
     const { lib, warnings } = libraryFromAi(ai, text, provider);
+    if (unread) warnings.push(`Chrome's AI couldn't answer for ${unread} ${unread === 1 ? "part" : "parts"} of your resume; B3spoken's own reading is used for anything missing there. Check the entries below.`);
     if (!hasResumeContent(lib)) throw new Error("its answer had no jobs, projects or education from your resume");
     return { lib, usedAi: true, ai, warnings };
   } catch (e) {
-    return { lib: rules, usedAi: false, ai: null, warnings: [`Your AI couldn't read it (${String(e.message).slice(0, 160)}), so B3spoken's own reader was used.`, ...rulesWarnings(rules)] };
+    const why = LIMIT.test(e.message) ? LIMIT_HELP : `Your AI couldn't read it (${String(e.message).slice(0, 160)}), so B3spoken's own reader was used.`;
+    return { lib: rules, usedAi: false, ai: null, warnings: [why, ...rulesWarnings(rules)] };
   }
 }
 
