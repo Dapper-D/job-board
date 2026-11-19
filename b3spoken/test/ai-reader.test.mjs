@@ -85,6 +85,9 @@ test("name and contact details come from the resume, without their labels", asyn
   const { lib } = await read({ ...base, name: "Name: Jo Example", contact: ["Email: jo@example.com", "604-555-0100", "jo.example@gmail.com"] });
   assert.equal(lib.contact.name, "Jo Example");
   assert.deepEqual(lib.contact.lines, ["jo@example.com | 604-555-0100"]); // the made-up gmail address isn't in the resume
+  // In the order the resume gives them, whatever order the AI listed them in.
+  const again = await read({ ...base, contact: ["604-555-0100", "jo@example.com"] });
+  assert.deepEqual(again.lib.contact.lines, ["jo@example.com | 604-555-0100"]);
 });
 
 test("anything the AI reworded, merged or invented is left out, and the person is told", async () => {

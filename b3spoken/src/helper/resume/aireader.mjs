@@ -114,7 +114,7 @@ export function libraryFromAi(ai, text, source) {
   const lib = {
     contact: {
       name: name && !/@|\d{3}/.test(name) ? name : rules.contact.name,
-      lines: pieces.length ? [pieces.join(" | ")] : rules.contact.lines,
+      lines: pieces.length ? [pieces.sort((a, b) => text.indexOf(a) - text.indexOf(b)).join(" | ")] : rules.contact.lines,
     },
     summary: find(str(ai?.summary)) || rules.summary,
     skills: [],
