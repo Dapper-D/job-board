@@ -101,7 +101,8 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
       if (route === 'POST /api/paste') return send(res, 200, await app.paste(String((await readBody(req)).url || '').slice(0, 2000)));
       // Onboarding: resume, library, roles and answers.
       if (route === 'POST /api/resume') return send(res, 200, app.uploadResume(await readBody(req, 15e6)));
-      if (route === 'POST /api/resume/ai') return send(res, 200, await app.resumeWithAi((await readBody(req)).provider));
+      if (route === 'POST /api/resume/ai') { const b = await readBody(req, 4e6); return send(res, 200, await app.resumeWithAi(b.provider, b.answers)); }
+      if (route === 'GET /api/resume/chrome-plan') return send(res, 200, app.chromeReadPlan());
       if (route === 'GET /api/library') return send(res, 200, app.library() || {});
       if (req.method === 'PUT' && url.pathname.startsWith('/api/library/bullets/')) return send(res, 200, app.updateBullet(decodeURIComponent(url.pathname.slice('/api/library/bullets/'.length)), await readBody(req)));
       if (route === 'POST /api/roles/check') return send(res, 200, app.checkRole((await readBody(req)).target));

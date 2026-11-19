@@ -1,5 +1,20 @@
 # B3spoken changelog
 
+## 0.1.18 (private build)
+
+Same as the public 0.1.18, with the job-city address.
+
+### Your AI reads your resume, and only your own words are kept
+- **Read it now uses the AI you picked**, straight after B3spoken's own quick reading. It handles layouts B3spoken's own reader gets wrong: the employer on the line above the title, dates first, no bullet marks, a LinkedIn PDF export, Markdown, achievements that wrap onto a second line, and long numbered master files.
+- **Every word kept is copied from your resume.** The AI only says where the name, contact details, jobs, dates and achievements are; B3spoken copies them from your file in your own spelling. Anything the AI reworded, merged or made up is left out, and the page tells you how many lines.
+- If the AI fails, or a free plan's limit is used up for the day, B3spoken keeps its own reading and says what it may have missed. **Read it again with my AI** tries again.
+- Tested on 60 made-up resumes in 10 layouts: B3spoken's own reader gets 70% of the facts right, Claude through the new reader 100%.
+
+### More ways to connect an AI
+- **ChatGPT's free plan works** (it has a small daily limit). Setup says how to stop ChatGPT learning from your resume.
+- **Chrome's built-in AI can read your resume**: free, and nothing leaves your computer. It reads a part at a time, so it's slower. Needs desktop Chrome 148 or newer and a computer with 16 GB of memory.
+- Setup now says plainly that Claude needs a paid plan (its free plan doesn't include Claude Code).
+
 ## 0.1.17 (private build)
 
 ### Master-format resumes ("1. IDENTITY", "2. PROFESSIONAL SUMMARY"…)

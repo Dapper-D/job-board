@@ -79,10 +79,23 @@ The AI always runs on the user's own computer, signed in with their own account,
 
 | AI | How they connect | Who it's for | Rules and limits |
 | --- | --- | --- | --- |
-| ChatGPT | The helper installs Codex; they sign in with ChatGPT | Plus, Pro or Business plans | OpenAI allows open-source, local apps to use plan usage; a hosted website would need OpenAI's approval |
-| Claude | The helper installs Claude Code; they sign in with Claude | Pro or Max plans | Claude Code itself is Anthropic's own tool; B3spoken runs it as-is, the way career-ops does. Using consumer sign-ins inside third-party apps is restricted, so this is documented for users as a grey area |
-| Chrome built-in AI | Nothing to sign in to | Anyone with a strong enough computer, including Gemini users | Desktop Chrome only; more than 4 GB graphics memory or 16 GB RAM; about 22 GB free disk; short inputs; works only while the page is open |
+| ChatGPT | The helper installs Codex; they sign in with ChatGPT | Any ChatGPT plan, including Free (Free has a small daily limit) | OpenAI allows open-source, local apps to use plan usage; a hosted website would need OpenAI's approval |
+| Claude | The helper installs Claude Code; they sign in with Claude | Paid plans only (Claude's free plan doesn't include Claude Code) | Claude Code itself is Anthropic's own tool; B3spoken runs it as-is, the way career-ops does. Using consumer sign-ins inside third-party apps is restricted, so this is documented for users as a grey area |
+| Chrome built-in AI | Nothing to sign in to | Anyone with a strong enough computer and no paid plan; free, and nothing leaves the computer | Desktop Chrome 148 or newer; more than 4 GB graphics memory or 16 GB RAM; about 22 GB free disk; reads a resume a part at a time; works only while the page is open |
 | No AI | Nothing | Everyone else | Rule-based tailoring: picks and orders their own bullets by keyword match |
+
+### Reading a resume with an AI
+
+When an AI is picked, **Read it** first shows B3spoken's own reading, then the AI reads the resume (`src/helper/resume/aireader.mjs`). The AI only says where each part is: the name, contact details, and each entry's title, employer, place, dates and achievements. B3spoken then copies every value from the resume itself, in the resume's own spelling. A line the AI reworded, merged or made up isn't found, so it's left out and the page says how many. If the AI fails or its plan's limit is used up, B3spoken's own reading is kept and the page says what it may have missed. Chrome's built-in AI gets the resume a part at a time (`chromeread.mjs`) and its answers are checked the same way.
+
+A test set of 60 made-up resumes (6 people in 10 layouts: one-line headings, pipes, employer-above-title, labelled contact lines, no bullet marks, Markdown, a LinkedIn PDF export, wrapped lines, French headings and a numbered master file) is in `b3spoken/test/fixtures/resume-corpus`. `node scripts/resume-eval.mjs --ai claude` scores B3spoken's own reader and an AI on it (`--parts 2400` reads part by part, as Chrome does). On 2026-11-19: B3spoken's own reader 70%, Claude 100%, Claude part by part 100%.
+
+### Plain steps for people new to this (shown in setup too)
+
+- **ChatGPT, free or paid:** click **Install it for me**, then **Sign in**. A window opens and your browser asks you to sign in to ChatGPT. When the browser says you're signed in, close the window and click **Check it works**. If you'd rather ChatGPT didn't learn from your resume: in ChatGPT, open Settings, then Data controls, and turn off "Improve the model for everyone".
+- **Claude (paid plan):** the same three buttons. In the window, press Enter to pick a colour theme, choose "Claude account with subscription", and sign in in your browser.
+- **No paid plan and a newer computer:** open B3spoken in Google Chrome and pick **Chrome built-in AI**. The first time, Chrome downloads its AI, which takes a while. Nothing is sent anywhere.
+- **None of these:** pick **No AI**. B3spoken's own reader is used; check the entries it shows after **Read it**.
 
 How the AI is locked down: Codex runs read-only and ignores the user's own config; Claude Code runs with no tools, no MCP servers and no slash commands; the AI only picks bullet IDs from the resume library and never writes claims of its own.
 
