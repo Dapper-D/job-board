@@ -25,6 +25,9 @@ export const PROVIDERS = {
   },
 };
 
+// The AIs B3spoken can use (ids as stored in settings.ai).
+export const AI_PROVIDERS = Object.keys(PROVIDERS);
+
 // Looks for an executable on PATH without running a shell.
 export function findOnPath(bin, env = process.env, platform = process.platform) {
   const exts = platform === 'win32' ? (env.PATHEXT || '.EXE;.CMD;.BAT').split(';').filter(Boolean) : [''];
@@ -142,5 +145,8 @@ export function openSignIn(provider, { spawnFn = spawn, platform = process.platf
 // A tiny real request, to check the tool is installed and signed in.
 export async function testAi(provider, askFn = ask) {
   try { const a = await askFn(provider, 'Reply with exactly the word OK and nothing else.', { timeoutMs: 90_000 }); return { ok: /\bok\b/i.test(a), answer: a.slice(0, 200) }; }
-  catch (e) { return { ok: false, error: /log ?in|sign ?in|auth|credential|401|unauthor/i.test(e.message) ? 'Not signed in yet. Click Sign in, finish in the browser, then try again.' : e.message.slice(0, 300) }; }
+  catch (e) { return { ok: false, error: LIMIT.test(e.message) ? LIMIT_HELP : /log ?in|sign ?in|auth|credential|401|unauthor/i.test(e.message) ? 'Not signed in yet. Click Sign in, finish in the browser, then try again.' : e.message.slice(0, 300) }; }
 }
+// A free (or busy paid) plan that has used up its allowance for now. B3spoken keeps working with its own reader.
+export const LIMIT = /usage limit|rate limit|quota|too many requests|\b429\b|limit reached|upgrade to (plus|pro)/i;
+export const LIMIT_HELP = "Signed in, but your plan's usage limit is used up for now (the free ChatGPT plan has a small daily limit). B3spoken uses its own reader until it resets, usually within a day.";
