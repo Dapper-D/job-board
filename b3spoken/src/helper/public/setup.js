@@ -36,6 +36,9 @@ document.addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (go) show(go.dataset.go);
 });
+// The AIs B3spoken can use, and how each one is named on the resume card.
+const AIS = ["codex", "claude", "gemini"];
+const READ_BY = { rules: "B3spoken", codex: "ChatGPT", claude: "Claude", gemini: "Gemini" };
 const msg = (box, text) => {
   $(box).hidden = !text;
   $(box).textContent = text || "";
@@ -197,7 +200,7 @@ $("aiNext").addEventListener("click", async () => {
     method: "PUT",
     body: JSON.stringify({ ...settings, ai }),
   });
-  $("tidy").hidden = !["codex", "claude"].includes(ai);
+  $("tidy").hidden = !AIS.includes(ai);
   show("resume");
 });
 
@@ -218,7 +221,7 @@ function drawLibrary() {
       el(
         "p",
         "small",
-        `${lib.contact.name} · read by ${lib.source === "rules" ? "B3spoken" : lib.source === "codex" ? "ChatGPT" : "Claude"}`,
+        `${lib.contact.name} · read by ${READ_BY[lib.source] || "B3spoken"}`,
       ),
     );
   for (const e of lib.entries) {
@@ -269,6 +272,26 @@ function drawLibrary() {
     box.append(card);
   }
 }
+// Read it: B3spoken's own reader first (instant), then, with an AI picked in step 1, the AI reads it too and its
+// checked version replaces the first one. Anything either reader may have missed is said in plain words.
+const showWarnings = (w) => msg("resumeMsg", (w || []).join(" "));
+async function readWithAi() {
+  $("tidy").disabled = $("upload").disabled = true;
+  $("tidy").textContent = "Your AI is reading it…";
+  try {
+    lib = await api("/api/resume/ai", {
+      method: "POST",
+      body: JSON.stringify({ provider: settings.ai }),
+    });
+    drawLibrary();
+    showWarnings(lib.warnings);
+  } catch (e) {
+    msg("resumeMsg", `${e.message} The version B3spoken read is kept.`);
+  } finally {
+    $("tidy").disabled = $("upload").disabled = false;
+    $("tidy").textContent = "Read it again with my AI";
+  }
+}
 async function upload(body) {
   msg("resumeMsg", "");
   $("upload").disabled = true;
@@ -278,11 +301,14 @@ async function upload(body) {
       body: JSON.stringify(body),
     });
     drawLibrary();
+    showWarnings(lib.warnings);
   } catch (e) {
     msg("resumeMsg", e.message);
+    return;
   } finally {
     $("upload").disabled = false;
   }
+  if (aiOn()) await readWithAi();
 }
 $("upload").addEventListener("click", () => {
   const f = $("file").files[0];
@@ -300,23 +326,7 @@ $("upload").addEventListener("click", () => {
 $("usePaste").addEventListener("click", () =>
   upload({ text: $("paste").value }),
 );
-$("tidy").addEventListener("click", async () => {
-  $("tidy").disabled = true;
-  $("tidy").textContent = "Your AI is reading it…";
-  msg("resumeMsg", "");
-  try {
-    lib = await api("/api/resume/ai", {
-      method: "POST",
-      body: JSON.stringify({ provider: settings.ai }),
-    });
-    drawLibrary();
-  } catch (e) {
-    msg("resumeMsg", `${e.message} The version B3spoken read is kept.`);
-  } finally {
-    $("tidy").disabled = false;
-    $("tidy").textContent = "Tidy it with my AI";
-  }
-});
+$("tidy").addEventListener("click", readWithAi);
 $("resumeNext").addEventListener("click", () => show("questions"));
 
 // ---- 3. Questions ----
@@ -409,7 +419,7 @@ $("questionsNext").addEventListener("click", async () => {
 // The AI starts reading the resume for ideas as soon as the questions are done, so they're usually ready here.
 let careerAsk = null,
   picker = null;
-const aiOn = () => ["codex", "claude"].includes(settings?.ai);
+const aiOn = () => AIS.includes(settings?.ai);
 function startCareer() {
   if (aiOn() && !careerAsk)
     careerAsk = api("/api/career", { method: "POST", body: "{}" }).catch(
@@ -528,7 +538,7 @@ async function drawKit() {
   drawLibrary();
   fillQuestions();
   if (!profile.done) drawKit().catch(() => {});
-  $("tidy").hidden = !["codex", "claude"].includes(settings.ai);
+  $("tidy").hidden = !AIS.includes(settings.ai);
   show("ai");
 })().catch((e) => {
   document.querySelector("main").textContent =

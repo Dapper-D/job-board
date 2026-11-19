@@ -25,6 +25,9 @@ export const PROVIDERS = {
   },
 };
 
+// The AIs B3spoken can use (ids as stored in settings.ai).
+export const AI_PROVIDERS = Object.keys(PROVIDERS);
+
 // Looks for an executable on PATH without running a shell.
 export function findOnPath(bin, env = process.env, platform = process.platform) {
   const exts = platform === 'win32' ? (env.PATHEXT || '.EXE;.CMD;.BAT').split(';').filter(Boolean) : [''];

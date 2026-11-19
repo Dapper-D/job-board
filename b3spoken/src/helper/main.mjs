@@ -17,17 +17,17 @@ import {
   installStatus,
   openSignIn,
   testAi,
+  AI_PROVIDERS,
 } from "./ai.mjs";
 import { createServer } from "./server.mjs";
 import { extractText } from "./resume/extract.mjs";
 import { unsupported } from "./tailor/pdf.mjs";
 import {
   buildLibrary,
-  checkAiLibrary,
-  LIBRARY_PROMPT,
   parseAiJson,
   requireResumeContent,
 } from "./resume/library.mjs";
+import { readResume, rulesWarnings } from "./resume/aireader.mjs";
 import { suggestRoles, checkTarget } from "./roles.mjs";
 import { cleanProfile, searchRoles } from "./profile.mjs";
 import { ask } from "./ai.mjs";
@@ -269,7 +269,7 @@ export function createApp(
       preparing.done++;
       await new Promise((r) => setImmediate(r)); // the board stays quick while documents are made
     }
-    if (["codex", "claude"].includes(settings.ai)) {
+    if (AI_PROVIDERS.includes(settings.ai)) {
       // 1. AI reviews come with the job cards, like the Job Hunt Kit: every new job is reviewed once, best rule score
       //    first, up to the daily number (30 unless changed). Reviews last until the resume changes.
       const tried = readJson(reviewTriesFile, {});
@@ -480,7 +480,7 @@ export function createApp(
       ai = null,
       note = "";
     const trap = findAiTrap(job.description);
-    if (useAi && ["codex", "claude"].includes(settings.ai)) {
+    if (useAi && AI_PROVIDERS.includes(settings.ai)) {
       const askAi = deps.ask || ask;
       // As in the Job Hunt Kit: the AI writes the summary and letter and picks the lines; its draft is checked,
       // and redone once if it claims more than the resume shows.
@@ -646,7 +646,7 @@ export function createApp(
     const cacheFile = join(dir, "prep.json");
     const cache = readJson(cacheFile, {});
     let extra = cache[id]?.questions || [];
-    if (!extra.length && useAi && ["codex", "claude"].includes(settings.ai)) {
+    if (!extra.length && useAi && AI_PROVIDERS.includes(settings.ai)) {
       try {
         extra = cleanQuestions(
           parseAiJson(
@@ -696,7 +696,7 @@ export function createApp(
       const have = reviewOf(id);
       if (have) return have;
     }
-    if (!["codex", "claude"].includes(settings.ai))
+    if (!AI_PROVIDERS.includes(settings.ai))
       throw err(
         409,
         "Connect ChatGPT (Codex) or Claude (Claude Code) in setup to use AI reviews.",
@@ -760,7 +760,7 @@ export function createApp(
   async function careerOnce({ again = false } = {}) {
     let c = readJson(careerFile, null);
     if (again || !c || c.stamp !== careerStamp()) {
-      if (!["codex", "claude"].includes(settings.ai))
+      if (!AI_PROVIDERS.includes(settings.ai))
         throw err(
           409,
           "Connect ChatGPT (Codex) or Claude (Claude Code) in setup to get career ideas.",
@@ -888,7 +888,7 @@ export function createApp(
     const job = byId.get(id) || null;
     const t = tracker()[id];
     if (!job && !t) throw err(404, "no such job");
-    if (!["codex", "claude"].includes(settings.ai))
+    if (!AI_PROVIDERS.includes(settings.ai))
       throw err(
         409,
         "Connect ChatGPT (Codex) or Claude (Claude Code) in setup to use this.",
@@ -1325,12 +1325,12 @@ export function createApp(
     saveHunterKey,
     // One-click AI setup
     aiInstall: (provider) => {
-      if (!["codex", "claude"].includes(provider)) throw err(400, "unknown AI");
+      if (!AI_PROVIDERS.includes(provider)) throw err(400, "unknown AI");
       return (deps.startInstall || startInstall)(provider);
     },
     aiInstallStatus: () => installStatus(),
     aiSignIn: (provider) => {
-      if (!["codex", "claude"].includes(provider)) throw err(400, "unknown AI");
+      if (!AI_PROVIDERS.includes(provider)) throw err(400, "unknown AI");
       try {
         return (deps.openSignIn || openSignIn)(provider);
       } catch (e) {
@@ -1338,7 +1338,7 @@ export function createApp(
       }
     },
     aiTest: async (provider) => {
-      if (!["codex", "claude"].includes(provider)) throw err(400, "unknown AI");
+      if (!AI_PROVIDERS.includes(provider)) throw err(400, "unknown AI");
       const r = await testAi(provider, deps.ask || ask);
       ai = await (deps.detect || detect)();
       return r;
@@ -1474,29 +1474,20 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
       requireResumeContent(lib);
       writeFileSync(resumeFile, got.text, { mode: 0o600 });
       lib.roles = suggestRoles(got.text);
+      lib.warnings = rulesWarnings(lib);
       writeJson(libFile, lib);
       return lib;
     },
+    // Read it with the person's AI: the AI says where each part is, and only the resume's own words are kept
+    // (resume/aireader.mjs). If the AI fails, B3spoken's own reading is kept and the answer says why.
     async resumeWithAi(provider) {
-      if (!["codex", "claude"].includes(provider))
-        throw err(400, "pick ChatGPT (Codex) or Claude (Claude Code)");
+      if (!AI_PROVIDERS.includes(provider))
+        throw err(400, "pick ChatGPT (Codex), Claude (Claude Code) or Gemini");
       const text = resumeText();
       if (!text) throw err(409, "upload a resume first");
-      let ai;
-      try {
-        ai = parseAiJson(await ask(provider, LIBRARY_PROMPT(text)));
-      } catch (e) {
-        throw err(502, `The AI couldn't read the resume: ${e.message}`);
-      }
-      const lib = checkAiLibrary(ai, text, provider);
-      const rules = buildLibrary(text); // contact lines and summary come from the resume itself
-      lib.contact = {
-        name: lib.contact.name || rules.contact.name,
-        lines: rules.contact.lines,
-      };
-      if (!lib.summary) lib.summary = rules.summary;
+      const { lib, ai, usedAi, warnings } = await readResume(text, { provider, ask });
       const ruleRoles = suggestRoles(text);
-      const aiRoles = (Array.isArray(ai.roles) ? ai.roles : [])
+      const aiRoles = (Array.isArray(ai?.roles) ? ai.roles : [])
         .slice(0, 8)
         .map((r) => ({
           title: String(r?.title || "").slice(0, 80),
@@ -1514,7 +1505,8 @@ export function onboarding(dir, { getSettings, setSettings, ask }) {
         ),
       ].slice(0, 10);
       requireResumeContent(lib);
-      writeJson(libFile, lib);
+      lib.warnings = warnings;
+      if (usedAi || !existsSync(libFile)) writeJson(libFile, lib);
       return lib;
     },
     library: () => readJson(libFile, null),
