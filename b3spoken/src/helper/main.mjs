@@ -58,6 +58,7 @@ import {
   restartFromSource,
 } from "./updater.mjs";
 import { insideExe } from "./assets.mjs";
+import { newMatches, popupText } from "./newjobs.mjs";
 import { fileURLToPath } from "node:url";
 import { queryJobs as queryList, MAX_AGE_DAYS, PREP_MIN_SCORE } from "./jobs.mjs";
 import { buildPrep, PREP_PROMPT, cleanQuestions } from "./tailor/prep.mjs";
@@ -72,6 +73,7 @@ import {
   autostartOn,
   relaunchHidden,
   startTray,
+  showNotice,
 } from "./desktop.mjs";
 import {
   DRAFTS,
@@ -110,6 +112,7 @@ export const DEFAULT_SETTINGS = {
   remote: "yes",
   ai: "auto",
   autostart: true,
+  notifyNew: true,
   reviewsPerDay: 30,
 };
 
@@ -129,6 +132,7 @@ export function cleanSettings(s = {}) {
     remote: ["yes", "no", "only"].includes(s.remote) ? s.remote : "yes",
     ai: AI_CHOICES.includes(s.ai) ? s.ai : "auto",
     autostart: s.autostart !== false, // start in the background when the person signs in to their computer
+    notifyNew: s.notifyNew !== false, // a pop-up on this computer when a refresh brings new matches
     // New jobs the AI reviews on its own each day (like the Job Hunt Kit's 30 per refresh): each job once, best first.
     reviewsPerDay:
       Number.isFinite(Number(s.reviewsPerDay)) &&
@@ -213,6 +217,11 @@ export function createApp(
     } finally {
       state.refreshing = false;
     }
+    try {
+      announceNew();
+    } catch (e) {
+      log(`new-match pop-up skipped: ${e.message}`);
+    }
     prepareAll().catch((e) => log(`preparing documents stopped: ${e.message}`));
     return { started: true };
   }
@@ -235,6 +244,41 @@ export function createApp(
           JSON.stringify(ob.profile()),
       )
       .digest("hex");
+  // The jobs on the board that get documents: matches from the last 14 days at Stretch or better.
+  function boardMatches(limit = PREP_LIMIT) {
+    const t = tracker();
+    return queryList(
+      reviewedJobs().map((j) => (t[j.id] ? { ...j, track: t[j.id] } : j)),
+      {
+        province: settings.province,
+        remote: settings.remote,
+        maxAgeDays: MAX_AGE_DAYS,
+        minLabel: "Stretch",
+        minScore: PREP_MIN_SCORE,
+        limit,
+      },
+    ).jobs;
+  }
+
+  // After a refresh: a pop-up when matches arrived that weren't on the board before (see newjobs.mjs).
+  // Needs a finished setup; the first check only remembers what's there.
+  const noticeFile = join(dir, "notified.json");
+  function announceNew() {
+    if (!pool || !ob.profile().done) return null;
+    const { fresh, state: seen } = newMatches(
+      boardMatches(),
+      readJson(noticeFile, null),
+    );
+    writeJson(noticeFile, seen);
+    // Only a running B3spoken (started by start(), or a test that passes its own notify) shows pop-ups.
+    if (!fresh.length || !settings.notifyNew || (!deps.notify && !desktop.mode))
+      return null;
+    const note = { ...popupText(fresh), url: desktop.url || "" };
+    (deps.notify || showNotice)(dir, note);
+    log(`${note.title}`);
+    return note;
+  }
+
   async function prepareAll() {
     if (offline && !deps.allowOfflinePrep) return;
     if (preparing?.running) {
@@ -249,14 +293,7 @@ export function createApp(
     const t = tracker();
     const board = () =>
       reviewedJobs().map((j) => (t[j.id] ? { ...j, track: t[j.id] } : j));
-    const list = queryList(board(), {
-      province: settings.province,
-      remote: settings.remote,
-      maxAgeDays: MAX_AGE_DAYS,
-      minLabel: "Stretch",
-      minScore: PREP_MIN_SCORE,
-      limit: PREP_LIMIT,
-    }).jobs;
+    const list = boardMatches();
     const index = readJson(join(dir, "documents", "index.json"), {});
     const todo = list.filter(
       (j) => !index[j.id] || index[j.id].stamp !== libStamp,
@@ -1608,6 +1645,7 @@ export async function start(argv = process.argv.slice(2)) {
     startedAt: new Date().toISOString(),
   });
   const url = `http://127.0.0.1:${port}/`;
+  app.desktop.url = url;
   const hidden = flag("--hidden");
   app.desktop.mode = !win ? "other" : hidden ? "background" : "window";
   if (win && hidden) {

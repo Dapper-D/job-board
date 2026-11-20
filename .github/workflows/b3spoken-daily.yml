@@ -1,12 +1,14 @@
 # B3spoken daily shared scan (step 2): builds the Canada job pool and publishes it on the "job-pool" pre-release.
 # The scan job has read-only access; only the small publish job can write, and it only uploads the built files.
-# Runs every day from main (schedules only run from the default branch), on pushes to main that change the scan, and by hand.
+# Runs twice a day from main (schedules only run from the default branch), on pushes to main that change the scan, and by hand.
 name: B3spoken daily job pool
 on:
   schedule:
     # 04:17 UTC (8:17 pm Pacific the evening before). GitHub often starts scheduled runs hours late; at the old
     # 10:23 UTC slot runs began around 16:30-17:30 UTC, after the 6 am Pacific board refreshes that read this pool.
     - cron: '17 4 * * *'
+    # 16:17 UTC (8:17 am Pacific): a second scan each day, so new jobs show up within about 12 hours, not 24.
+    - cron: '17 16 * * *'
   workflow_dispatch:
   push:
     branches: [main]
