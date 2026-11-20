@@ -73,6 +73,37 @@ Note 'closing'
 `;
 }
 
+// A one-off Windows pop-up (the same NotifyIcon the tray uses; Windows 10 and 11 show it as a normal notification
+// and keep it in the notification centre). The words come from a JSON file, never the command line, because job
+// titles come from the job pool. Clicking it opens the board. It closes itself after 30 seconds.
+export function noticePs1() {
+  return `# Shows one B3spoken pop-up. Made by B3spoken; it's safe to delete (B3spoken makes it again).
+param([string]$From, [string]$IconFrom, [string]$Log)
+$ErrorActionPreference = 'Stop'
+function Note($m) { if ($Log) { try { Add-Content -LiteralPath $Log -Value "$(Get-Date -Format s) $m" } catch {} } }
+try {
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+$n = Get-Content -LiteralPath $From -Raw -Encoding UTF8 | ConvertFrom-Json
+$url = [string]$n.url
+if ($url -notmatch '^http://127\\.0\\.0\\.1:\\d+/$') { $url = '' }
+$icon = New-Object System.Windows.Forms.NotifyIcon
+try { $icon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($IconFrom) } catch { $icon.Icon = [System.Drawing.SystemIcons]::Information }
+$icon.Text = 'B3spoken'
+$icon.Visible = $true
+$done = { $icon.Visible = $false; $icon.Dispose(); [System.Windows.Forms.Application]::Exit() }
+$icon.add_BalloonTipClicked({ if ($url) { Start-Process $url }; & $done })
+$icon.add_Click({ if ($url) { Start-Process $url }; & $done })
+$icon.ShowBalloonTip(20000, [string]$n.title, [string]$n.text, [System.Windows.Forms.ToolTipIcon]::Info)
+Note "pop-up shown: $($n.title)"
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 30000
+$timer.add_Tick({ & $done })
+$timer.Start()
+[System.Windows.Forms.Application]::Run()
+} catch { Note "pop-up error: $($_.Exception.Message)"; exit 1 }
+`;
+}
+
 export function launchAgentPlist(cmd) {
   const x = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -157,6 +188,22 @@ export function startTray(dir, { port, pid = process.pid, cmd = selfCommand(), r
   const line = ['powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File', q(file), '-Port', String(port), '-HelperPid', String(pid), '-IconFrom', q(cmd[0]), '-Log', q(log), ...(announce ? ['-Announce'] : [])].join(' ');
   const vbs = join(dir, 'tray.vbs');
   writeFileSync(vbs, ["' Shows the B3spoken icon by the clock. Made by B3spoken; it's safe to delete (B3spoken makes it again).", `WScript.Quit CreateObject("WScript.Shell").Run("${line}", 0, True)`, ''].join('\r\n'));
+  const wscript = join(env.SystemRoot || 'C:\\Windows', 'System32', 'wscript.exe');
+  const child = run(wscript, [vbs], { detached: true, stdio: 'ignore', windowsHide: true });
+  child.on?.('error', () => {}); child.unref?.();
+  return child;
+}
+
+// Windows: show a pop-up by the clock. notice: { title, text, url }. Other systems: nothing (returns null).
+export function showNotice(dir, notice, { platform = process.platform, cmd = selfCommand(), run = spawn, env = process.env } = {}) {
+  if (platform !== 'win32') return null;
+  const file = join(dir, 'notice.ps1'), data = join(dir, 'notice.json'), log = join(dir, 'notice.log');
+  writeFileSync(file, noticePs1());
+  writeFileSync(data, JSON.stringify({ title: String(notice.title || ''), text: String(notice.text || ''), url: String(notice.url || '') }));
+  const q = v => `""${String(v).replace(/"/g, '')}""`;
+  const line = ['powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File', q(file), '-From', q(data), '-IconFrom', q(cmd[0]), '-Log', q(log)].join(' ');
+  const vbs = join(dir, 'notice.vbs');
+  writeFileSync(vbs, ["' Shows one B3spoken pop-up. Made by B3spoken; it's safe to delete (B3spoken makes it again).", `CreateObject("WScript.Shell").Run "${line}", 0, False`, ''].join('\r\n'));
   const wscript = join(env.SystemRoot || 'C:\\Windows', 'System32', 'wscript.exe');
   const child = run(wscript, [vbs], { detached: true, stdio: 'ignore', windowsHide: true });
   child.on?.('error', () => {}); child.unref?.();
