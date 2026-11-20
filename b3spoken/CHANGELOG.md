@@ -1,5 +1,15 @@
 # B3spoken changelog
 
+## 0.1.19 (private build)
+
+Same as the public 0.1.19, with the job-city address.
+
+### A pop-up when new matches arrive
+- **The shared job scan now runs twice a day** (about 8 pm and 8 am Pacific), so new jobs reach the board within about 12 hours.
+- **On Windows, B3spoken shows a pop-up by the clock when a refresh brings matches that weren't on your board before.** It names up to three of them; click it to open the board. Windows also keeps it in the notification centre.
+- The first check on a computer only remembers what's already there, so you don't get a pop-up for every job on day one. Each job is announced once.
+- Turn it off in **Health check** ("Show a Windows pop-up when new matches arrive"). B3spoken needs to be running (it starts in the background when you sign in).
+
 ## 0.1.18 (private build)
 
 Same as the public 0.1.18, with the job-city address.

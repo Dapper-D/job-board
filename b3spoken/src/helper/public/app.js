@@ -1083,6 +1083,29 @@ async function health() {
       ),
       n,
     );
+    const pop = el("label", "mini");
+    const pcb = el("input");
+    pcb.type = "checkbox";
+    pcb.checked = s.notifyNew !== false;
+    pcb.addEventListener("change", async () => {
+      try {
+        await api("/api/settings", {
+          method: "PUT",
+          body: JSON.stringify({ notifyNew: pcb.checked }),
+        });
+      } catch (e) {
+        pcb.checked = !pcb.checked;
+        alert(e.message);
+      }
+    });
+    pop.append(
+      pcb,
+      el(
+        "span",
+        null,
+        " Show a Windows pop-up when new matches arrive (B3spoken checks for new jobs every few hours while it runs)",
+      ),
+    );
     box.replaceChildren(
       el(
         "h3",
@@ -1095,6 +1118,7 @@ async function health() {
       ),
       ul,
       auto,
+      pop,
       per,
       close,
     );
