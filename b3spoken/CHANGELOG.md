@@ -1,6 +1,6 @@
 # B3spoken changelog
 
-## Unreleased
+## 0.1.19
 
 ### A pop-up when new matches arrive
 - **The shared job scan now runs twice a day** (about 8 pm and 8 am Pacific), so new jobs reach the board within about 12 hours.
