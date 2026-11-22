@@ -1,5 +1,5 @@
 // Builds the Windows B3spoken.exe (one file with Node and the helper inside) and its installer.
-//   node scripts/build-exe.mjs            -> dist/B3spoken.exe, dist/B3spoken-Setup-<version>.exe
+//   node scripts/build-exe.mjs            -> dist/B3spoken.exe, dist/B3spoken-Private-Setup-<version>.exe
 // Runs on Windows (GitHub Actions windows-latest). Build tools are pinned and used only here, never shipped:
 // esbuild (bundles the helper into one file), postject (puts it into a copy of node.exe), Inno Setup (installer).
 import { execFileSync } from 'node:child_process';
@@ -34,4 +34,4 @@ if (process.platform === 'win32') {
 const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
 if (process.platform === 'darwin') execFileSync('ditto', ['-c', '-k', '--keepParent', exe, `dist/B3spoken-mac-${arch}-${version}.zip`], { stdio: 'inherit' });
 if (process.platform === 'linux') execFileSync('tar', ['-czf', `dist/B3spoken-linux-${arch}-${version}.tar.gz`, '-C', 'dist', 'b3spoken'], { stdio: 'inherit' });
-console.log(`Built ${exe}${process.platform === 'win32' ? ` and dist\\B3spoken-Setup-${version}.exe` : ''}`);
+console.log(`Built ${exe}${process.platform === 'win32' ? ` and dist\\B3spoken-Private-Setup-${version}.exe` : ''}`);

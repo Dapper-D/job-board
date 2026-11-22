@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // B3spoken helper: start it, and the board opens in the browser at http://127.0.0.1:<port>/.
-//   node src/helper/main.mjs [--port 4747] [--no-open] [--offline]
+//   node src/helper/main.mjs [--port 4748] [--no-open] [--offline]
+// Private build: port 4748 and its own data folder, so it runs beside the public B3spoken (4747).
 // On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 14 days,
 // and looks for ChatGPT (Codex) or Claude (Claude Code) on this computer.
 import { createHash } from "node:crypto";
@@ -1612,7 +1613,7 @@ function openBrowser(url) {
 // Starts the helper. If one is already running on this computer, just opens the board again.
 export async function start(argv = process.argv.slice(2)) {
   const flag = (n) => argv.includes(n);
-  const portArg = Number(argv[argv.indexOf("--port") + 1]) || 4747;
+  const portArg = Number(argv[argv.indexOf("--port") + 1]) || 4748;
   const dir = ensureDir(dataDir());
   const running = readJson(join(dir, "helper.json"), null);
   if (running?.port && !flag("--new")) {

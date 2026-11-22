@@ -1,5 +1,11 @@
 # B3spoken changelog
 
+## 0.1.20 (private build)
+
+- **Runs beside the public B3spoken instead of opening it.** The private build now uses port 4748 (the public one keeps 4747), installs to its own folder as "B3spoken (Private)", and keeps its own resume, answers, tracker and documents in `%LOCALAPPDATA%\B3spoken-Private`. Before this, starting it while the public app was running handed you the public app, because both read the same "already running" note.
+- The installer is now `B3spoken-Private-Setup-<version>.exe`, so it no longer replaces the public install and is easy to tell apart in your Downloads folder.
+- Installing this version does not carry over the resume and answers from the public app; set them up once in the private one.
+
 ## 0.1.19 (private build)
 
 Same as the public 0.1.19, with the job-city address.

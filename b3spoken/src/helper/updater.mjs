@@ -34,7 +34,7 @@ export function pickRelease(releases, current) {
     const v = r.tag_name.slice('b3spoken-v'.length, -'-private'.length);
     if (!newer(v, current) || (best && !newer(v, best.version))) continue;
     const asset = name => (r.assets || []).find(a => a.name === name);
-    const installer = (r.assets || []).find(a => /^B3spoken-Setup-\d+\.\d+\.\d+\.exe$/.test(a.name));
+    const installer = (r.assets || []).find(a => /^B3spoken-Private-Setup-\d+\.\d+\.\d+\.exe$/.test(a.name));
     if (!installer || !asset('SHA256SUMS') || !asset('SHA256SUMS.sig')) continue;
     const source = (r.assets || []).find(a => /^B3spoken-source-\d+\.\d+\.\d+\.tar\.gz$/.test(a.name));
     best = { version: v, tag: r.tag_name, page: r.html_url, installer: { name: installer.name, url: installer.browser_download_url, size: installer.size }, source: source ? { name: source.name, url: source.browser_download_url, size: source.size } : null, sums: asset('SHA256SUMS').browser_download_url, sig: asset('SHA256SUMS.sig').browser_download_url };

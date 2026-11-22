@@ -11,13 +11,13 @@ test('version in the app matches package.json', () => {
 
 test('private build: picks the newest signed -private release above this version, never a public one', () => {
   assert.ok(newer('0.1.10', '0.1.9')); assert.ok(!newer('0.1.3', '0.1.3')); assert.ok(!newer('0.0.9', '0.1.0'));
-  const rel = (tag, files = ['B3spoken-Setup-X.exe', 'SHA256SUMS', 'SHA256SUMS.sig'], extra = {}) => ({ tag_name: tag, html_url: `https://github.com/x/releases/tag/${tag}`, assets: files.map(n => ({ name: n.replace('X', tag.replace('b3spoken-v', '').replace('-private', '')), browser_download_url: `https://github.com/d/${n}`, size: 1 })), ...extra });
-  const list = [rel('v2.2.0'), rel('b3spoken-v0.1.2-private'), rel('b3spoken-v0.2.0-private', ['B3spoken-Setup-X.exe']), rel('b3spoken-v0.1.9-private', undefined, { prerelease: true }),
+  const rel = (tag, files = ['B3spoken-Private-Setup-X.exe', 'SHA256SUMS', 'SHA256SUMS.sig'], extra = {}) => ({ tag_name: tag, html_url: `https://github.com/x/releases/tag/${tag}`, assets: files.map(n => ({ name: n.replace('X', tag.replace('b3spoken-v', '').replace('-private', '')), browser_download_url: `https://github.com/d/${n}`, size: 1 })), ...extra });
+  const list = [rel('v2.2.0'), rel('b3spoken-v0.1.2-private'), rel('b3spoken-v0.2.0-private', ['B3spoken-Private-Setup-X.exe']), rel('b3spoken-v0.1.9-private', undefined, { prerelease: true }),
     rel('b3spoken-v0.3.0-private', undefined, { draft: true }), rel('b3spoken-v0.9.0'), rel('job-pool')];
   const p = pickRelease(list, '0.1.3');
   assert.equal(p.version, '0.1.9'); // 0.2.0 isn't signed (no SHA256SUMS), 0.3.0 is a draft, 0.9.0 is a public release
   assert.equal(p.tag, 'b3spoken-v0.1.9-private');
-  assert.equal(p.installer.name, 'B3spoken-Setup-0.1.9.exe');
+  assert.equal(p.installer.name, 'B3spoken-Private-Setup-0.1.9.exe');
   assert.equal(pickRelease(list, '0.1.9'), null);
 });
 
@@ -25,11 +25,11 @@ test('an update only installs when signed with the release key and the installer
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   const other = generateKeyPairSync('ed25519').privateKey;
   const installer = Buffer.from('the installer');
-  const sums = Buffer.from(`${createHash('sha256').update(installer).digest('hex')}  B3spoken-Setup-0.1.9.exe\n`);
+  const sums = Buffer.from(`${createHash('sha256').update(installer).digest('hex')}  B3spoken-Private-Setup-0.1.9.exe\n`);
   const sig = sign(null, sums, privateKey).toString('base64');
-  assert.ok(verifyDownload({ installerName: 'B3spoken-Setup-0.1.9.exe', installer, sums, sig }, publicKey));
-  assert.throws(() => verifyDownload({ installerName: 'B3spoken-Setup-0.1.9.exe', installer, sums, sig: sign(null, sums, other).toString('base64') }, publicKey), /not signed/);
-  assert.throws(() => verifyDownload({ installerName: 'B3spoken-Setup-0.1.9.exe', installer: Buffer.from('tampered'), sums, sig }, publicKey), /checksum/);
+  assert.ok(verifyDownload({ installerName: 'B3spoken-Private-Setup-0.1.9.exe', installer, sums, sig }, publicKey));
+  assert.throws(() => verifyDownload({ installerName: 'B3spoken-Private-Setup-0.1.9.exe', installer, sums, sig: sign(null, sums, other).toString('base64') }, publicKey), /not signed/);
+  assert.throws(() => verifyDownload({ installerName: 'B3spoken-Private-Setup-0.1.9.exe', installer: Buffer.from('tampered'), sums, sig }, publicKey), /checksum/);
   assert.throws(() => verifyDownload({ installerName: 'Other.exe', installer, sums, sig }, publicKey), /include/);
   // The real release key is the one built into the app.
   assert.match(JSON.parse(readFileSync(new URL('../release-key.json', import.meta.url), 'utf8')).ed25519SpkiBase64, /^MCowBQYDK2VwAyEA/);
@@ -37,9 +37,9 @@ test('an update only installs when signed with the release key and the installer
 
 test('installs silently, then reopens the same B3spoken.exe', () => {
   let call;
-  runInstaller('C:\\Users\\a\\AppData\\Local\\B3spoken\\updates\\B3spoken-Setup-0.1.9.exe', { exe: 'E:\\Apps\\B3spoken\\B3spoken.exe', platform: 'win32', spawnFn: (f, a, o) => { call = [f, a, o]; return { on() {}, unref() {} }; } });
+  runInstaller('C:\\Users\\a\\AppData\\Local\\B3spoken\\updates\\B3spoken-Private-Setup-0.1.9.exe', { exe: 'E:\\Apps\\B3spoken\\B3spoken.exe', platform: 'win32', spawnFn: (f, a, o) => { call = [f, a, o]; return { on() {}, unref() {} }; } });
   assert.equal(call[0], 'cmd.exe');
-  assert.match(call[1][0], /"C:\\Users\\a\\AppData\\Local\\B3spoken\\updates\\B3spoken-Setup-0\.1\.9\.exe" \/VERYSILENT .* & start "" "E:\\Apps\\B3spoken\\B3spoken\.exe"/);
+  assert.match(call[1][0], /"C:\\Users\\a\\AppData\\Local\\B3spoken\\updates\\B3spoken-Private-Setup-0\.1\.9\.exe" \/VERYSILENT .* & start "" "E:\\Apps\\B3spoken\\B3spoken\.exe"/);
   assert.throws(() => runInstaller('x', { platform: 'darwin' }), /only available on Windows/);
 });
 
@@ -83,6 +83,6 @@ test('source updates: unpack only the app’s own files into the install folder'
   assert.ok(!existsSync(join(root, 'evil.txt')) && !existsSync(join(inst, 'app')));
   const bad = join(root, 'bad.tar.gz'); writeFileSync(bad, gzipSync(tar([{ name: 'README.md', data: 'x' }])));
   assert.throws(() => installSource(bad, inst), /missing the app/);
-  const rel = pickRelease([{ tag_name: 'b3spoken-v9.9.9-private', assets: ['B3spoken-Setup-9.9.9.exe', 'B3spoken-source-9.9.9.tar.gz', 'SHA256SUMS', 'SHA256SUMS.sig'].map(n => ({ name: n, browser_download_url: `https://github.com/x/${n}` })) }], '0.1.3');
+  const rel = pickRelease([{ tag_name: 'b3spoken-v9.9.9-private', assets: ['B3spoken-Private-Setup-9.9.9.exe', 'B3spoken-source-9.9.9.tar.gz', 'SHA256SUMS', 'SHA256SUMS.sig'].map(n => ({ name: n, browser_download_url: `https://github.com/x/${n}` })) }], '0.1.3');
   assert.equal(rel.source.name, 'B3spoken-source-9.9.9.tar.gz');
 });

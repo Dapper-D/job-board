@@ -7,7 +7,7 @@
     1. Makes sure Node.js 22 or newer is installed (with winget, if it's missing).
     2. Adds a "B3spoken" shortcut to your Start menu (and your desktop if you add -Desktop).
        The shortcut runs: node "<this folder>\b3spoken\src\helper\main.mjs"
-    3. Starts B3spoken, which opens in your browser at http://127.0.0.1:4747
+    3. Starts B3spoken, which opens in your browser at http://127.0.0.1:4748
   B3spoken has no other packages to download: everything it runs is in this folder.
   Your own files (resume, answers, tracker, documents) are kept in %LOCALAPPDATA%\B3spoken.
   To remove it: uninstall.ps1 in this folder.
