@@ -50,7 +50,8 @@ test('with only soft words in common, there is no skills sentence at all', () =>
 
 test('gaps name concrete tools only, and never something the resume covers under a longer word', () => {
   const { m, text } = letterFor(DEV);
-  assert.ok(m.missing.includes('security') && m.missing.includes('cloud'), `missing: ${m.missing}`);
+  assert.ok(m.have.includes('security'), `have: ${m.have}`); // the resume says Cybersecurity
+  assert.ok(m.missing.includes('cloud'), `missing: ${m.missing}`);
   const gap = text.split('\n').find((p) => /haven't used/.test(p)) || '';
   assert.match(gap, /Jira/); assert.match(gap, /Kafka/);
   assert.doesNotMatch(gap, /security/i); // the resume says Cybersecurity

@@ -38,10 +38,12 @@ const ago = (iso) => {
 // Cards on screen whose PDFs can appear when the morning's documents finish: job id -> show them.
 const cardFiles = new Map();
 let prepSeen = "";
-let offset = 0,
-  timer,
+let timer,
   view = "",
+  page = 1,
   docs = {};
+// Jobs a page (DESIGN.md §6: paged, never endless).
+const PAGE = 20;
 const STATUS = [
   ["", "Not tracked"],
   ["saved", "Saved"],
@@ -51,13 +53,48 @@ const STATUS = [
   ["rejected", "Rejected"],
   ["not-interested", "Not interested"],
 ];
+const APPLICATION_VIEWS = ["tracked", "applied", "interview", "offer", "rejected", "not-interested"];
 const today = () => new Date().toISOString().slice(0, 10);
+// Plain words for the match levels and the AI's calls (DESIGN.md §9: no internal words on their own).
+const LEVEL = { Strong: "Strong match", Good: "Good match", Stretch: "Long shot", Skip: "Not a match" };
+const CALL = { Apply: "Worth applying", Stretch: "Long shot", Skip: "Skip" };
+const MATCH_WORD = { Strong: "You have it", Partial: "Partly", Gap: "Missing" };
+
+// Where Apply goes: the employer's own posting first (a job-site listing carries it as employerUrl), then the hiring
+// system's application form (applyUrl), then the posting. The button names the site it opens.
+const HOSTS = [
+  [/(^|\.)lever\.co$/, "Lever"],
+  [/(^|\.)greenhouse\.io$/, "Greenhouse"],
+  [/(^|\.)ashbyhq\.com$/, "Ashby"],
+  [/(^|\.)(myworkdayjobs|myworkdaysite|workday)\.com$/, "Workday"],
+  [/(^|\.)smartrecruiters\.com$/, "SmartRecruiters"],
+  [/(^|\.)workable\.com$/, "Workable"],
+  [/(^|\.)bamboohr\.com$/, "BambooHR"],
+  [/(^|\.)jobbank\.gc\.ca$/, "Job Bank"],
+  [/(^|\.)icims\.com$/, "iCIMS"],
+  [/(^|\.)taleo\.net$/, "Taleo"],
+  [/(^|\.)successfactors\.(com|eu)$/, "SuccessFactors"],
+  [/(^|\.)jobvite\.com$/, "Jobvite"],
+  [/(^|\.)recruitee\.com$/, "Recruitee"],
+  [/(^|\.)teamtailor\.com$/, "Teamtailor"],
+  [/(^|\.)rippling\.com$/, "Rippling"],
+  [/(^|\.)breezy\.hr$/, "Breezy"],
+  [/(^|\.)pinpointhq\.com$/, "Pinpoint"],
+  [/(^|\.)jobs\.personio\.(de|com)$/, "Personio"],
+  [/(^|\.)oraclecloud\.com$/, "Oracle"],
+];
+function applyTarget(j) {
+  const href = safeLink(j.employerUrl) || safeLink(j.applyUrl) || safeLink(j.url);
+  if (!href) return null;
+  const host = new URL(href).hostname.replace(/^www\./, "");
+  const ats = HOSTS.find(([re]) => re.test(host))?.[1];
+  return { href, label: `Apply on ${ats || (j.company ? `${j.company}’s site` : host)}` };
+}
 
 function trackerControls(j) {
   const box = el("div", "track");
   const t = j.track || {};
   const sel = el("select");
-  sel.setAttribute("aria-label", "Status");
   for (const [v, label] of STATUS) {
     const o = el("option", null, label);
     o.value = v;
@@ -67,43 +104,30 @@ function trackerControls(j) {
   const date = el("input");
   date.type = "date";
   date.value = t.followUp || "";
-  date.setAttribute("aria-label", "Follow up on");
   const notes = el("textarea");
   notes.rows = 2;
-  notes.placeholder = "Notes";
+  notes.placeholder = "Who you spoke to, what's next…";
   notes.value = t.notes || "";
   notes.setAttribute("aria-label", "Notes");
   const due = el("span", "badge warn", "Follow-up due");
-  due.hidden = !(
-    t.followUp &&
-    t.followUp <= today() &&
-    !["rejected", "not-interested", "offer"].includes(t.status)
-  );
+  const isDue = (x) => !!(x.followUp && x.followUp <= today() && !["rejected", "not-interested", "offer"].includes(x.status));
+  due.hidden = !isDue(t);
+  const msg = el("span", "tip");
+  msg.setAttribute("aria-live", "polite");
   const save = async () => {
-    const r = await api(`/api/tracker/${encodeURIComponent(j.id)}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        status: sel.value,
-        followUp: date.value,
-        notes: notes.value,
-      }),
-    });
-    j.track = r;
-    date.value = r.followUp || "";
-    drawStatusBadge(box.closest("li.job"), r.status);
-    if (!inView(r)) {
-      const li = box.closest("li.job");
-      li?.classList.add("leaving");
-      li?.append(el("p", "tip", `Moved to ${tabName(r.status)}.`));
-      setTimeout(() => li?.remove(), 1500);
+    try {
+      const r = await api(`/api/tracker/${encodeURIComponent(j.id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: sel.value, followUp: date.value, notes: notes.value }),
+      });
+      j.track = r;
+      date.value = r.followUp || "";
+      due.hidden = !isDue(r);
+      msg.textContent = "Saved.";
+      afterTrack(box.closest("li.job"), r);
+    } catch (e) {
+      msg.textContent = `Couldn’t save that: ${e.message}`;
     }
-    loadCounts();
-    due.hidden = !(
-      r.followUp &&
-      r.followUp <= today() &&
-      !["rejected", "not-interested", "offer"].includes(r.status)
-    );
-    loadDue();
   };
   sel.addEventListener("change", save);
   date.addEventListener("change", save);
@@ -115,9 +139,20 @@ function trackerControls(j) {
   };
   const more = el("details", "notes");
   more.open = !!t.notes;
-  more.append(el("summary", null, "Notes"), notes);
-  box.append(lab("Status", sel), lab("Follow up on", date), due, more);
+  more.append(el("summary", null, t.notes ? "Notes" : "Add notes"), notes);
+  box.append(lab("Status", sel), lab("Follow up on", date), due, msg, more);
   return box;
+}
+// After a status change: the badge follows, and a job that no longer belongs in this view says where it went.
+function afterTrack(li, r) {
+  drawStatusBadge(li, r.status);
+  if (li && !inView(r)) {
+    li.classList.add("leaving");
+    li.append(el("p", "tip", r.status === "applied" ? "Moved to My applications. Good luck!" : `Moved to ${tabName(r.status)}.`));
+    setTimeout(() => li.remove(), 1600);
+  }
+  loadCounts();
+  loadDue();
 }
 async function showReadyDocs() {
   const t = await api("/api/tracker");
@@ -127,54 +162,87 @@ async function showReadyDocs() {
 async function loadDue() {
   const t = await api("/api/tracker");
   docs = t.documents || {};
-  $("dueCount").textContent = t.due ? `(${t.due})` : "";
+  for (const s of document.querySelectorAll('[data-count="due"]')) s.textContent = t.due ? `(${t.due})` : "";
 }
 
-// Which tab a job belongs in, and the tab names.
+// Which view a job belongs in, and the view names.
 const tabName = (s) =>
-  (STATUS.find(([v]) => v === s)?.[1] || "To apply")
-    .replace("Not tracked", "To apply")
-    .replace("Saved", "To apply");
+  !s || s === "saved" ? "Jobs to apply" : `My applications: ${STATUS.find(([v]) => v === s)?.[1] || s}`;
 function inView(t = {}) {
   if (view === "tracked") return !!(t.status || t.notes);
   if (view === "due")
-    return !!(
-      t.followUp &&
-      t.followUp <= today() &&
-      !["rejected", "not-interested", "offer"].includes(t.status)
-    );
+    return !!(t.followUp && t.followUp <= today() && !["rejected", "not-interested", "offer"].includes(t.status));
   if (view) return t.status === view;
   return !t.status || t.status === "saved";
 }
 function drawStatusBadge(li, status) {
   if (!li) return;
   li.querySelector(".badge.stage")?.remove();
-  if (status)
-    li.querySelector(".top")?.append(
-      el(
-        "span",
-        "badge stage",
-        STATUS.find(([v]) => v === status)?.[1] || status,
-      ),
-    );
+  if (status && status !== "saved")
+    li.querySelector(".top .chips")?.append(el("span", "badge stage", STATUS.find(([v]) => v === status)?.[1] || status));
 }
 async function loadCounts() {
   try {
     const r = await api(`/api/jobs?${query("", 0, 1)}`);
     showCounts(r.counts, r.total);
-    // The count above the list follows too (a job moved to another tab leaves this one).
-    const n = view ? r.counts?.[view] ?? 0 : r.total;
-    $("count").textContent = `${n.toLocaleString()} ${n === 1 ? "job" : "jobs"}`;
   } catch {}
 }
 function showCounts(c = {}, toApply = null) {
-  for (const s of document.querySelectorAll(".tabs .n")) {
+  for (const s of document.querySelectorAll("nav [data-count]")) {
     const k = s.dataset.count;
+    if (k === "due") continue; // from the tracker (loadDue)
     if (k) s.textContent = c[k] ? `(${c[k]})` : "";
-    else if (toApply != null) s.textContent = `(${toApply})`;
+    else if (toApply != null) s.textContent = `(${toApply.toLocaleString()})`;
   }
 }
-// The list query: the filters on screen, for one tab.
+
+// The view, filters and page live in the address, so reloading or going Back keeps your place.
+const FILTERS = ["q", "province", "remote", "minLabel", "sort", "age"];
+function readUrl() {
+  const p = new URLSearchParams(location.search);
+  const v = p.get("view") || "";
+  view = ["", "due", ...APPLICATION_VIEWS].includes(v) ? v : "";
+  page = Math.max(1, parseInt(p.get("page"), 10) || 1);
+  for (const id of FILTERS) if (p.has(id)) $(id).value = p.get(id);
+}
+function urlFor(v = view, pg = page) {
+  const p = new URLSearchParams();
+  if (v) p.set("view", v);
+  if (!v)
+    for (const id of FILTERS) {
+      const x = $(id).value;
+      const dflt = { remote: "yes", sort: "score", age: "3" }[id] || "";
+      if (x && x !== dflt) p.set(id, x);
+    }
+  if (pg > 1) p.set("page", String(pg));
+  const s = p.toString();
+  return s ? `?${s}` : location.pathname;
+}
+function go(v, pg = 1, push = true) {
+  view = v;
+  page = pg;
+  if (push) history.pushState(null, "", urlFor());
+  else history.replaceState(null, "", urlFor());
+  drawNav();
+  return load();
+}
+function drawNav() {
+  const inApps = APPLICATION_VIEWS.includes(view);
+  for (const a of document.querySelectorAll(".tabs a")) {
+    const on = a.dataset.view === view || (a.dataset.view === "tracked" && inApps);
+    if (on) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  $("subtabs").hidden = !inApps;
+  for (const a of document.querySelectorAll("#subtabs a"))
+    if (a.dataset.view === view) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  $("jobsTools").hidden = !!view;
+  const names = { "": "Jobs to apply", due: "Follow-ups due", tracked: "My applications" };
+  document.title = `${names[view] || tabName(view)} · B3spoken`;
+}
+
+// The list query: the filters on screen, for one view.
 let aiOn = false;
 const query = (v, off, limit) =>
   new URLSearchParams({
@@ -189,107 +257,141 @@ const query = (v, off, limit) =>
     limit,
   });
 
+// "Why it matches": the skills as tags, the other reasons as short bullets, and how the score was worked out.
+function whyBlock(j) {
+  const m = j.match || {};
+  const box = el("section", "why");
+  box.setAttribute("aria-label", "Why it matches");
+  const tagRow = (label, list, cls) => {
+    if (!list?.length) return;
+    const row = el("div", "tags");
+    row.append(el("span", "k", label));
+    for (const s of list.slice(0, 10)) row.append(el("span", `tag-skill ${cls}`, s));
+    if (list.length > 10) row.append(el("span", "tip", `+${list.length - 10} more`));
+    box.append(row);
+  };
+  if (j.review) {
+    const r = j.review;
+    box.append(el("h3", null, `Your AI’s review: ${CALL[r.call] || r.call}`));
+    if (r.summary) box.append(el("p", null, r.summary));
+    const by = (k) => r.requirements.filter((q) => q.match === k).map((q) => q.requirement);
+    const cut = (t) => (t.length > 60 ? `${t.slice(0, 57).trimEnd()}…` : t);
+    tagRow("You have it", by("Strong").map(cut), "have");
+    tagRow("Partly", by("Partial").map(cut), "");
+    tagRow("Missing", by("Gap").map(cut), "");
+    if (r.leadWith.length) box.append(el("p", "tip", `Lead with: ${r.leadWith.join(", ")}`));
+  } else if (m.skills || m.reasons?.length) {
+    box.append(el("h3", null, "Why it matches"));
+    const skills = m.skills;
+    const other = (m.reasons || []).filter((x) => !/^(You have |Not on your resume: )/.test(x));
+    if (skills) {
+      tagRow("On your resume", skills.have, "have");
+      tagRow("Not on your resume", skills.missing, "");
+    } else {
+      // A score saved before skills came as a list: show its reasons as they are.
+      other.unshift(...(m.reasons || []).filter((x) => /^(You have |Not on your resume: )/.test(x)));
+    }
+    if (other.length) {
+      const ul = el("ul", "points");
+      other.forEach((x) => ul.append(el("li", null, x)));
+      box.append(ul);
+    }
+  } else if (j.snippet) {
+    box.append(el("p", "snippet", j.snippet + (j.snippet.length >= 280 ? "…" : "")));
+    return box;
+  } else return null;
+  const bd = breakdown(j);
+  if (bd) box.append(bd);
+  return box;
+}
+function breakdown(j) {
+  const m = j.match || {};
+  if (!m.parts?.length && !j.review) return null;
+  const d = el("details", "breakdown");
+  d.append(el("summary", null, "How this score was worked out"));
+  if (m.parts?.length) {
+    const t = el("table");
+    const body = el("tbody");
+    for (const p of m.parts) {
+      const tr = el("tr");
+      const what = el("td");
+      what.append(el("strong", null, p.label), document.createTextNode(` · ${p.why}`));
+      tr.append(what, el("td", "n", `${p.points} / ${p.max}`));
+      body.append(tr);
+    }
+    const sum = m.byAi ? m.ruleScore : m.score;
+    const tr = el("tr", "total");
+    tr.append(el("td", null, m.byAi ? "B3spoken’s own score" : "Score"), el("td", "n", `${sum} / 100`));
+    body.append(tr);
+    t.append(body);
+    d.append(t);
+  }
+  if (j.review)
+    d.append(
+      el(
+        "p",
+        null,
+        `Your AI read the whole posting against your resume and gave it ${j.review.techScore}/10 for skills and tools and ${j.review.fitScore}/10 overall (skills, level, pay and place together). The match shown is from that overall score.`,
+      ),
+    );
+  if (m.stops?.length) d.append(el("p", null, `Check first: ${m.stops.join("; ")}`));
+  return d;
+}
+
 function card(j) {
   const li = el("li", "job");
   const top = el("div", "top");
-  top.append(el("h2", null, j.title));
-  if (j.review)
-    top.append(
-      el(
-        "span",
-        `score ${j.match?.label.toLowerCase() || "good"}`,
-        `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
-      ),
-    );
-  else if (j.match)
-    top.append(
-      el(
-        "span",
-        `score ${j.match.label.toLowerCase()}`,
-        `${j.match.label} · ${j.match.score}`,
-      ),
-    );
-  li.append(top);
+  const head = el("div");
+  head.append(el("h2", null, j.title));
   const meta = el("div", "meta");
-  meta.append(el("span", null, j.company), el("span", null, j.location || ""));
+  meta.append(el("span", null, j.company));
+  if (j.location) meta.append(el("span", null, j.location + (j.moreLocations ? ` +${j.moreLocations} more` : "")));
   if (j.remote) meta.append(el("span", null, "Remote"));
-  if (j.postedAt) meta.append(el("span", null, ago(j.postedAt)));
-  else if (j.firstSeen) meta.append(el("span", null, `first seen ${ago(j.firstSeen)}`));
   if (j.salary) meta.append(el("span", null, j.salary));
-  li.append(meta);
+  if (j.postedAt) meta.append(el("span", null, `Posted ${ago(j.postedAt)}`));
+  else if (j.firstSeen) meta.append(el("span", null, `First seen ${ago(j.firstSeen)}`));
+  head.append(meta);
+  if (j.source === "jobbank") head.append(el("div", "verified", "✓ Job Bank (Government of Canada)"));
+  else if (j.employerUrl) head.append(el("div", "verified", `✓ Confirmed on the employer’s own site${j.via ? ` (found via ${j.via.name || j.via})` : ""}`));
+  else if (j.employerVerified !== false) head.append(el("div", "verified", "✓ From the employer’s own hiring site"));
+  const chips = el("div", "chips");
+  top.append(head, chips);
+  const m = j.match;
+  if (m && LEVEL[m.label]) chips.append(el("span", `score ${m.label.toLowerCase()}`, `${LEVEL[m.label]} · ${m.score}`));
+  li.append(top);
   if (j.aiTrap) {
-    const t = el(
-      "p",
-      "trap",
-      `AI trap in this posting: “${j.aiTrap.instruction}” B3spoken won’t follow it${j.aiTrap.phrases.length ? `, and nothing it writes will use “${j.aiTrap.phrases.join("”, “")}”` : ""}. If you write anything yourself, don’t follow it either.`,
+    const t = el("p", "trap");
+    t.append(
+      el("b", null, "AI trap in this posting. "),
+      document.createTextNode(
+        `It says: “${j.aiTrap.instruction}” B3spoken won’t follow it${j.aiTrap.phrases.length ? `, and nothing it writes will use “${j.aiTrap.phrases.join("”, “")}”` : ""}. If you write anything yourself, don’t follow it either.`,
+      ),
     );
     li.append(t);
   }
-  const sc = j.match?.scam;
-  if (sc?.stop?.length)
-    li.append(
-      el(
-        "p",
-        "trap",
-        `Possible scam: this posting ${sc.stop.join("; it ")}. Real employers don't ask for this. Don't send money or banking details.`,
-      ),
-    );
-  else if (sc?.warn?.length)
-    li.append(
-      el(
-        "p",
-        "problems",
-        `Be careful: this posting ${sc.warn.join("; it ")}. Check the job on the employer's own careers page before you reply.`,
-      ),
-    );
-  // The AI review comes with the card (like the Job Hunt Kit): its summary and how each requirement matches.
-  if (j.review) {
-    const r = j.review,
-      sum = el("div", "aisum");
-    if (r.summary) sum.append(el("p", null, r.summary));
-    const by = (m) =>
-      r.requirements.filter((q) => q.match === m).map((q) => q.requirement);
-    const cut = (t) => (t.length > 60 ? `${t.slice(0, 57).trimEnd()}…` : t);
-    for (const m of ["Strong", "Partial", "Gap"])
-      if (by(m).length) {
-        const line = el("p", "reasons");
-        line.append(
-          el("strong", `m-${m.toLowerCase()}`, `${m}: `),
-          el(
-            "span",
-            null,
-            by(m).slice(0, 3).map(cut).join(" · ") +
-              (by(m).length > 3 ? ` (+${by(m).length - 3} more)` : ""),
-          ),
-        );
-        sum.append(line);
-      }
-    if (r.leadWith.length)
-      sum.append(el("p", "reasons", `Lead with: ${r.leadWith.join(", ")}`));
-    li.append(sum);
-  } else if (j.match?.reasons?.length)
-    li.append(el("p", "reasons", j.match.reasons.join(" · ")));
-  else if (j.snippet)
-    li.append(
-      el("p", "snippet", j.snippet + (j.snippet.length >= 280 ? "…" : "")),
-    );
-  const row = el("div", "row");
-  const href = safeLink(j.applyUrl || j.url);
-  if (href) {
-    const a = el("a", "apply", "Apply");
-    a.href = href;
+  const sc = m?.scam;
+  if (sc?.stop?.length) {
+    const t = el("p", "trap");
+    t.append(el("b", null, "Possible scam. "), document.createTextNode(`This posting ${sc.stop.join("; it ")}. Real employers don't ask for this. Don't send money or banking details.`));
+    li.append(t);
+  } else if (sc?.warn?.length) {
+    const t = el("p", "alert");
+    t.append(el("b", null, "Be careful. "), document.createTextNode(`This posting ${sc.warn.join("; it ")}. Check the job on the employer's own careers page before you reply.`));
+    li.append(t);
+  }
+  const why = whyBlock(j);
+  if (why) li.append(why);
+
+  // Main actions: at most three (DESIGN.md §9). Everything else is under "More for this job".
+  const act = el("div", "actions");
+  const target = applyTarget(j);
+  if (target) {
+    const a = el("a", "btn primary", `${target.label} ↗`);
+    a.href = target.href;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    row.append(a);
+    act.append(a);
   }
-  if (j.source === "jobbank")
-    row.append(el("span", "badge ok", "Job Bank (Government of Canada)"));
-  else if (j.employerVerified !== false)
-    row.append(el("span", "badge ok", "On the employer’s own site"));
-  else if (j.employerUrl)
-    row.append(el("span", "badge ok", "Confirmed on the employer’s site"));
-  if (j.via) row.append(el("span", "badge", `via ${j.via.name || j.via}`));
-  if (j.aiTrap) row.append(el("span", "badge bad", "AI trap"));
   const make = el("button", "small", "Make my resume and cover letter");
   make.type = "button";
   const files = el("span", "files");
@@ -297,166 +399,144 @@ function card(j) {
     make.disabled = true;
     make.textContent = "Writing…";
     try {
-      const d = await api(`/api/jobs/${encodeURIComponent(j.id)}/documents`, {
-        method: "POST",
-      });
+      const d = await api(`/api/jobs/${encodeURIComponent(j.id)}/documents`, { method: "POST" });
       showFiles(files, j.id, d);
-      make.textContent = "Make them again";
+      make.textContent = "Make the resume and cover letter again";
+      tools.prepend(make);
     } catch (e) {
-      make.textContent = e.message;
+      make.textContent = "Make my resume and cover letter";
+      files.replaceChildren(el("span", "tip", `Couldn’t make them: ${e.message}`));
     } finally {
       make.disabled = false;
     }
   });
-  const prepBtn = el("button", "small", "Interview prep");
-  prepBtn.type = "button";
-  const prepBox = el("div", "prep");
-  prepBox.hidden = true;
-  prepBtn.addEventListener("click", async () => {
-    if (!prepBox.hidden) {
-      prepBox.hidden = true;
-      return;
-    }
-    prepBtn.disabled = true;
-    prepBtn.textContent = "Preparing…";
-    try {
-      drawPrep(
-        prepBox,
-        await api(`/api/jobs/${encodeURIComponent(j.id)}/prep`, {
-          method: "POST",
-        }),
-      );
-      prepBox.hidden = false;
-    } catch (e) {
-      prepBox.hidden = false;
-      prepBox.replaceChildren(el("p", "problems", e.message));
-    } finally {
-      prepBtn.disabled = false;
-      prepBtn.textContent = "Interview prep";
-    }
-  });
-  const conBtn = el("button", "small", "Recruiter contacts");
-  conBtn.type = "button";
-  const conBox = el("div", "prep");
-  conBox.hidden = true;
-  const loadContacts = async (again = false) => {
-    conBtn.disabled = true;
-    conBtn.textContent = "Looking…";
-    try {
-      drawContacts(
-        conBox,
-        j,
-        await api(`/api/jobs/${encodeURIComponent(j.id)}/contacts`, {
-          method: "POST",
-          body: JSON.stringify({ refresh: again }),
-        }),
-        loadContacts,
-      );
-      conBox.hidden = false;
-    } catch (e) {
-      conBox.hidden = false;
-      conBox.replaceChildren(el("p", "problems", e.message));
-    } finally {
-      conBtn.disabled = false;
-      conBtn.textContent = "Recruiter contacts";
-    }
+  act.append(make, files);
+  const tracked = j.track?.status && j.track.status !== "saved";
+  if (!tracked) {
+    const done = el("button", "small", "Mark as applied");
+    done.type = "button";
+    done.addEventListener("click", async () => {
+      done.disabled = true;
+      try {
+        const r = await api(`/api/tracker/${encodeURIComponent(j.id)}`, { method: "PUT", body: JSON.stringify({ status: "applied" }) });
+        j.track = r;
+        afterTrack(li, r);
+      } catch (e) {
+        done.disabled = false;
+        done.textContent = `Couldn’t save: ${e.message}`;
+      }
+    });
+    act.append(done);
+  }
+  li.append(act);
+
+  const more = el("details", "more");
+  more.append(el("summary", null, "More for this job"));
+  const tools = el("div", "row");
+  const panels = el("div");
+  more.append(tools, panels);
+  // A tool button that opens its panel under the row, and closes it on a second click.
+  const tool = (label, run, cls = "prep") => {
+    const b = el("button", "small", label);
+    b.type = "button";
+    const box = el("div", cls);
+    box.hidden = true;
+    b.addEventListener("click", async () => {
+      if (!box.hidden) {
+        box.hidden = true;
+        return;
+      }
+      b.disabled = true;
+      try {
+        await run(box, b);
+        box.hidden = false;
+      } catch (e) {
+        box.hidden = false;
+        box.replaceChildren(el("p", "alert", e.message));
+      } finally {
+        b.disabled = false;
+      }
+    });
+    tools.append(b);
+    panels.append(box);
+    return b;
   };
-  conBtn.addEventListener("click", () => {
-    if (!conBox.hidden) {
-      conBox.hidden = true;
-      return;
+  tool(j.review ? "Full AI review" : "Get an AI review", async (box, b) => {
+    if (!j.review) {
+      b.textContent = "Reviewing… (about a minute)";
+      try {
+        j.review = await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, { method: "POST", body: "{}" });
+      } finally {
+        b.textContent = j.review ? "Full AI review" : "Get an AI review";
+      }
     }
-    loadContacts();
+    drawReview(box, j.review);
   });
-  const revBtn = el(
-    "button",
-    "small",
-    j.review ? "Full AI review" : "Get an AI review now",
-  );
-  revBtn.type = "button";
-  const revBox = el("div", "prep");
-  revBox.hidden = true;
-  const showReview = (r) => {
-    j.review = r;
-    drawReview(revBox, r);
-    revBox.hidden = false;
-    revBtn.textContent = "Full AI review";
+  tool("Application answers", async (box, b) => {
+    if (!(j.review?.answers?.length || j.review?.call === "Skip")) {
+      b.textContent = "Writing answers… (about a minute)";
+      try {
+        j.review = await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, { method: "POST", body: JSON.stringify({ again: !!j.review }) });
+      } finally {
+        b.textContent = "Application answers";
+      }
+    }
+    drawAnswers(box, j.review);
+  });
+  tool("Interview prep", async (box, b) => {
+    b.textContent = "Preparing…";
+    try {
+      drawPrep(box, await api(`/api/jobs/${encodeURIComponent(j.id)}/prep`, { method: "POST" }));
+    } finally {
+      b.textContent = "Interview prep";
+    }
+  });
+  const loadContacts = async (box, again = false) => {
+    drawContacts(
+      box,
+      j,
+      await api(`/api/jobs/${encodeURIComponent(j.id)}/contacts`, { method: "POST", body: JSON.stringify({ refresh: again }) }),
+      (x) => loadContacts(box, x),
+    );
   };
-  revBtn.addEventListener("click", async () => {
-    if (!revBox.hidden) {
-      revBox.hidden = true;
-      return;
-    }
-    if (j.review) return showReview(j.review);
-    revBtn.disabled = true;
-    revBtn.textContent = "Reviewing… (about a minute)";
+  tool("Recruiter contacts", async (box, b) => {
+    b.textContent = "Looking…";
     try {
-      showReview(
-        await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, {
-          method: "POST",
-          body: "{}",
-        }),
-      );
-    } catch (e) {
-      revBox.hidden = false;
-      revBox.replaceChildren(el("p", "problems", e.message));
-      revBtn.textContent = "Get an AI review now";
+      await loadContacts(box);
     } finally {
-      revBtn.disabled = false;
+      b.textContent = "Recruiter contacts";
     }
   });
-  const helpBtn = el("button", "small", "Writing help");
-  helpBtn.type = "button";
-  const helpBox = el("div", "prep drafts");
-  helpBox.hidden = true;
-  helpBtn.addEventListener("click", async () => {
-    if (!helpBox.hidden) {
-      helpBox.hidden = true;
-      return;
-    }
-    helpBox.hidden = false;
-    await drawDrafts(helpBox, j);
-  });
-  // Application answers: written with the AI review (Apply and Stretch jobs), ready to copy into the form.
-  const ansBtn = el("button", "small", "Application answers");
-  ansBtn.type = "button";
-  const ansBox = el("div", "prep");
-  ansBox.hidden = true;
-  ansBtn.addEventListener("click", async () => {
-    if (!ansBox.hidden) {
-      ansBox.hidden = true;
-      return;
-    }
-    ansBox.hidden = false;
-    if (j.review?.answers?.length || j.review?.call === "Skip")
-      return drawAnswers(ansBox, j.review);
-    ansBtn.disabled = true;
-    ansBtn.textContent = "Writing answers… (about a minute)";
-    try {
-      const r = await api(`/api/jobs/${encodeURIComponent(j.id)}/review`, {
-        method: "POST",
-        body: JSON.stringify({ again: !!j.review }),
-      });
-      j.review = r;
-      drawAnswers(ansBox, r);
-    } catch (e) {
-      ansBox.replaceChildren(el("p", "problems", e.message));
-    } finally {
-      ansBtn.disabled = false;
-      ansBtn.textContent = "Application answers";
-    }
-  });
-  row.append(make, files, revBtn, ansBtn, prepBtn, conBtn, helpBtn);
+  tool("Writing help", (box) => drawDrafts(box, j), "prep drafts");
+  if (!tracked) {
+    const no = el("button", "small", "Not interested");
+    no.type = "button";
+    no.addEventListener("click", async () => {
+      no.disabled = true;
+      try {
+        const r = await api(`/api/tracker/${encodeURIComponent(j.id)}`, { method: "PUT", body: JSON.stringify({ status: "not-interested" }) });
+        j.track = r;
+        afterTrack(li, r);
+      } catch (e) {
+        no.disabled = false;
+        no.textContent = `Couldn’t save: ${e.message}`;
+      }
+    });
+    tools.append(no);
+  }
+  li.append(more);
+
+  // Once the documents exist, their downloads take the main row and "make them again" moves under More.
   const ready = (d) => {
     showFiles(files, j.id, { files: d, note: d.note });
-    make.textContent = "Make them again";
+    make.textContent = "Make the resume and cover letter again";
+    tools.prepend(make);
     cardFiles.delete(j.id);
   };
   if (docs[j.id]) ready(docs[j.id]);
   else cardFiles.set(j.id, ready);
-  if (j.moreLocations)
-    row.append(el("span", "badge", `+${j.moreLocations} more locations`));
-  li.append(row, revBox, ansBox, prepBox, conBox, helpBox, trackerControls(j));
+  // Status, follow-up date and notes belong to My applications, not to the list of jobs to apply to.
+  if (view || tracked) li.append(trackerControls(j));
   drawStatusBadge(li, j.track?.status);
   return li;
 }
@@ -479,7 +559,7 @@ async function download(jobId, kind, name) {
 }
 function showFiles(box, jobId, d) {
   box.replaceChildren();
-  if (d.note) box.append(el("span", "problems", d.note));
+  if (d.note) box.append(el("span", "tip", d.note));
   const both = el("button", "small", "Download both");
   both.type = "button";
   both.addEventListener("click", async () => {
@@ -766,7 +846,7 @@ function drawReview(box, r) {
     el(
       "h3",
       null,
-      `AI review: ${r.call} · technical match ${r.techScore}/10 · overall fit ${r.fitScore}/10`,
+      `Your AI’s review: ${CALL[r.call] || r.call} · skills and tools ${r.techScore}/10 · overall fit ${r.fitScore}/10`,
     ),
   );
   if (r.summary) box.append(el("p", null, r.summary));
@@ -775,7 +855,7 @@ function drawReview(box, r) {
     for (const q of r.requirements) {
       const li = el("li");
       li.append(
-        el("strong", null, `${q.match}: `),
+        el("strong", `m-${String(q.match).toLowerCase()}`, `${MATCH_WORD[q.match] || q.match}: `),
         el(
           "span",
           null,
@@ -785,7 +865,7 @@ function drawReview(box, r) {
       );
       ul.append(li);
     }
-    box.append(el("h3", null, "What they ask for, and your evidence"), ul);
+    box.append(el("h3", null, "What they ask for vs. your skills and experience"), ul);
   }
   if (r.gaps.length) {
     const ul = el("ul", "lines");
@@ -819,7 +899,7 @@ function drawAnswers(box, r) {
       el(
         "p",
         "tip",
-        'No answers came back for this job. Try "Get an AI review now" again later.',
+        'No answers came back for this job. Try "Get an AI review" again later.',
       ),
     );
   box.replaceChildren(
@@ -892,21 +972,77 @@ function drawPrep(box, p) {
   box.append(ul);
 }
 
-async function load(reset = true) {
-  if (reset) {
-    offset = 0;
-    $("list").replaceChildren();
-    cardFiles.clear();
+async function load() {
+  $("list").replaceChildren();
+  cardFiles.clear();
+  const r = await api(`/api/jobs?${query(view, (page - 1) * PAGE, PAGE)}`);
+  const pages = Math.max(1, Math.ceil(r.total / PAGE));
+  if (page > pages) {
+    page = pages; // filters left fewer pages than the address asked for
+    history.replaceState(null, "", urlFor());
+    return load();
   }
-  const r = await api(`/api/jobs?${query(view, offset, 50)}`);
   r.jobs.forEach((j) => $("list").append(card(j)));
-  offset += r.jobs.length;
   if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
-  $("count").textContent =
-    `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
+  const first = r.total ? (page - 1) * PAGE + 1 : 0;
+  $("count").textContent = r.total
+    ? `Showing ${first.toLocaleString()}–${(first + r.jobs.length - 1).toLocaleString()} of ${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`
+    : "";
+  if (!r.total)
+    $("list").append(
+      el(
+        "li",
+        "empty",
+        view === "due"
+          ? "No follow-ups due. B3spoken sets one a week after you mark a job as applied."
+          : view
+            ? "Nothing here yet. Jobs you mark as applied or not interested show up under My applications."
+            : "No jobs match these filters. Try a longer time range, or All of Canada.",
+      ),
+    );
+  drawPager(pages);
   if (view) loadCounts();
   else showCounts(r.counts, r.total);
-  $("more").hidden = offset >= r.total;
+}
+
+// Page links: Previous, the first and last page, the pages around this one, Next.
+function drawPager(pages) {
+  const nav = $("pager");
+  nav.replaceChildren();
+  nav.hidden = pages <= 1;
+  if (pages <= 1) return;
+  const link = (pg, text, label) => {
+    const a = el("a", null, text);
+    a.href = urlFor(view, pg);
+    if (label) a.setAttribute("aria-label", label);
+    if (pg === page && !label) a.setAttribute("aria-current", "page");
+    if (pg < 1 || pg > pages) a.setAttribute("aria-disabled", "true");
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (pg < 1 || pg > pages || (pg === page && !label)) return;
+      go(view, pg).then(() => $("count").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+    });
+    return a;
+  };
+  const word = (arrow, w, after) => {
+    const f = document.createDocumentFragment();
+    const sp = el("span", "pl", w);
+    f.append(...(after ? [sp, ` ${arrow}`] : [`${arrow} `, sp]));
+    return f;
+  };
+  const prev = link(page - 1, "", "Previous page");
+  prev.append(word("←", "Previous", false));
+  nav.append(prev);
+  const show = [...new Set([1, page - 1, page, page + 1, pages])].filter((p) => p >= 1 && p <= pages).sort((a, b) => a - b);
+  let last = 0;
+  for (const p of show) {
+    if (p - last > 1) nav.append(el("span", "gap", "…"));
+    nav.append(link(p, String(p)));
+    last = p;
+  }
+  const next = link(page + 1, "", "Next page");
+  next.append(word("→", "Next", true));
+  nav.append(next);
 }
 
 async function status() {
@@ -1233,14 +1369,25 @@ async function init() {
   $("kw").value = s.keywords.join(", ");
   $("province").value = s.province;
   $("remote").value = s.remote;
+  readUrl(); // the address wins over saved settings, so Back and reload keep the filters
   for (const id of ["q"])
     $(id).addEventListener("input", () => {
       clearTimeout(timer);
-      timer = setTimeout(() => load(), 250);
+      timer = setTimeout(() => go("", 1, false), 250);
     });
   for (const id of ["province", "remote", "age", "minLabel", "sort"])
-    $(id).addEventListener("change", () => load());
-  $("more").addEventListener("click", () => load(false));
+    $(id).addEventListener("change", () => go("", 1));
+  for (const a of document.querySelectorAll(".tabs a, #subtabs a"))
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      go(a.dataset.view);
+    });
+  window.addEventListener("popstate", () => {
+    readUrl();
+    drawNav();
+    load();
+  });
+  drawNav();
   $("updateGo").addEventListener("click", update);
   $("healthGo").addEventListener("click", health);
   $("checkUpdate").addEventListener("click", async () => {
@@ -1265,14 +1412,6 @@ async function init() {
       }, 6000);
     }
   });
-  for (const b of document.querySelectorAll(".tabs button"))
-    b.addEventListener("click", () => {
-      view = b.dataset.view;
-      for (const x of document.querySelectorAll(".tabs button"))
-        x.classList.toggle("on", x === b);
-      document.querySelector(".filters").hidden = !!view;
-      load();
-    });
   $("pasteGo").addEventListener("click", async () => {
     const url = $("pasteUrl").value.trim();
     if (!url) return;

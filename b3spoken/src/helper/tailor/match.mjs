@@ -62,6 +62,33 @@ const has = (textNorm, t) => {
   return r.test(textNorm);
 };
 
+// A skill the resume holds inside a longer word: "Cybersecurity" covers "security", "pentesting" covers "testing".
+// Only for whole words of 6 letters or more, so "sql" doesn't hide in "nosql" or "api" in "rapid".
+const inLongerWord = (textNorm, t) =>
+  t.length >= 6 && /^[a-z]+$/.test(t) && new RegExp(`[a-z]${t}($|[^a-z0-9+#])`).test(textNorm);
+
+// One name per skill: "API" and "APIs", "Node" and "Node.js", "javascript" and "JAVASCRIPT" are the same skill.
+const skillKey = (t) => norm(t).replace(/\.js$/, "").replace(/(?<=[a-z]{2})s$/, "");
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+// "Git" beside "Git/GitHub", or "APIs" beside "REST APIs": the longer name already says it.
+const dropNamedInside = (terms) =>
+  terms.filter((t) => !terms.some((o) => o !== t && o.length > t.length && (
+    new RegExp(`(^|[ /])${escRe(skillKey(t))}s?([ /]|$)`).test(skillKey(o)) || inLongerWord(skillKey(o), skillKey(t)))));
+// How skills are usually written, so the board doesn't show "Javascript" for one job and "JavaScript" for the next.
+const SPELLING = Object.fromEntries(
+  `JavaScript TypeScript Node.js GitHub GitLab PostgreSQL MySQL MongoDB GraphQL Next.js .NET FastAPI API APIs SQL NoSQL AWS GCP
+  LLM NLP SIEM SOC IAM DNS DHCP VPN TCP/IP CI/CD HTML CSS PHP C# C++ macOS OpenAI PyTorch TensorFlow NumPy pandas Jira ITIL QA
+  CRM SEO NIST PCI RESTful gRPC dbt BigQuery ServiceNow HubSpot QuickBooks GAAP IFRS Power_BI SOC_2 ISO_27001 Office_365
+  Microsoft_365 GitHub_Actions Active_Directory Entra Okta Splunk Sentinel Nessus OpenVAS Nmap Metasploit Burp Tableau Looker
+  Salesforce Kafka RabbitMQ Redis Elasticsearch Snowflake Databricks Airflow Spark Docker Kubernetes Terraform Ansible Jenkins
+  Linux Unix Git Bash PowerShell Python Java Golang Rust Ruby Kotlin Swift Scala React Angular Vue Express Django Flask Spring
+  Rails Tailwind Azure Pytest Jest Selenium Playwright Cypress Excel Windows Cisco Anthropic Gemini`
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.replace(/_/g, " "))
+    .map((w) => [w.toLowerCase(), w]),
+);
+
 export function termsIn(textNorm, extra = []) {
   return [
     ...new Set([...TERMS, ...extra.map(norm).filter((x) => x.length > 1)]),
@@ -328,27 +355,38 @@ export function scoreJob(job, ctx) {
   const region = job.remote && !THIS_REGION.test(job.title) && OTHER_REGION.exec(job.title || "");
   if (region) stops.push(`Remote, but for another region only (${region[0]})`);
   // Skills
-  const wanted = termsIn(text, ctx.skills);
-  // "API" and "APIs" are the same skill.
+  // Each skill once ("API" and "APIs", "Node" and "Node.js"); the first spelling found stands for it.
+  const byKey = new Map();
+  for (const t of termsIn(text, ctx.skills)) if (!byKey.has(skillKey(t))) byKey.set(skillKey(t), t);
   const onResume = (t) =>
     has(ctx.resumeNorm, t) ||
     has(ctx.resumeNorm, `${t}s`) ||
-    (t.endsWith("s") && has(ctx.resumeNorm, t.slice(0, -1)));
-  const have = wanted.filter(onResume);
-  const missing = wanted.filter((t) => !onResume(t));
+    (t.endsWith("s") && has(ctx.resumeNorm, t.slice(0, -1))) ||
+    (t.endsWith(".js") && has(ctx.resumeNorm, t.slice(0, -3))) ||
+    inLongerWord(ctx.resumeNorm, t);
+  const have = dropNamedInside([...byKey.values()].filter(onResume));
+  const missing = dropNamedInside([...byKey.values()].filter((t) => !onResume(t))).filter(
+    (t) => !have.some((h) => skillKey(h).split(/[ /]/).includes(skillKey(t))),
+  );
+  const wanted = [...have, ...missing];
   // One matching word out of one isn't a strong signal, so a posting has to name at least 4 skills to score full marks.
   const skillFit = wanted.length
     ? have.length / Math.max(wanted.length, 4)
     : 0.1;
-  // Skill names as the person or the posting writes them.
-  const pretty = (t) =>
-    ctx.skills.find((x) => norm(x) === t) ||
-    (String(job.description || "").match(
-      new RegExp(
-        `(?<![A-Za-z0-9])${t.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?![A-Za-z0-9])`,
-        "i",
-      ),
+  // Skill names spelled the usual way ("JavaScript"), else as the person writes them, else as the posting does.
+  const pretty = (t) => {
+    if (SPELLING[t]) return SPELLING[t];
+    if (t === "node") return "Node.js";
+    const own = ctx.skills.find((x) => norm(x) === t);
+    if (own) return own;
+    const seen = (String(job.description || "").match(
+      new RegExp(`(?<![A-Za-z0-9])${escRe(t)}(?![A-Za-z0-9])`, "i"),
     ) || [t])[0];
+    // A posting that shouts ("SECURITY") or whispers ("security") gets sentence case.
+    return seen === seen.toLowerCase() || (seen === seen.toUpperCase() && seen.length > 4)
+      ? seen.charAt(0).toUpperCase() + seen.slice(1).toLowerCase()
+      : seen;
+  };
   if (have.length)
     reasons.push(`You have ${have.slice(0, 6).map(pretty).join(", ")}`);
   if (missing.length)
@@ -478,11 +516,26 @@ export function scoreJob(job, ctx) {
   }
   if (!stops.length && label === "Skip")
     stops.push("Too far from your resume and roles");
+  // Where the points came from, so the board can show how the score was worked out.
+  const lvl = Math.max(0, seniority);
+  const parts = [
+    { key: "skills", label: "Skills", max: 45, points: Math.round(45 * skillFit),
+      why: wanted.length ? `${have.length} of ${wanted.length} skills the posting names are on your resume${wanted.length < 4 ? " (full marks need at least 4)" : ""}` : "The posting names no skills B3spoken knows (0 of 0 skills)" },
+    { key: "title", label: "Job title", max: 30, points: Math.round(30 * titleFit),
+      why: titleFit >= 0.99 ? "Matches a role you picked" : titleFit > 0 ? "Shares some words with a role you picked" : "Not one of the roles you picked" },
+    { key: "level", label: "Level", max: 15, points: Math.round(15 * Math.min(1, lvl)),
+      why: lvl >= 1 ? "Fits the years on your resume" : yearsReq != null && ctx.years + 1 < yearsReq ? `Asks for ${yearsReq}+ years; your resume shows about ${ctx.years}` : "Senior-level title for the years on your resume" },
+    { key: "pay", label: "Pay", max: 10, points: Math.round(10 * payFit),
+      why: !pay ? "Pay not posted (half marks)" : payFit === 1 ? "Reaches your goal" : payFit === 0.7 ? "Meets your floor, below your goal" : "Below your floor or goal" },
+  ];
   return {
     score: stops.length ? Math.min(score, 29) : score,
     label,
     reasons,
     stops,
+    parts,
+    // The skill names as the board shows them.
+    skills: { have: have.map(pretty), missing: missing.map(pretty) },
     have,
     missing,
     pay,

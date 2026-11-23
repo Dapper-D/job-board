@@ -22,58 +22,78 @@
 <main>
   <section id="health" class="health" hidden aria-live="polite"></section>
   <nav class="tabs" aria-label="Views">
-    <button type="button" data-view="" class="on">To apply <span class="n" data-count=""></span></button>
-    <button type="button" data-view="applied">Applied <span class="n" data-count="applied"></span></button>
-    <button type="button" data-view="interview">Interview <span class="n" data-count="interview"></span></button>
-    <button type="button" data-view="offer">Offer <span class="n" data-count="offer"></span></button>
-    <button type="button" data-view="rejected">Rejected <span class="n" data-count="rejected"></span></button>
-    <button type="button" data-view="not-interested">Not interested <span class="n" data-count="not-interested"></span></button>
-    <button type="button" data-view="due">Follow-ups <span id="dueCount"></span></button>
+    <a href="?" data-view="">Jobs to apply <span class="n" data-count=""></span></a>
+    <a href="?view=tracked" data-view="tracked">My applications <span class="n" data-count="tracked"></span></a>
+    <a href="?view=due" data-view="due">Follow-ups due <span class="n" data-count="due"></span></a>
   </nav>
-  <section class="paste" aria-label="Paste a job link">
-    <input id="pasteUrl" type="url" placeholder="Paste a job link from the employer's own site to check and tailor it" aria-label="Job link">
-    <button id="pasteGo" type="button">Check link</button>
-  </section>
-  <div id="pasteMsg" class="problems" hidden></div>
-  <ol id="pasted" class="list"></ol>
-  <section class="filters" aria-label="Filters">
-    <input id="q" type="search" placeholder="Search titles, companies, places" aria-label="Search">
-    <select id="province" aria-label="Province">
-      <option value="">All of Canada</option>
-      <option>BC</option><option>AB</option><option>SK</option><option>MB</option><option>ON</option><option>QC</option>
-      <option>NB</option><option>NS</option><option>PE</option><option>NL</option><option>YT</option><option>NT</option><option>NU</option>
-    </select>
-    <select id="remote" aria-label="Remote">
-      <option value="yes">Include remote</option>
-      <option value="only">Remote only</option>
-      <option value="no">No remote</option>
-    </select>
-    <select id="minLabel" aria-label="Match">
-      <option value="">All matches</option>
-      <option value="Good">Good and strong</option>
-      <option value="Strong">Strong only</option>
-    </select>
-    <select id="sort" aria-label="Sort">
-      <option value="score">Best match first</option>
-      <option value="date">Newest first</option>
-    </select>
-    <select id="age" aria-label="Posted">
-      <option value="1">Last 24 hours</option>
-      <option value="2">Last 2 days</option>
-      <option value="3" selected>Last 3 days</option>
-      <option value="7">Last 7 days</option>
-      <option value="14">Last 14 days</option>
-    </select>
-  </section>
-  <section class="keywords">
-    <label for="kw">Job Bank keywords (comma separated, up to 12):</label>
-    <input id="kw" type="text" placeholder="software developer, security analyst">
-    <button id="saveKw" type="button">Save</button>
-  </section>
-  <div id="problems" class="problems" hidden></div>
-  <p id="count" class="count"></p>
+  <nav id="subtabs" class="subtabs" aria-label="Application status" hidden>
+    <a href="?view=tracked" data-view="tracked">All</a>
+    <a href="?view=applied" data-view="applied">Applied <span class="n" data-count="applied"></span></a>
+    <a href="?view=interview" data-view="interview">Interview <span class="n" data-count="interview"></span></a>
+    <a href="?view=offer" data-view="offer">Offer <span class="n" data-count="offer"></span></a>
+    <a href="?view=rejected" data-view="rejected">Rejected <span class="n" data-count="rejected"></span></a>
+    <a href="?view=not-interested" data-view="not-interested">Not interested <span class="n" data-count="not-interested"></span></a>
+  </nav>
+
+  <div id="jobsTools">
+    <details class="legend">
+      <summary>How matches are scored</summary>
+      <p>Every job is compared with the resume and answers you gave in setup, out of 100 points: skills the posting names that are on your resume (45), how close the job title is to the roles you picked (30), whether the level fits your years of work (15) and pay against your goal (10). Open "How this score was worked out" on any job to see its points.</p>
+      <ul>
+        <li><b>Strong match</b> (70 and up): most of what they ask for is on your resume.</li>
+        <li><b>Good match</b> (50–69): a fair share is; worth applying.</li>
+        <li><b>Long shot</b> (30–49): some overlap, with real gaps. Apply if the job excites you.</li>
+      </ul>
+      <p>Jobs under 30, or with a hard stop (pay below your floor, French you don't list, a scam sign), aren't shown.</p>
+    </details>
+    <section class="paste" aria-label="Paste a job link">
+      <input id="pasteUrl" type="url" placeholder="Paste a job link from the employer's site, e.g. https://jobs.lever.co/…" aria-label="Job link">
+      <button id="pasteGo" type="button">Check link</button>
+    </section>
+    <div id="pasteMsg" class="alert" role="alert" hidden></div>
+    <ol id="pasted" class="list"></ol>
+    <section class="filters" aria-label="Filters">
+      <input id="q" type="search" placeholder="Search titles, companies, places…" aria-label="Search">
+      <select id="province" aria-label="Province">
+        <option value="">All of Canada</option>
+        <option>BC</option><option>AB</option><option>SK</option><option>MB</option><option>ON</option><option>QC</option>
+        <option>NB</option><option>NS</option><option>PE</option><option>NL</option><option>YT</option><option>NT</option><option>NU</option>
+      </select>
+      <select id="remote" aria-label="Remote">
+        <option value="yes">Include remote</option>
+        <option value="only">Remote only</option>
+        <option value="no">No remote</option>
+      </select>
+      <select id="minLabel" aria-label="Match">
+        <option value="">All matches</option>
+        <option value="Good">Good and strong matches</option>
+        <option value="Strong">Strong matches only</option>
+      </select>
+      <select id="sort" aria-label="Sort">
+        <option value="score">Best match first</option>
+        <option value="date">Newest first</option>
+      </select>
+      <select id="age" aria-label="Posted">
+        <option value="1">Last 24 hours</option>
+        <option value="2">Last 2 days</option>
+        <option value="3" selected>Last 3 days</option>
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+      </select>
+    </section>
+    <details class="keywords">
+      <summary>Job Bank keywords</summary>
+      <div class="row">
+        <label for="kw" class="tip">Comma separated, up to 12:</label>
+        <input id="kw" type="text" placeholder="software developer, security analyst">
+        <button id="saveKw" type="button">Save and refresh</button>
+      </div>
+    </details>
+  </div>
+  <div id="problems" class="alert" hidden></div>
+  <p id="count" class="count" aria-live="polite"></p>
   <ol id="list" class="list"></ol>
-  <button id="more" type="button" hidden>Show more</button>
+  <nav id="pager" class="pager" aria-label="Pages" hidden></nav>
 </main>
 <dialog id="rolesBox" class="roles-box" aria-labelledby="rolesTitle">
   <h2 id="rolesTitle">New role ideas</h2>
@@ -81,6 +101,6 @@
   <div id="rolesPick" class="choices"></div>
   <div class="nav"><button id="rolesLater" type="button">Later</button><button id="rolesSave" type="button" class="primary">Save</button></div>
 </dialog>
-<footer>Jobs come from employers' own hiring systems, Job Bank and job sites that allow it. Job-site listings are shown only when the same job is on the employer's own board.</footer>
+<footer>Jobs come from employers' own hiring systems, Job Bank and job sites that allow it. Job-site listings are shown only when the same job is on the employer's own board, and Apply opens the employer's page.</footer>
 </body>
 </html>

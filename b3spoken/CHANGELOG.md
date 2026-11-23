@@ -1,5 +1,16 @@
 # B3spoken changelog
 
+## Unreleased
+
+### A clearer board (from a tester's review)
+- **Pages instead of an endless list.** 20 jobs a page, with "Showing 21–40 of 108", page numbers and Previous/Next. The view, filters and page are in the address, so reloading or going Back keeps your place.
+- **Apply opens the employer's own page** and says where it goes ("Apply on Greenhouse ↗"). A job found on a job site now links to the employer's posting it was confirmed against, not the job site; jobs from Lever and Ashby open the application form.
+- **Applications have their own place.** Job cards only offer "Mark as applied" and "Not interested". Status, follow-up date and notes are under **My applications** (All, Applied, Interview, Offer, Rejected, Not interested) and **Follow-ups due**.
+- **Every score is explained.** "How this score was worked out" shows the four parts and their points: skills (45), job title (30), level (15) and pay (10). "How matches are scored" above the list explains the levels.
+- **Plain words for the levels**: Strong match, Good match and Long shot (was "Stretch"). The AI's calls read "Worth applying" or "Long shot", and its requirement check is "What they ask for vs. your skills and experience", marked You have it / Partly / Missing.
+- **Skills read the same way everywhere.** Each skill is listed once ("API" and "APIs", "Node" and "Node.js", "Javascript" and "JAVASCRIPT"), spelled the usual way (JavaScript, PostgreSQL), and a skill inside a longer word on your resume counts ("Cybersecurity" covers "security"). Skills show as tags under "On your resume" and "Not on your resume" instead of one long line.
+- **More room and less clutter.** One spacing scale, more space between and inside cards, at most three buttons in a card's main row (the rest are under "More for this job"), and warning boxes used only for real warnings (scam signs, AI traps, errors). The look is written down in `DESIGN.md`.
+
 ## 0.1.19
 
 ### A pop-up when new matches arrive

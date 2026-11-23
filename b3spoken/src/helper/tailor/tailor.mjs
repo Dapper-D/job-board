@@ -617,9 +617,9 @@ export function coverLetter(
   }
   // Opens with the tools and methods the posting asks for that are on the resume. Words like "stakeholders" or
   // "documentation" aren't things a person "brings" or "uses", so they stay out of the sentence.
-  // "APIs" beside "REST APIs" says the same thing twice.
+  // "APIs" beside "REST APIs" says the same thing twice, and a vague word ("security", "cloud") isn't a tool someone brings.
   const tools = (match?.have || [])
-    .filter((t, _, all) => !SOFT_WORD.test(t) && !all.some((o) => o !== t && new RegExp(`(^| )${norm(t).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}( |$)`).test(norm(o))))
+    .filter((t, _, all) => !SOFT_WORD.test(t) && !VAGUE_GAP.test(t) && !all.some((o) => o !== t && new RegExp(`(^| )${norm(t).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}( |$)`).test(norm(o))))
     .slice(0, 4);
   if (tools.length)
     out.push(
