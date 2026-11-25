@@ -83,7 +83,7 @@ export function newestFirst(list) {
 
 // order: optional list of bullet IDs from the AI, best first. Unknown or flagged IDs are ignored.
 // ai: optional checked selection from checkTailored(); when given it decides the summary, skills, entries and bullets.
-export function planResume(lib, job, { order = [], ai = null } = {}) {
+export function planResume(lib, job, { order = [], ai = null, profile = {} } = {}) {
   requireResumeContent(lib);
   const jobText = norm(`${job.title} ${job.description || ""}`);
   const jobTerms = termsIn(
@@ -130,7 +130,12 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
     .filter((g) => g.items.length);
   const expWeight = experience.reduce((n, e) => n + e.weight, 0),
     projWeight = projects.slice(0, 3).reduce((n, e) => n + e.weight, 0);
-  let projectsFirst = projWeight > expWeight * 1.2; // their projects show more of what the job wants
+  // Their projects show more of what the job wants. The bar is lower when the paid work carries almost none of
+  // it: a reader spends their first seconds on whatever is at the top, and that should be the strongest case.
+  // This is about the shape of the evidence, not about who the person is — someone whose paid work fits the job
+  // keeps experience first.
+  const expCarriesLittle = projWeight > 0 && expWeight < projWeight * 0.6;
+  let projectsFirst = projWeight > expWeight * (expCarriesLittle ? 1 : 1.2);
   let summary = lib.summary || "",
     cover = null;
 
@@ -165,7 +170,8 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
     name: lib.contact?.name || "",
     contact: addressFor((lib.contact?.lines || []).slice(0, 2), job), // private build: the job's own city
     headline, // the role sought (used in the summary and file names, never printed as a title held)
-    summary: withSeeking(summary, headline),
+    // Their own sentence about working here, if they wrote one. Never invented from the dropdown alone.
+    summary: [withSeeking(summary, headline), String(profile.workAuthLine || "").trim().replace(/([^.!?])$/, "$1.")].filter(Boolean).join(" "),
     skills,
     experience,
     projects,
@@ -178,8 +184,8 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
 }
 
 // ---- Text with clickable links ----
-// Web addresses and emails in the resume become links. In the header every address is written out in full, so an
-// applicant tracking system reading the text gets the address itself rather than the word "GitHub".
+// Web addresses and emails in the resume become links. In the header, a GitHub (or other non-LinkedIn) address shows
+// as the short word "GitHub"/"Portfolio"; LinkedIn keeps its full address so applicant tracking systems can read it.
 const URL_RE =
   /([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})|((?:https?:\/\/)?(?:www\.)?(?:github\.com|gitlab\.com|linkedin\.com|[a-z0-9-]+\.(?:github\.io|vercel\.app|netlify\.app))(?:\/[^\s|,;()]*)?|https?:\/\/[^\s|,;()]+)/gi;
 const uriFor = (text, email) =>
@@ -217,8 +223,12 @@ export function tokens(text, { header = false } = {}) {
       /(?:GitHub|GitLab|Portfolio|Website|Live|LinkedIn)\s*:\s*$/i.test(
         s.slice(0, m.index),
       );
-    // The header keeps the whole address. "https://" and "www." add nothing a reader or an ATS needs.
-    if (header && !m[1]) shown = addr.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
+    if (header && !alreadyLabelled && !m[1] && !/linkedin\.com/i.test(addr))
+      shown = /git(hub|lab)\.com/i.test(addr)
+        ? /gitlab/i.test(addr)
+          ? "GitLab"
+          : "GitHub"
+        : "Portfolio";
     push({ w: shown + trail, uri: uriFor(addr, !!m[1]) });
     last = m.index + m[0].length;
     glueNext = last < s.length && !/\s/.test(s[last]);
@@ -530,6 +540,34 @@ const iDid = (text) => {
   const t = lowerFirst(text);
   return /^[a-z]+ing\b/.test(t) ? `I am ${t}` : `I ${t}`;
 };
+// For a tool the posting wants and the person doesn't have, the nearest thing they might genuinely have used.
+// Only ever used to name something already on their resume: it never adds a claim, it finds one.
+const NEAREST = [
+  [/^jira$/, ["github issues", "gitlab issues", "trello", "asana", "linear", "azure boards"]],
+  [/^(cloud|aws|azure|gcp|google cloud)$/, ["aws", "azure", "gcp", "google cloud", "github actions", "vercel", "netlify", "heroku", "digitalocean", "render"]],
+  [/^kubernetes$|^k8s$/, ["docker", "containers", "docker compose"]],
+  [/^terraform$/, ["ansible", "cloudformation", "docker"]],
+  [/^(ci\/cd|jenkins)$/, ["github actions", "gitlab ci", "circleci", "travis"]],
+  [/^(postgresql|mysql|oracle)$/, ["postgresql", "mysql", "sqlite", "sql", "mongodb"]],
+  [/^(react|angular|vue)$/, ["react", "angular", "vue", "svelte", "next.js", "javascript", "typescript"]],
+  [/^(siem|splunk|sentinel)$/, ["wireshark", "nmap", "openvas", "metasploit", "kali"]],
+  [/^(scrum|agile|kanban)$/, ["github issues", "sprint", "standup", "jira", "trello"]],
+  [/^(typescript|javascript)$/, ["javascript", "typescript", "node", "react"]],
+];
+const nearestOnPage = (gap, onPage) => {
+  const row = NEAREST.find(([re]) => re.test(norm(gap)));
+  return row ? row[1].find((alt) => norm(alt) !== norm(gap) && onPage.includes(norm(alt))) : undefined;
+};
+
+// The opening clause of a bullet, so the cover letter doesn't read as a copy of the resume.
+// Kept whole when it is already short, or when trimming would leave less than half of it.
+const firstClause = (text) => {
+  const t = String(text || "").trim().replace(/\.$/, "");
+  if (t.length < 90) return t; // already short enough to say in full
+  const cut = t.search(/,\s+(?:and\s+)?(?:including|with|while|which|where)\b|;\s+/);
+  return cut >= 35 ? t.slice(0, cut) : t; // a clause worth saying on its own, not a fragment
+};
+
 // Words a posting uses that aren't tools or methods, and words too vague to name as a gap.
 const SOFT_WORD = /^(stakeholders?|documentation|agile|scrum|project management|customer service|tickets|troubleshooting|requirements|analytics|statistics|dashboards|content|marketing|sales|audit|compliance)$/;
 const VAGUE_GAP = /^(cloud|security|networking|help desk|crm)$/;
@@ -600,7 +638,9 @@ export function coverLetter(
     const place = /,/.test(String(e.heading).split(/,\s*/).slice(1).join(","))
       ? e.heading.split(/,\s*/).slice(1).join(", ")
       : ""; // "Intern, Lagos, Nigeria": a place, not an employer
-    const did = iDid(b.text);
+    // The resume already shows this line. Repeating it whole wastes the letter, so the letter takes the first
+    // clause and the sentence around it carries the rest.
+    const did = iDid(firstClause(b.text));
     points.push(
       e.kind === "projects"
         ? `In my ${name} project, ${did}.`
@@ -641,10 +681,16 @@ export function coverLetter(
       ].map(norm),
     ),
   ].slice(0, 3);
-  if (gaps.length)
+  // Naming a gap is honest and stays. Volunteering "I haven't used this in a paid role" is a line a reader can
+  // reject on, so where the person has used the nearest equivalent, the sentence says that instead.
+  if (gaps.length) {
+    const near = [...new Set(gaps.map((g) => nearestOnPage(g, onPage)).filter(Boolean))].slice(0, 3);
     out.push(
-      `The role also mentions ${andList(gaps.map(pretty))}. I haven't used ${gaps.length > 1 ? "these" : "this"} in a paid role yet, and I'm ready to learn quickly on the job.`,
+      near.length
+        ? `The role also mentions ${andList(gaps.map(pretty))}. The closest I've worked with ${near.length > 1 ? "are" : "is"} ${andList(near.map(pretty))}, and I'd expect to pick ${gaps.length > 1 ? "them" : "it"} up quickly.`
+        : `The role also mentions ${andList(gaps.map(pretty))}, which ${gaps.length > 1 ? "are" : "is"} new to me; I learn tools quickly and would come up to speed on ${gaps.length > 1 ? "them" : "it"} early on.`,
     );
+  }
   out.push(
     `Thank you for your time. I'd welcome the chance to talk about how I can help ${company}.`,
   );

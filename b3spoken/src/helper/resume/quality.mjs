@@ -17,8 +17,13 @@ export function lineNotes(text) {
   if (FIRST_PERSON.test(t)) notes.push({ kind: "first-person", says: "written in the first person; resume lines usually drop I and we" });
   if (t.length > LONG) notes.push({ kind: "long", says: `${t.length} characters, over two printed lines` });
   if (!HAS_NUMBER.test(t)) notes.push({ kind: "no-number", says: "no figure in it; a number makes the result concrete, where you have one" });
+  if (BUILT_WITH_AI.test(t)) notes.push({ kind: "built-with-ai", says: "names the AI tool in the same breath as what you built; readers take that as the tool's work. The tool belongs in Skills" });
   return notes;
 }
+
+// Credit for the work. A reader who sees the tool named in the sentence that says what was built often reads
+// it as the tool's work, which is the opposite of what the line is for. The fact belongs in Skills.
+const BUILT_WITH_AI = /\b(?:with|using|via)\s+(?:the\s+)?(?:help of\s+)?(?:ai[- ]assisted|ai\b|an?\s+ai\b|claude|chatgpt|gpt-?\d*|copilot|gemini|cursor|codex)\b/i;
 
 // Every line in the library, with its notes. Flagged lines are left alone: they are already waiting on the person.
 export function resumeNotes(lib) {
@@ -31,6 +36,21 @@ export function resumeNotes(lib) {
     }
   return out;
 }
+
+// A job with no employer on it. An applicant tracking system files the next word as the company
+// ("Intern, Lagos, Nigeria" becomes a job at Lagos), and a reader wonders what is being left out.
+export function entriesMissingEmployer(lib) {
+  return (lib?.entries || [])
+    .filter((e) => e.kind === "experience" && e.heading)
+    .filter((e) => {
+      const after = String(e.heading).split(/\s*,\s*/).slice(1);
+      // Everything after the comma looks like a place, so no employer was named.
+      return !after.length || after.every((part) => /^[A-Z][a-z]+(?:[ -][A-Z][a-z]+)*$/.test(part.trim()) && PLACEY.test(part.trim()));
+    })
+    .map((e) => e.heading);
+}
+// Words that read as somewhere rather than someone. Deliberately short: a wrong guess here is only a note.
+const PLACEY = /^(?:remote|hybrid|canada|usa|united states|nigeria|india|ontario|quebec|alberta|manitoba|saskatchewan|toronto|vancouver|montreal|calgary|ottawa|lagos|abuja|london|dubai|[A-Z]{2})$/i;
 
 // A short count for the health check: how many lines each note applies to.
 export function noteCounts(lib) {

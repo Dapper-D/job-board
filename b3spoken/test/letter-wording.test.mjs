@@ -52,10 +52,21 @@ test('gaps name concrete tools only, and never something the resume covers under
   const { m, text } = letterFor(DEV);
   assert.ok(m.have.includes('security'), `the diploma in Cybersecurity is security experience; have: ${m.have}`);
   assert.ok(m.missing.includes('cloud'), `missing: ${m.missing}`);
-  const gap = text.split('\n').find((p) => /haven't used/.test(p)) || '';
+  const gap = text.split('\n').find((p) => /also mentions/.test(p)) || '';
   assert.match(gap, /Jira/); assert.match(gap, /Kafka/);
   assert.doesNotMatch(gap, /security/i); // the resume says Cybersecurity
   assert.doesNotMatch(gap, /cloud/i); // too vague to be a gap
+  assert.doesNotMatch(gap, /haven't used|in a paid role/i); // never hand a reader a reason to stop reading
+});
+
+test('a gap is answered with the nearest thing the person really has used', () => {
+  const lib = buildLibrary(`Jo Lee\njo@example.com\nSKILLS\nPython, GitHub Issues, Docker\nEXPERIENCE\nDeveloper, Acme, 2023 - 2024\n- Shipped a Python service.\nEDUCATION\nBSc, 2022`);
+  const m = scoreJob({ title: 'Developer', company: 'Beta', description: 'Python, Jira and Kubernetes.' }, makeContext(lib, libraryText(lib), profile, ['Software Developer']));
+  const text = coverLetter(planResume(lib, { title: 'Developer', company: 'Beta', description: 'Python, Jira and Kubernetes.' }), { title: 'Developer', company: 'Beta', description: 'Python, Jira and Kubernetes.' }, m, {}, new Date(2026, 10, 16)).paragraphs.join('\n');
+  const gap = text.split('\n').find((p) => /also mentions/.test(p)) || '';
+  assert.match(gap, /closest I've worked with/);
+  assert.match(gap, /GitHub Issues|Docker/i); // both are on this resume; neither is claimed as the thing asked for
+  assert.doesNotMatch(gap, /haven't used/i);
 });
 
 test('the work closest to the job comes first: projects lead when the resume plan puts projects first', () => {

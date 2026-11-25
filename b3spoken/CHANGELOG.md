@@ -2,6 +2,14 @@
 
 ## 0.1.20 (private build)
 
+### From a recruiter screen of real generated documents
+- **Projects lead when your paid work isn't in the job's line of work.** A reader spends their first seconds on whatever is at the top; for a developer job, a resume whose paid roles are IT support was putting its weakest evidence first. Where the paid work carries the job's requirements, it still leads.
+- **The cover letter no longer repeats a resume line word for word.** Its opening paragraph was a verbatim copy of the bullets, so anyone who read the resume had already read the letter. It now takes the opening clause and says the rest in its own words.
+- **A gap is answered with what you have actually used.** The letter used to say "I haven't used these in a paid role yet", handing a reader a reason to stop. Where your resume shows the nearest equivalent (GitHub Issues for Jira, Docker for Kubernetes, GitHub Actions for cloud, and so on) it names that instead. Where there is no equivalent, it still says the gap plainly — it just doesn't volunteer that the work was unpaid.
+- **You can put one line about working here on your resume**, in your own words, in Edit setup. Recruiters look for it and its absence stalls applications. B3spoken suggests nothing from your dropdown answer on its own and prints nothing unless you write it.
+- **The Health check flags a job with no employer on it.** "Intern, Lagos, Nigeria" is filed by an applicant tracking system as a job at a company called Lagos, and a reader wonders what's missing.
+- **It also flags a line that credits an AI tool for the work** ("built X with AI-assisted development"). Readers take that as the tool's work; the tool belongs in your skills.
+
 ### Matching: wrong calls found by auditing the real job pool
 - **"Cybersecurity" on your resume now counts as security experience.** It didn't, because the matcher needs a word break, so 225 of 499 board cards told you "Not on your resume: Security" — 36 of them while also saying "You have… cybersecurity". Fixing it moves real jobs: a Security Compliance Analyst in Burnaby from Good to Strong, and 44 jobs over the line where documents are made ahead.
 - **A job is no longer hidden because of a slash or a comma in its title.** "Systems Support/Data Analyst" was read as one word and dropped below the field gate; "Technician, Staging and Support" was filed under trades. Both are Vancouver jobs above the pay floor.

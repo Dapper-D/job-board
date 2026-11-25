@@ -44,7 +44,7 @@ import { makeContext, scoreJob, yearsOfExperience } from "./tailor/match.mjs";
 import { checkLink } from "./paste.mjs";
 import { VERSION } from "./version.mjs";
 import { findContacts, draftEmail } from "./contacts.mjs";
-import { noteCounts } from "./resume/quality.mjs";
+import { noteCounts, entriesMissingEmployer } from "./resume/quality.mjs";
 import { addressFor } from "./places.mjs";
 import {
   findKits,
@@ -582,7 +582,7 @@ export function createApp(
         }
       }
     }
-    const plan = planResume(lib, job, { order, ai });
+    const plan = planResume(lib, job, { order, ai, profile: ob.profile() });
     const letter = coverLetter(plan, job, match, prof);
     const folder = join(
       dir,
@@ -1005,7 +1005,7 @@ export function createApp(
       writeJson(cacheFile, cache);
     }
     const lib = ob.library();
-    const plan = lib?.entries ? planResume(lib, job) : null;
+    const plan = lib?.entries ? planResume(lib, job, { profile: ob.profile() }) : null;
     return {
       ...found,
       hunter: !!readJson(secretsFile, {}).hunterKey,
@@ -1177,6 +1177,7 @@ export function createApp(
           c["first-person"] && `${c["first-person"]} use I or we`,
           c.long && `${c.long} run longer than two printed lines`,
           c["no-number"] && `${c["no-number"]} have no figure in them`,
+          c["built-with-ai"] && `${c["built-with-ai"]} name an AI tool alongside what you built`,
         ].filter(Boolean);
         add(
           say.length ? "WARN" : "PASS",
@@ -1189,6 +1190,14 @@ export function createApp(
             : "",
         );
       }
+      const noEmployer = lib?.entries ? entriesMissingEmployer(lib) : [];
+      if (noEmployer.length)
+        add(
+          "WARN",
+          "Jobs with no employer",
+          `${noEmployer.length === 1 ? "One job names" : `${noEmployer.length} jobs name`} no employer: ${noEmployer.slice(0, 2).join("; ")}.`,
+          "Applicant tracking systems file the next word as the company, so \u201cIntern, Lagos, Nigeria\u201d becomes a job at Lagos. Add the employer in Edit setup.",
+        );
       add(
         prof.done ? "PASS" : "FAIL",
         "Your answers",

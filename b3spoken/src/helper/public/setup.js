@@ -388,6 +388,7 @@ const FIELDS = [
   "cities",
   "remote",
   "workAuth",
+  "workAuthLine",
   "startDate",
   "missingSkills",
   "avoidIndustries",
