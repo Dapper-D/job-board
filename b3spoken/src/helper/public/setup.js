@@ -137,15 +137,26 @@ function aiButtons(id, info) {
   return box;
 }
 
+// Whether the person already has Claude Code or Codex is only known once B3spoken has looked. On a fresh
+// install nothing has looked yet, so without this the step tells someone with Claude installed that they
+// haven't got it. Looked for once per visit to this step; the answer is kept for the redraws after that.
+let aiLooked = false;
 async function drawAi() {
+  if (!aiLooked) {
+    aiLooked = true;
+    api("/api/ai/detect", { method: "POST" }).then(drawAi).catch(() => {});
+  }
   const s = await api("/api/status");
   const chrome = "LanguageModel" in self;
+  const looking = !s.ai; // B3spoken hasn't looked yet, which is not the same as "you don't have it"
   const status = (info) =>
-    info?.working
-      ? `Installed (${info.version}). `
-      : info?.installed
-        ? "Installed. "
-        : "Not installed yet. ";
+    looking
+      ? "Checking whether you already have it\u2026 "
+      : info?.working
+        ? `Installed (${info.version}). `
+        : info?.installed
+          ? "Installed. "
+          : "Not installed yet. ";
   const options = [
     ["codex", "ChatGPT (Codex)", `${status(s.ai?.codex)}${PLANS.codex}`, true],
     [
