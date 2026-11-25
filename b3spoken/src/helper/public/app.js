@@ -74,6 +74,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function trackerControls(j) {
   const box = el("div", "track");
+  box.hidden = true;
   const t = j.track || {};
   const sel = el("select");
   sel.setAttribute("aria-label", "Status");
@@ -136,7 +137,20 @@ function trackerControls(j) {
   more.open = !!t.notes;
   more.append(el("summary", null, "Notes"), notes);
   box.append(lab("Status", sel), lab("Follow up on", date), due, more);
-  return box;
+  // A card shows the job and its documents. Tracking lives behind one button, and the tabs along the top
+  // are where you look at everything you've applied to.
+  const wrap = el("div", "trackwrap");
+  const open = el("button", "small track-open", t.status || t.notes ? "Tracking" : "Track this");
+  open.type = "button";
+  open.setAttribute("aria-expanded", "false");
+  open.addEventListener("click", () => {
+    box.hidden = !box.hidden;
+    open.setAttribute("aria-expanded", String(!box.hidden));
+  });
+  if (!t.status && !t.notes) wrap.append(open);
+  else box.hidden = false; // already tracked: leave it in view
+  wrap.append(box);
+  return wrap;
 }
 async function showReadyDocs() {
   const t = await api("/api/tracker");

@@ -3,6 +3,9 @@
 ## 0.1.20 (private build)
 
 ### From a reviewer's feedback
+- **Tracking folded away.** A card is about the job and its documents; the status and follow-up controls now sit behind a "Track this" button, and the tabs along the top remain the place to see everything you've applied to. Jobs you're already tracking keep theirs open.
+- **B3spoken has a DESIGN.md.** One place that says what the colours, spacing, type and three box shapes are for, so the look stays consistent whoever (or whatever) edits it next. Written in the format AI coding tools read.
+- **Keyboard focus is always visible**, as a ring in the accent colour, and the app now honours "reduce motion".
 - **The board says what its words mean.** A "What the labels mean" key above the list explains Strong, Good and Stretch, and says which number is which: the 0–100 score B3spoken works out itself, or your AI's tech and fit marks out of 10. Hovering a label on a card explains it too.
 - **Buttons tell the truth.** A job whose source gives only the posting now says "View posting" instead of "Apply", since the employer's own Apply button is on that page.
 - **"What they ask for, and your evidence" is now "…and what your resume shows."**
