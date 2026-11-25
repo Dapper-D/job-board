@@ -4,7 +4,7 @@
 #   1. Checks Node.js 22 or newer is installed (it tells you how to install it if not).
 #   2. Adds a launcher: Linux: ~/.local/share/applications/b3spoken.desktop; Mac: ~/Applications/B3spoken.command
 #      Both run: node "<this folder>/b3spoken/src/helper/main.mjs"
-#   3. Starts B3spoken, which opens in your browser at http://127.0.0.1:4748  (add --no-launch to skip)
+#   3. Starts B3spoken, which opens in your browser at http://127.0.0.1:4747  (add --no-launch to skip)
 # Your own files are kept in ~/Library/Application Support/B3spoken (Mac) or ~/.local/share/b3spoken (Linux).
 # To remove it: bash uninstall.sh.  This is NOT the old Job Hunt Kit setup (that one lives on the main branch).
 set -u

@@ -1,6 +1,6 @@
 # B3spoken changelog
 
-## 0.1.20 (private build)
+## 0.1.20
 
 ### From a recruiter screen of real generated documents
 - **Every address in your header is written out in full.** It showed the word "GitHub" with the address hidden in the link, so an applicant tracking system reading the text got no address at all, while LinkedIn's was spelled out. For someone whose strongest evidence is public repositories, that link is the most valuable thing in the header.
@@ -52,9 +52,6 @@
 ### Security
 - **An IPv4 address hidden inside an IPv6 one is blocked however it is written.** `::ffff:7f00:1` (127.0.0.1 in hex), `0:0:0:0:0:ffff:7f00:1`, `::ffff:0:7f00:1` and `::7f00:1` all got past the check that stops B3spoken fetching private or local addresses; only the dotted form was recognised. Found by a reviewer reading the source.
 
-- **Runs beside the public B3spoken instead of opening it.** The private build now uses port 4748 (the public one keeps 4747), installs to its own folder as "B3spoken (Private)", and keeps its own resume, answers, tracker and documents in `%LOCALAPPDATA%\B3spoken-Private`. Before this, starting it while the public app was running handed you the public app, because both read the same "already running" note.
-- The installer is now `B3spoken-Private-Setup-<version>.exe`, so it no longer replaces the public install and is easy to tell apart in your Downloads folder.
-- Installing this version does not carry over the resume and answers from the public app; set them up once in the private one.
 
 ## 0.1.19 (private build)
 

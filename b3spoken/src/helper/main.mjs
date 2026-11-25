@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // B3spoken helper: start it, and the board opens in the browser at http://127.0.0.1:<port>/.
-//   node src/helper/main.mjs [--port 4748] [--no-open] [--offline]
-// Private build: port 4748 and its own data folder, so it runs beside the public B3spoken (4747).
+//   node src/helper/main.mjs [--port 4747] [--no-open] [--offline]
 // On start it checks for a newer job pool (and verifies it), loads Job Bank for the last 14 days,
 // and looks for ChatGPT (Codex) or Claude (Claude Code) on this computer.
 import { createHash } from "node:crypto";
@@ -45,7 +44,6 @@ import { checkLink } from "./paste.mjs";
 import { VERSION } from "./version.mjs";
 import { findContacts, draftEmail } from "./contacts.mjs";
 import { noteCounts, entriesMissingEmployer } from "./resume/quality.mjs";
-import { addressFor } from "./places.mjs";
 import {
   findKits,
   readKit,
@@ -245,7 +243,7 @@ export function createApp(
   const documentStamp = () =>
     createHash("sha256")
       .update(
-        "resume-layout-v2|job-city-address|" +
+        "resume-layout-v2|" +
           JSON.stringify(ob.library()) +
           "|" +
           JSON.stringify(ob.profile()),
@@ -1010,7 +1008,7 @@ export function createApp(
       ...found,
       hunter: !!readJson(secretsFile, {}).hunterKey,
       draft: draftEmail(
-        { name: lib?.contact?.name || "", contact: addressFor(lib?.contact?.lines || [], job) },
+        { name: lib?.contact?.name || "", contact: lib?.contact?.lines || [] },
         job,
         plan,
         found.contacts?.[0],
@@ -1647,7 +1645,7 @@ function openBrowser(url) {
 // Starts the helper. If one is already running on this computer, just opens the board again.
 export async function start(argv = process.argv.slice(2)) {
   const flag = (n) => argv.includes(n);
-  const portArg = Number(argv[argv.indexOf("--port") + 1]) || 4748;
+  const portArg = Number(argv[argv.indexOf("--port") + 1]) || 4747;
   const dir = ensureDir(dataDir());
   const running = readJson(join(dir, "helper.json"), null);
   if (running?.port && !flag("--new")) {

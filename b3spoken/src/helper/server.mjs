@@ -119,7 +119,7 @@ export function createServer(app, { token = randomBytes(24).toString('base64url'
   });
   return {
     server, token,
-    listen(wanted = 4748) { // private build (the public one uses 4747)
+    listen(wanted = 4747) {
       return new Promise((resolve, reject) => {
         const tryPort = p => {
           server.once('error', e => (e.code === 'EADDRINUSE' && p !== 0 ? tryPort(p === wanted + 9 ? 0 : p + 1) : reject(e)));
