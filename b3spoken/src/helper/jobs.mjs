@@ -34,7 +34,10 @@ export const PROVINCES = Object.keys(PROVINCE_NAMES);
 // In the province by its name, its code ("Burnaby, BC") or one of its cities ("Burnaby, Canada", "Toronto Office").
 export function inProvince(job, code) {
   if (!PROVINCE_NAMES[code]) return true;
-  return provincesOf(job.location).has(code);
+  const where = provincesOf(job.location);
+  // A posting that names no province ("Canada Off-Site", "2 Locations", or nothing at all) might well be
+  // in this one. Hiding it loses real jobs, so it stays and the person decides.
+  return where.size ? where.has(code) : true;
 }
 
 // Filters for the board. Every filter is optional.

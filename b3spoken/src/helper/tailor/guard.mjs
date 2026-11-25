@@ -7,14 +7,27 @@ const PATTERNS = [
   new RegExp(String.raw`\b(?:ai|llm|language model|chat\s?gpt|gpt|ai (?:assistant|agent|tool|model|system)|bots?)s?\b[^.!?\n]{0,60}\b(?:must|should|please|need to|are (?:required|asked) to)\s+(?:include|mention|use|add|insert|write|start|end|reference|say|respond)\b`, 'i'),
   new RegExp(String.raw`\b(?:ignore|disregard)\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier|other)\s+(?:instructions|directions|prompts?)`, 'i'),
   new RegExp(String.raw`\b(?:note|instructions?|message)\s+(?:to|for)\s+${AI}\b`, 'i'), // "Note to AI: …"
+  new RegExp(String.raw`\b(?:forget|disregard|override|replace)\s+(?:all\s+|any\s+|the\s+)?(?:above|previous|prior|earlier|preceding|system)\b`, 'i'),
+  new RegExp(String.raw`\bnew\s+(?:rules?|instructions?|directions?)\b|\bhighest\s+priority\b|\bthese\s+instructions\s+(?:take|override)\b`, 'i'),
+  new RegExp(String.raw`\b(?:any|every|all)\s+(?:automated|ai)\s+(?:tool|system|agent|assistant|reader)s?\b[^.!?]{0,80}\b(?:must|should|shall|is required to|are required to)\b`, 'i'),
 ];
+
+// Trap text is written to slip past a plain match: it wraps across lines, hides zero-width characters inside
+// "AI", or uses fullwidth letters. Fold all of that away before looking.
+const fold = (t) =>
+  String(t || '')
+    .normalize('NFKC')
+    .replace(/[\u200b-\u200d\u2060\ufeff\u00ad]/g, '')
+    .replace(/<!--|-->/g, ' ')
+    .replace(/\s+/g, ' ');
 
 // Returns { instruction, phrases } when the posting has one, otherwise null.
 // phrases: quoted words in the instruction (the "tell" the employer looks for), which must never be written.
 export function findAiTrap(text) {
-  const t = String(text || '');
-  if (!/\b(?:ai|a\.i\.|artificial|llm|language model|gpt|claude|gemini|copilot|bot|chatbot|ignore|disregard)s?\b/i.test(t)) return null;
-  for (const sentence of t.split(/(?<=[.!?])\s+|\n+/)) {
+  const t = fold(text);
+  // A quick gate, so a normal posting costs one regex. It has to name every trigger the patterns below use.
+  if (!/\b(?:ai|a\.i\.|artificial|llm|language model|gpt|claude|gemini|copilot|bot|chatbot|ignore|disregard|forget|override|automated|instructions?|priority|rules)s?\b/i.test(t)) return null;
+  for (const sentence of t.split(/(?<=[.!?])\s+/)) { // newlines are already folded to spaces
     if (!PATTERNS.some(p => p.test(sentence))) continue;
     const instruction = sentence.replace(/\s+/g, ' ').trim().slice(0, 300);
     const phrases = [...instruction.matchAll(/["“‘']([^"”’']{2,60})["”’']/g)].map(m => m[1].trim()).filter(Boolean);

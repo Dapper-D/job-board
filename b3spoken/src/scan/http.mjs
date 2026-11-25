@@ -1,6 +1,7 @@
 // The only way scanners reach the internet.
 // - HTTPS only, to hosts the source declares, with redirects checked the same way.
-// - Every address is looked up first and private / local addresses are refused;
+// - Every address is checked before connecting, by name (through the DNS hook) or as a literal, and
+//   private / local addresses are refused;
 //   the connection then uses that same checked address (no second lookup).
 // - Size and time limits, polite per-host spacing, retries on 429 and 5xx.
 import https from 'node:https';
@@ -78,6 +79,11 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = MAX_BYTES, ecdhCurve }) {
   return new Promise((resolve, reject) => {
+    // A host written as an address ("https://127.0.0.1/", "https://[::1]/") never reaches the lookup hook
+    // below, because there is nothing to look up. Check it here, on every hop including redirects.
+    const literal = new URL(url).hostname.replace(/^\[|\]$/g, '');
+    if (net.isIP(literal) && isBlockedIp(literal))
+      return reject(Object.assign(new Error(`${literal} is a private or reserved address`), { code: 'EBLOCKED' }));
     const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs, ...(ecdhCurve ? { ecdhCurve } : {}) }, res => {
       const chunks = []; let size = 0;
       res.on('data', c => {

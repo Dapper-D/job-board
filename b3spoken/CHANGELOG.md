@@ -2,6 +2,23 @@
 
 ## 0.1.20 (private build)
 
+### Matching: wrong calls found by auditing the real job pool
+- **"Cybersecurity" on your resume now counts as security experience.** It didn't, because the matcher needs a word break, so 225 of 499 board cards told you "Not on your resume: Security" — 36 of them while also saying "You have… cybersecurity". Fixing it moves real jobs: a Security Compliance Analyst in Burnaby from Good to Strong, and 44 jobs over the line where documents are made ahead.
+- **A job is no longer hidden because of a slash or a comma in its title.** "Systems Support/Data Analyst" was read as one word and dropped below the field gate; "Technician, Staging and Support" was filed under trades. Both are Vancouver jobs above the pay floor.
+- **Pay is read correctly.** The "Mo" in "Montreal" was being read as "month" and multiplied by twelve, which is how a support job came to claim "$1,080,000 a year". A posting stating both a US and a Canadian range now shows the Canadian one.
+- **Jobs that name no province are no longer hidden by the province filter.** "Canada Off-Site", "2 Locations" and postings with no location at all were dropped: 43 of 499 in one day, including the highest-scoring job on the board.
+
+### Security
+- **An address written as a literal can no longer reach a private or local service.** The check that blocks loopback and LAN addresses only ran for hostnames needing a DNS lookup, so a posting carrying `https://127.0.0.1/…` or a cloud metadata address went straight through. Now checked on every request and every redirect hop.
+- **The AI-trap detector catches what it was missing.** A trap sentence wrapped across two lines defeated it entirely, as did a zero-width character inside "AI", fullwidth letters, an HTML comment, and the common "new rules, highest priority" and "forget the above" shapes.
+- **Nothing a posting writes can pose as B3spoken's own instructions.** The trap sentence is quoted into the AI prompt as evidence; a crafted posting could close the quote and carry on as though it were us. It is now fenced and stripped of quote marks.
+- **The honesty check covers the whole cover letter.** It only read the summary, the proof paragraph and the bullets, so a claim planted in the opening, the "why this company" or the closing was never checked. It also treated any number appearing in the posting as if it were on your resume. Both fixed, and degrees, certifications and clearances are now checked too.
+
+### Board
+- **An empty board says why.** Nothing matched, or the helper couldn't be reached — before, both looked like a quiet day. A failed load no longer kills the refresh loop for the rest of the session.
+- **Readable in dark mode.** The Apply button was white on light blue, 2.49:1 — below any accessibility floor. Now 7.34:1.
+- Keyboard focus survives Windows high-contrast mode, the tabs tell a screen reader which one is selected, the list announces when it changes, and moving a job no longer throws keyboard focus to the top of the page.
+
 ### Resumes
 - **Section headings applicant tracking systems recognise.** "Key Projects" is now "Projects", "Certifications & Training" is "Certifications", and "Other" is "Additional Experience". Published ATS guidance is consistent that non-standard section names are a common reason a section is read as nothing.
 - **Section headings never shrink below 11pt**, even when the body drops to 9.5pt to hold one page.

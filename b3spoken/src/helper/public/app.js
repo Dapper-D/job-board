@@ -114,8 +114,13 @@ function trackerControls(j) {
     if (!inView(r)) {
       const li = box.closest("li.job");
       li?.classList.add("leaving");
-      li?.append(el("p", "tip", `Moved to ${tabName(r.status)}.`));
-      setTimeout(() => li?.remove(), 1500);
+      const next = li?.nextElementSibling;
+      $("count").textContent = `Moved to ${tabName(r.status)}. ${$("count").textContent}`;
+      setTimeout(() => {
+        li?.remove();
+        // Keep the keyboard where the person was, instead of dropping them at the top of the document.
+        (next?.querySelector("a, button, select") || $("count")).focus?.();
+      }, 1500);
     }
     loadCounts();
     due.hidden = !(
@@ -932,13 +937,43 @@ function drawPrep(box, p) {
   box.append(ul);
 }
 
+// A note in place of the list: nothing matched, or the helper couldn't be reached. Either way the person is told,
+// because a silently empty board looks exactly like a quiet day.
+function listNote(text, action) {
+  const box = el("div", "problems");
+  box.append(el("span", null, text));
+  if (action) {
+    const b = el("button", "small", action.label);
+    b.type = "button";
+    b.addEventListener("click", action.run);
+    box.append(document.createTextNode(" "), b);
+  }
+  const li = el("li");
+  li.append(box);
+  return li;
+}
+
+const DEFAULTS = { province: "", remote: "", age: "3", minLabel: "", q: "" };
+const activeFilters = () =>
+  Object.entries(DEFAULTS).filter(([id, def]) => ($(id)?.value ?? def) !== def).map(([id]) => id);
+
 async function load(reset = true) {
   if (reset) {
     offset = 0;
     $("list").replaceChildren();
     cardFiles.clear();
   }
-  const r = await api(`/api/jobs?${query(view, offset, 50)}`);
+  let r;
+  try {
+    r = await api(`/api/jobs?${query(view, offset, 50)}`);
+  } catch (e) {
+    $("list").replaceChildren(
+      listNote(`Couldn't load your jobs (${e.message}).`, { label: "Try again", run: () => load(reset) }),
+    );
+    $("count").textContent = "";
+    $("more").hidden = true;
+    return;
+  }
   r.jobs.forEach((j) => $("list").append(card(j)));
   offset += r.jobs.length;
   if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
@@ -951,6 +986,21 @@ async function load(reset = true) {
   if (view) loadCounts();
   else showCounts(r.counts, r.total);
   $("more").hidden = offset >= r.total;
+  if (!r.total && reset) {
+    const on = activeFilters();
+    $("list").replaceChildren(
+      listNote(
+        on.length
+          ? "No jobs match those filters."
+          : view
+            ? "Nothing in this tab yet."
+            : "No new jobs today. B3spoken looks again every morning.",
+        on.length
+          ? { label: "Clear filters", run: () => { for (const [id, def] of Object.entries(DEFAULTS)) if ($(id)) $(id).value = def; load(); } }
+          : null,
+      ),
+    );
+  }
 }
 
 async function status() {
@@ -1257,7 +1307,7 @@ async function poll() {
   const s = await status().catch(() => null);
   if (s && !s.refreshing) {
     shownWhileRefreshing = false;
-    await load();
+    await load().catch(() => {}); // a failed load must not stop the loop
     return;
   }
   if (s?.scores && !shownWhileRefreshing) {
@@ -1312,8 +1362,13 @@ async function init() {
   for (const b of document.querySelectorAll(".tabs button"))
     b.addEventListener("click", () => {
       view = b.dataset.view;
-      for (const x of document.querySelectorAll(".tabs button"))
+      for (const x of document.querySelectorAll(".tabs button")) {
         x.classList.toggle("on", x === b);
+        if (x === b) x.setAttribute("aria-current", "true");
+        else x.removeAttribute("aria-current");
+      }
+      // Tracked tabs ignore the filters (see jobs.mjs), so the filter row is hidden there, but search and sort
+      // still work and a long Applied list is unusable without them.
       document.querySelector(".filters").hidden = !!view;
       load();
     });

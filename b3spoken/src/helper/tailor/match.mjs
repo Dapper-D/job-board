@@ -13,6 +13,9 @@ react angular vue next.js node node.js express django flask fastapi spring .net 
 postgresql mysql mongodb redis elasticsearch kafka rabbitmq spark airflow dbt snowflake bigquery databricks pandas numpy
 aws azure gcp cloud docker kubernetes terraform ansible jenkins github actions gitlab ci/cd linux unix git jira
 pytest jest selenium playwright cypress unit testing automated testing qa
+cissp cisa cism comptia security+ network+ a+ ccna ccnp ceh oscp pmp itil aws certified azure certified
+bachelor bachelors master masters mba phd doctorate diploma degree certification certified licence license
+clearance security clearance top secret secret reliability status nato enhanced
 machine learning llm openai anthropic gemini prompt engineering nlp pytorch tensorflow
 security cybersecurity siem splunk sentinel soc incident response vulnerability nessus openvas nmap metasploit burp firewall iam
 active directory entra okta zero trust iso 27001 soc 2 nist pci risk compliance audit governance
@@ -78,9 +81,10 @@ export function termsIn(textNorm, extra = []) {
 export const USD_TO_CAD = 1.37;
 const CUR = String.raw`(?:(CA|C|CAD|US|USD|AU|A)\s?\$|\$|(CAD|USD)\s+)`;
 const NUM = String.raw`(\d+(?:\.\d+)?)\s?(k|K)?(?!\s?(?:million|billion|mm?\b|bn?\b))`;
-const UNIT = String.raw`(?:\s*(?:CAD|USD))?\s*(?:(?:per|an|a|\/|-)\s*|per-)?(hour|hr|year|yr|annum|month|mo|week|wk|hourly|annually|annual|yearly|monthly|weekly|(?:per-)?hour-wage|(?:per-)?year-salary)?`;
+const UNIT = String.raw`(?:\s*(?:CAD|USD))?\s*(?:(?:per|an|a|\/|-)\s*|per-)?(hour|hr|year|yr|annum|month|mo|week|wk|hourly|annually|annual|yearly|monthly|weekly|(?:per-)?hour-wage|(?:per-)?year-salary)?\b`;
 const PAY_RE = new RegExp(`${CUR}\\s?${NUM}(?:\\s*(?:-|–|—|to)\\s*${CUR}?\\s?${NUM})?(?:\\s*(CAD|USD))?${UNIT}`, 'gi');
 export function parsePay(text, { salaryField = false } = {}) {
+  let usdFallback = null;
   // "77,800" and "1,200" lose their thousands commas; "60,000,00" and "140,00" (a cents slip) lose the ",00".
   const s = String(text || '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d),\d{1,2}(?!\d)/g, '$1').replace(/(\d),(?!\d)/g, '$1');
   for (const m of s.matchAll(PAY_RE)) {
@@ -96,9 +100,12 @@ export function parsePay(text, { salaryField = false } = {}) {
     let min = a * f, max = b * f;
     if (usd) { min *= USD_TO_CAD; max *= USD_TO_CAD; }
     if (min < 15000 || max > 1500000 || max / Math.max(min, 1) > 4) continue; // a placeholder or a stray number, not pay
-    return { min: Math.round(min), max: Math.round(max), unit: unit === 'hour' ? 'hour' : 'year', ...(usd ? { currency: 'USD' } : {}) };
+    const found = { min: Math.round(min), max: Math.round(max), unit: unit === 'hour' ? 'hour' : 'year', ...(usd ? { currency: 'USD' } : {}) };
+    // Many postings state the US range first and the Canadian one after. The Canadian figure is this job's pay.
+    if (!usd) return found;
+    usdFallback = usdFallback || found;
   }
-  return null;
+  return usdFallback;
 }
 
 // Years of work experience from the library's experience dates.
@@ -203,8 +210,20 @@ const OTHER_TRADE = [
   ["sales", /\bsales (specialist|associate|representative|rep|executive|manager|consultant|advisor)\b|\baccount executive\b/],
   ["engineering", /\b(cryogenic|mechanical|electrical|civil|chemical|structural|hydraulic|geotechnical|mining|aerospace|avionics)\b.*\bengineer/],
 ];
+// "Analyst, Business Systems" is how a lot of Canadian employers write "Business Systems Analyst".
+const flipComma = (t) => {
+  const bits = String(t).split(/\s*,\s*/);
+  return bits.length === 2 && bits.every((b) => b.trim()) ? `${bits[1]} ${bits[0]}` : "";
+};
 export const familiesOf = (text) => {
-  const t = norm(text).replace(/\bcustomer service desk\b/g, "customer service");
+  const direct = familiesOfOne(text);
+  const flipped = flipComma(text);
+  if (!flipped) return direct;
+  const both = [...new Set([...direct, ...familiesOfOne(flipped)])];
+  return both.length > 1 ? both.filter((f) => f !== "trades" || both.length === 1) : both;
+};
+const familiesOfOne = (text) => {
+  const t = norm(text).replace(/\bcustomer service desk\b/g, "customer service").replace(/\//g, " ");
   if (FAMILIES.education.test(t)) return ["education"];
   if (GUARDING.test(t) && !CYBER.test(t)) return ["protective"];
   for (const [family, re] of OTHER_TRADE) if (re.test(t)) return [family];
@@ -330,10 +349,9 @@ export function scoreJob(job, ctx) {
   // Skills
   const wanted = termsIn(text, ctx.skills);
   // "API" and "APIs" are the same skill.
-  const onResume = (t) =>
-    has(ctx.resumeNorm, t) ||
-    has(ctx.resumeNorm, `${t}s`) ||
-    (t.endsWith("s") && has(ctx.resumeNorm, t.slice(0, -1)));
+  // "Cybersecurity" on a resume is security experience; has() needs a word break, so it would miss it.
+  const forms = (t) => [t, `${t}s`, ...(t.endsWith("s") ? [t.slice(0, -1)] : []), `cyber${t}`, `info${t}`];
+  const onResume = (t) => forms(t).some((f) => has(ctx.resumeNorm, f));
   const have = wanted.filter(onResume);
   const missing = wanted.filter((t) => !onResume(t));
   // One matching word out of one isn't a strong signal, so a posting has to name at least 4 skills to score full marks.
@@ -357,7 +375,7 @@ export function scoreJob(job, ctx) {
     );
   // Title vs the roles they're searching for
   const titleN = norm(job.title);
-  const titleWords = new Set(titleN.split(" "));
+  const titleWords = new Set(titleN.split(/[\s/]+/).filter(Boolean)); // "Support/Data Analyst" is two words, not one
   // Field: the job's title has to belong to one of the families the person's roles are in (or closely match a role).
   const mine = [...new Set(ctx.roles.flatMap(familiesOf))];
   const titleFit = Math.max(

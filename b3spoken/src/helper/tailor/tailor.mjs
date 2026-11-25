@@ -178,8 +178,8 @@ export function planResume(lib, job, { order = [], ai = null } = {}) {
 }
 
 // ---- Text with clickable links ----
-// Web addresses and emails in the resume become links. In the header, a GitHub (or other non-LinkedIn) address shows
-// as the short word "GitHub"/"Portfolio"; LinkedIn keeps its full address so applicant tracking systems can read it.
+// Web addresses and emails in the resume become links. In the header every address is written out in full, so an
+// applicant tracking system reading the text gets the address itself rather than the word "GitHub".
 const URL_RE =
   /([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})|((?:https?:\/\/)?(?:www\.)?(?:github\.com|gitlab\.com|linkedin\.com|[a-z0-9-]+\.(?:github\.io|vercel\.app|netlify\.app))(?:\/[^\s|,;()]*)?|https?:\/\/[^\s|,;()]+)/gi;
 const uriFor = (text, email) =>
@@ -217,12 +217,8 @@ export function tokens(text, { header = false } = {}) {
       /(?:GitHub|GitLab|Portfolio|Website|Live|LinkedIn)\s*:\s*$/i.test(
         s.slice(0, m.index),
       );
-    if (header && !alreadyLabelled && !m[1] && !/linkedin\.com/i.test(addr))
-      shown = /git(hub|lab)\.com/i.test(addr)
-        ? /gitlab/i.test(addr)
-          ? "GitLab"
-          : "GitHub"
-        : "Portfolio";
+    // The header keeps the whole address. "https://" and "www." add nothing a reader or an ATS needs.
+    if (header && !m[1]) shown = addr.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
     push({ w: shown + trail, uri: uriFor(addr, !!m[1]) });
     last = m.index + m[0].length;
     glueNext = last < s.length && !/\s/.test(s[last]);
@@ -966,11 +962,15 @@ export function checkTailored(raw, lib, profile = {}, job = {}) {
     };
   }
 
-  // What the draft says about the person (the hook, why and close talk about the company; the gap names missing skills honestly).
+  // Everything the draft says, checked. The hook, why and close are mostly about the company, but a claim about
+  // the person can be made anywhere, so none of it is exempt.
   const aboutThem = norm(
     [
       tailored.summary,
+      cover.hook,
       cover.proof,
+      cover.why,
+      cover.close,
       ...cover.bullets.map((b) => b.label + " " + b.text),
     ].join(" "),
   );
@@ -1000,13 +1000,10 @@ export function checkTailored(raw, lib, profile = {}, job = {}) {
       tailored: null,
       problem: `it names "${tool}", which isn't on the resume`,
     };
-  const jobText = norm(
-    `${job.title || ""} ${job.company || ""} ${job.description || ""}`,
-  );
+  // A figure has to come from the person's own resume. The posting is written by someone else, so a number
+  // appearing there is no reason to put it in their documents.
   const number = (aboutThem.match(/\d[\d,.]*%?/g) || []).find(
-    (n) =>
-      !libText.includes(n.replace(/[.,]$/, "")) &&
-      !jobText.includes(n.replace(/[.,]$/, "")),
+    (n) => !libText.includes(n.replace(/[.,]$/, "")),
   );
   if (number)
     return {

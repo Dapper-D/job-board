@@ -38,7 +38,7 @@ test('the letter opens with the skills the posting asks for, and never calls a s
   const { m, text } = letterFor(DEV);
   assert.ok(m.have.includes('stakeholders'), 'the matcher sees the word'); // ...the letter just doesn't say "I used stakeholders"
   const first = text.split('\n')[0];
-  assert.match(first, /^The Software Developer role at Beta asks for Python, Docker and REST APIs, all of which I bring\.$/);
+  assert.match(first, /^The Software Developer role at Beta asks for Python, Docker, security and REST APIs, all of which I bring\.$/);
   assert.doesNotMatch(text, /asks for[^.]*(stakeholders|documentation)/);
   assert.doesNotMatch(text, /used in the work above|among my skills/);
 });
@@ -50,7 +50,8 @@ test('with only soft words in common, there is no skills sentence at all', () =>
 
 test('gaps name concrete tools only, and never something the resume covers under a longer word', () => {
   const { m, text } = letterFor(DEV);
-  assert.ok(m.missing.includes('security') && m.missing.includes('cloud'), `missing: ${m.missing}`);
+  assert.ok(m.have.includes('security'), `the diploma in Cybersecurity is security experience; have: ${m.have}`);
+  assert.ok(m.missing.includes('cloud'), `missing: ${m.missing}`);
   const gap = text.split('\n').find((p) => /haven't used/.test(p)) || '';
   assert.match(gap, /Jira/); assert.match(gap, /Kafka/);
   assert.doesNotMatch(gap, /security/i); // the resume says Cybersecurity

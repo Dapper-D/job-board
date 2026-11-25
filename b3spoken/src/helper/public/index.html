@@ -22,7 +22,7 @@
 <main>
   <section id="health" class="health" hidden aria-live="polite"></section>
   <nav class="tabs" aria-label="Views">
-    <button type="button" data-view="" class="on">To apply <span class="n" data-count=""></span></button>
+    <button type="button" data-view="" class="on" aria-current="true">To apply <span class="n" data-count=""></span></button>
     <button type="button" data-view="applied">Applied <span class="n" data-count="applied"></span></button>
     <button type="button" data-view="interview">Interview <span class="n" data-count="interview"></span></button>
     <button type="button" data-view="offer">Offer <span class="n" data-count="offer"></span></button>
@@ -82,7 +82,7 @@
       Where you've connected an AI, the card shows its read instead: <b>tech</b> (languages, tools and projects)
       and <b>fit</b> (that plus experience, seniority, eligibility and location), each out of 10.</p>
   </details>
-  <p id="count" class="count"></p>
+  <p id="count" class="count" aria-live="polite" tabindex="-1"></p>
   <ol id="list" class="list"></ol>
   <button id="more" type="button" hidden>Show more</button>
 </main>
