@@ -140,7 +140,7 @@ test('AI tailoring: only real IDs and skills are kept, in the AI’s order, with
   assert.deepEqual(plan.experience[0].bullets.map(b => b.id), ['e1b2', 'e1b1']);
   assert.equal(plan.projectsFirst, false);
   const back = extractText(renderResume(plan), 'r.pdf').text;
-  for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'KEY PROJECTS']) assert.match(back, new RegExp(h));
+  for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'PROJECTS']) assert.match(back, new RegExp(h));
   assert.ok(back.indexOf('PROFESSIONAL EXPERIENCE') < back.indexOf('EDUCATION')); // strongest evidence first, education last
   assert.doesNotMatch(back, /Contoso/); // the AI left it out
   assert.ok(TAILOR_PROMPT(j, lib, { missingSkills: ['Kafka'] }).includes('Never claim these (the person said they don\'t have them): Kafka'));
@@ -288,4 +288,26 @@ test('fields: a help desk technician is IT, not a trade; a store customer servic
   assert.ok(familiesOf('Field Service Technician, Network Infrastructure').includes('it'));
   assert.deepEqual(familiesOf('Customer Service Desk Associate'), ['customer']);
   assert.ok(familiesOf('IT Service Desk Analyst').includes('it'));
+});
+
+// Resume line quality: notes for the person, never rewrites.
+test('resume lines are checked against common guidance, and the words are left alone', async () => {
+  const { lineNotes, resumeNotes, noteCounts } = await import('../src/helper/resume/quality.mjs');
+  const kinds = (t) => lineNotes(t).map((n) => n.kind).sort();
+  assert.deepEqual(kinds('Cut build time 40% by caching dependencies'), []);
+  assert.deepEqual(kinds('Helped the team migrate to Postgres'), ['no-number', 'weak-opener']);
+  assert.deepEqual(kinds('Was responsible for 12 servers'), ['weak-opener']);
+  assert.deepEqual(kinds('I led an intern team of 4'), ['first-person']);
+  assert.deepEqual(kinds('Led an intern team of 4'), []);
+  assert.deepEqual(kinds('Shipped ' + 'a very long line '.repeat(20)), ['long', 'no-number']);
+  assert.deepEqual(kinds(''), []);
+  const lib = { entries: [{ heading: 'Dev, Acme', bullets: [
+    { id: 'a', text: 'Helped with releases' },
+    { id: 'b', text: 'Cut deploy time 30%' },
+    { id: 'c', text: 'I wrote the docs', flagged: true }, // flagged lines are already waiting on the person
+  ] }] };
+  const notes = resumeNotes(lib);
+  assert.deepEqual(notes.map((n) => n.id), ['a']);
+  assert.deepEqual(noteCounts(lib), { 'weak-opener': 1, 'no-number': 1 });
+  assert.equal(lib.entries[0].bullets[0].text, 'Helped with releases'); // unchanged
 });

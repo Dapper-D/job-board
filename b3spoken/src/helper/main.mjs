@@ -44,6 +44,7 @@ import { makeContext, scoreJob, yearsOfExperience } from "./tailor/match.mjs";
 import { checkLink } from "./paste.mjs";
 import { VERSION } from "./version.mjs";
 import { findContacts, draftEmail } from "./contacts.mjs";
+import { noteCounts } from "./resume/quality.mjs";
 import { addressFor } from "./places.mjs";
 import {
   findKits,
@@ -1161,6 +1162,26 @@ export function createApp(
           `${lib.entries.length} entries and ${lines} lines ready to use${flagged ? `; ${flagged} lines are waiting for you to check them and won't be used until you do` : ""}.`,
           flagged
             ? "Open Edit setup and confirm or fix the flagged lines."
+            : "",
+        );
+      }
+      // How the lines read, against common resume guidance. Advice only: B3spoken never rewrites them.
+      if (lib?.entries?.length) {
+        const c = noteCounts(lib);
+        const say = [
+          c["weak-opener"] && `${c["weak-opener"]} start with a weak verb (helped, worked on, was responsible for)`,
+          c["first-person"] && `${c["first-person"]} use I or we`,
+          c.long && `${c.long} run longer than two printed lines`,
+          c["no-number"] && `${c["no-number"]} have no figure in them`,
+        ].filter(Boolean);
+        add(
+          say.length ? "WARN" : "PASS",
+          "How your lines read",
+          say.length
+            ? `Out of ${lines} lines: ${say.join("; ")}.`
+            : "Your lines lead with the result and keep to a line or two.",
+          say.length
+            ? "Suggestions, not errors. Rewrite them yourself in Edit setup; B3spoken won't change your words. Only add a figure you can stand behind \u2014 an invented one is worse than none."
             : "",
         );
       }

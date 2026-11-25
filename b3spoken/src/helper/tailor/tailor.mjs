@@ -421,7 +421,7 @@ function layoutResume(
     y -= size * 0.5;
     need(size * 2.2);
     doc.text(left, y - size - 1, h.toUpperCase(), {
-      size: size + 1,
+      size: Math.max(11, size + 1), // ATS guidance: section headings 11-13pt, never smaller
       bold: true,
     });
     y -= size + 4;
@@ -489,7 +489,7 @@ function layoutResume(
   };
   const proj = () => {
     if (plan.projects.length) {
-      heading("Key Projects");
+      heading("Projects");
       plan.projects
         .slice(0, maxProjects)
         .forEach((e, i) =>
@@ -514,11 +514,11 @@ function layoutResume(
     degrees.forEach((e) => entry(e, 2));
   }
   if (certifications.length) {
-    heading("Certifications & Training");
+    heading("Certifications");
     certifications.forEach((e) => entry(e, 2));
   }
   if (plan.other.length) {
-    heading("Other");
+    heading("Additional Experience");
     plan.other.forEach((e) => entry(e, 2));
   }
   return { doc, fits };

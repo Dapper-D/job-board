@@ -2,6 +2,11 @@
 
 ## 0.1.20 (private build)
 
+### Resumes
+- **Section headings applicant tracking systems recognise.** "Key Projects" is now "Projects", "Certifications & Training" is "Certifications", and "Other" is "Additional Experience". Published ATS guidance is consistent that non-standard section names are a common reason a section is read as nothing.
+- **Section headings never shrink below 11pt**, even when the body drops to 9.5pt to hold one page.
+- **The Health check now reads your lines back to you:** how many start with a weak verb (helped, worked on, was responsible for), use "I" or "we", run past two printed lines, or carry no figure. Suggestions only — B3spoken does not touch your words, and it says plainly that an invented number is worse than none.
+
 ### From a reviewer's feedback
 - **Tracking folded away.** A card is about the job and its documents; the status and follow-up controls now sit behind a "Track this" button, and the tabs along the top remain the place to see everything you've applied to. Jobs you're already tracking keep theirs open.
 - **B3spoken has a DESIGN.md.** One place that says what the colours, spacing, type and three box shapes are for, so the look stays consistent whoever (or whatever) edits it next. Written in the format AI coding tools read.
