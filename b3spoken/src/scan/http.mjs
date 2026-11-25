@@ -1,6 +1,7 @@
 // The only way scanners reach the internet.
 // - HTTPS only, to hosts the source declares, with redirects checked the same way.
-// - Every address is looked up first and private / local addresses are refused;
+// - Every address is checked before connecting, by name (through the DNS hook) or as a literal, and
+//   private / local addresses are refused;
 //   the connection then uses that same checked address (no second lookup).
 // - Size and time limits, polite per-host spacing, retries on 429 and 5xx.
 import https from 'node:https';
@@ -26,15 +27,27 @@ const BLOCKED_V4 = [
   ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
 ];
 const v4num = ip => ip.split('.').reduce((n, o) => (n << 8) + Number(o), 0) >>> 0;
+// One spelling per address, so the checks below can't be side-stepped by writing it another way.
+// WHATWG parsing turns ::ffff:127.0.0.1 and 0:0:0:0:0:ffff:7f00:1 both into ::ffff:7f00:1.
+function normalizeV6(ip) {
+  try { return new URL(`http://[${ip}]`).hostname.slice(1, -1); } catch { return String(ip).toLowerCase(); }
+}
 export function isBlockedIp(ip) {
   if (net.isIPv4(ip)) {
     const n = v4num(ip);
     return BLOCKED_V4.some(([base, bits]) => (n >>> (32 - bits)) === (v4num(base) >>> (32 - bits)));
   }
   if (net.isIPv6(ip)) {
-    const x = ip.toLowerCase();
-    const mapped = x.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isBlockedIp(mapped[1]);
+    const x = normalizeV6(ip);
+    // An IPv4 address hidden in an IPv6 one is checked as that IPv4 address, however it was written:
+    // ::ffff:127.0.0.1, ::ffff:7f00:1, 0:0:0:0:0:ffff:7f00:1, the translated ::ffff:0:7f00:1,
+    // and the deprecated ::127.0.0.1 / ::7f00:1.
+    const inside = x.match(/^::(?:ffff:(?:0:)?)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (inside) {
+      const [hi, lo] = inside.slice(1).map(h => parseInt(h, 16));
+      const v4 = `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+      if (net.isIPv4(v4)) return isBlockedIp(v4);
+    }
     return x === '::' || x === '::1' || /^f[cd]/.test(x) || /^fe[89ab]/.test(x) || /^ff/.test(x) || /^2001:db8/.test(x) || /^64:ff9b/.test(x);
   }
   return true;
@@ -66,6 +79,11 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function once(url, { method, headers, body, timeoutMs = TIMEOUT_MS, maxBytes = MAX_BYTES, ecdhCurve }) {
   return new Promise((resolve, reject) => {
+    // A host written as an address ("https://127.0.0.1/", "https://[::1]/") never reaches the lookup hook
+    // below, because there is nothing to look up. Check it here, on every hop including redirects.
+    const literal = new URL(url).hostname.replace(/^\[|\]$/g, '');
+    if (net.isIP(literal) && isBlockedIp(literal))
+      return reject(Object.assign(new Error(`${literal} is a private or reserved address`), { code: 'EBLOCKED' }));
     const req = https.request(url, { method, headers, lookup: checkedLookup, timeout: timeoutMs, ...(ecdhCurve ? { ecdhCurve } : {}) }, res => {
       const chunks = []; let size = 0;
       res.on('data', c => {

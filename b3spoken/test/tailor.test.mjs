@@ -90,7 +90,8 @@ test('cover letter is honest about gaps and uses the person’s own achievements
   const letter = coverLetter(plan, j, m, { missingSkills: ['Kubernetes'] }, new Date(2026, 10, 5));
   const all = letter.paragraphs.join(' ');
   assert.match(all, /As a Software Developer at Northwind Logistics, I built a Python service/);
-  assert.match(all, /also mentions (Kubernetes and Kafka|Kafka and Kubernetes)\. I haven't used these in a paid role yet/);
+  assert.match(all, /also mentions (Kubernetes and Kafka|Kafka and Kubernetes)/);
+  assert.doesNotMatch(all, /haven't used these in a paid role/); // a letter never volunteers a reason to reject
   assert.doesNotMatch(all.replace(/also mentions[^.]*\./, ''), /Kubernetes|Kafka/);
   assert.match(renderCoverLetter(plan, letter).toString('latin1'), /\/Count 1 /);
 });
@@ -140,7 +141,7 @@ test('AI tailoring: only real IDs and skills are kept, in the AI’s order, with
   assert.deepEqual(plan.experience[0].bullets.map(b => b.id), ['e1b2', 'e1b1']);
   assert.equal(plan.projectsFirst, false);
   const back = extractText(renderResume(plan), 'r.pdf').text;
-  for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'KEY PROJECTS']) assert.match(back, new RegExp(h));
+  for (const h of ['PROFESSIONAL SUMMARY', 'SKILLS', 'EDUCATION', 'PROFESSIONAL EXPERIENCE', 'PROJECTS']) assert.match(back, new RegExp(h));
   assert.ok(back.indexOf('PROFESSIONAL EXPERIENCE') < back.indexOf('EDUCATION')); // strongest evidence first, education last
   assert.doesNotMatch(back, /Contoso/); // the AI left it out
   assert.ok(TAILOR_PROMPT(j, lib, { missingSkills: ['Kafka'] }).includes('Never claim these (the person said they don\'t have them): Kafka'));
@@ -173,9 +174,12 @@ test('AI cover letter follows the template: subject, hook, three labelled bullet
   assert.doesNotMatch(back, /I'm applying/);
 });
 
-test('links: addresses in the resume are clickable; the header shows GitHub as a word', () => {
+test('links: addresses in the resume are clickable, and the header spells each one out in full', () => {
   assert.deepEqual(tokens('Burnaby | jordan@example.com | github.com/jl | linkedin.com/in/jl', { header: true }).filter(t => t.uri),
-    [{ w: 'jordan@example.com', uri: 'mailto:jordan@example.com' }, { w: 'GitHub', uri: 'https://github.com/jl' }, { w: 'linkedin.com/in/jl', uri: 'https://linkedin.com/in/jl' }]);
+    [{ w: 'jordan@example.com', uri: 'mailto:jordan@example.com' }, { w: 'github.com/jl', uri: 'https://github.com/jl' }, { w: 'linkedin.com/in/jl', uri: 'https://linkedin.com/in/jl' }]);
+  // https:// and www. are dropped from what is shown, never from the link itself
+  assert.deepEqual(tokens('https://www.example.dev/me | https://github.com/jl/', { header: true }).filter(t => t.uri),
+    [{ w: 'example.dev/me', uri: 'https://www.example.dev/me' }, { w: 'github.com/jl', uri: 'https://github.com/jl/' }]);
   assert.deepEqual(tokens('See github.com/Dapper-D/Under50.').at(-1), { w: 'github.com/Dapper-D/Under50.', uri: 'https://github.com/Dapper-D/Under50' });
   const raw = renderResume(planResume(lib, job('Developer', 'Python'))).toString('latin1');
   assert.match(raw, /\/Subtype \/Link .*\/URI \(https:\/\/github\.com\/jordanlee-example\)/);
@@ -288,4 +292,51 @@ test('fields: a help desk technician is IT, not a trade; a store customer servic
   assert.ok(familiesOf('Field Service Technician, Network Infrastructure').includes('it'));
   assert.deepEqual(familiesOf('Customer Service Desk Associate'), ['customer']);
   assert.ok(familiesOf('IT Service Desk Analyst').includes('it'));
+});
+
+// Resume line quality: notes for the person, never rewrites.
+test('resume lines are checked against common guidance, and the words are left alone', async () => {
+  const { lineNotes, resumeNotes, noteCounts } = await import('../src/helper/resume/quality.mjs');
+  const kinds = (t) => lineNotes(t).map((n) => n.kind).sort();
+  assert.deepEqual(kinds('Cut build time 40% by caching dependencies'), []);
+  assert.deepEqual(kinds('Helped the team migrate to Postgres'), ['no-number', 'weak-opener']);
+  assert.deepEqual(kinds('Was responsible for 12 servers'), ['weak-opener']);
+  assert.deepEqual(kinds('I led an intern team of 4'), ['first-person']);
+  assert.deepEqual(kinds('Led an intern team of 4'), []);
+  assert.deepEqual(kinds('Shipped ' + 'a very long line '.repeat(20)), ['long', 'no-number']);
+  assert.deepEqual(kinds(''), []);
+  const lib = { entries: [{ heading: 'Dev, Acme', bullets: [
+    { id: 'a', text: 'Helped with releases' },
+    { id: 'b', text: 'Cut deploy time 30%' },
+    { id: 'c', text: 'I wrote the docs', flagged: true }, // flagged lines are already waiting on the person
+  ] }] };
+  const notes = resumeNotes(lib);
+  assert.deepEqual(notes.map((n) => n.id), ['a']);
+  assert.deepEqual(noteCounts(lib), { 'weak-opener': 1, 'no-number': 1 });
+  assert.equal(lib.entries[0].bullets[0].text, 'Helped with releases'); // unchanged
+});
+
+// From a recruiter screen and an ATS parse of real generated documents, 2026-11-25.
+test('the letter answers a gap with what the person has used, and never repeats a resume line whole', async () => {
+  const { buildLibrary } = await import('../src/helper/resume/library.mjs');
+  const { scoreJob, makeContext } = await import('../src/helper/tailor/match.mjs');
+  const { coverLetter, libraryText } = await import('../src/helper/tailor/tailor.mjs');
+  const { cleanProfile } = await import('../src/helper/profile.mjs');
+  const long = 'Supported IT compliance and risk activities, including maintaining policy documentation and preparing audit evidence.';
+  const lib = buildLibrary(`Jo Lee\njo@example.com\nSKILLS\nPython, GitHub Issues\nEXPERIENCE\nAnalyst, Acme Ltd, 2023 - 2024\n- ${long}\nEDUCATION\nBSc, 2022`);
+  const prof = cleanProfile({ targetRoles: ['Analyst'], workAuth: 'citizen', done: true });
+  const job = { title: 'Analyst', company: 'Beta', description: 'Python and Jira.' };
+  const m = scoreJob(job, makeContext(lib, libraryText(lib), prof, ['Analyst']));
+  const text = coverLetter(planResume(lib, job, { profile: prof }), job, m, prof, new Date(2026, 10, 25)).paragraphs.join('\n');
+  assert.ok(!text.includes(long), 'the letter must not copy the resume line word for word');
+  assert.match(text, /I supported IT compliance and risk activities\./); // the opening clause, in the first person
+  assert.match(text, /closest I've worked with is GitHub Issues/);
+});
+
+test("the work-authorization line is the person's own words, and absent unless they wrote one", () => {
+  const job = { title: 'Developer', company: 'Beta', description: 'Python.' };
+  const bare = planResume(lib, job, { profile: { workAuth: 'study-permit' } }); // a dropdown answer alone says nothing
+  assert.doesNotMatch(bare.summary, /permit|eligible/i);
+  const said = planResume(lib, job, { profile: { workAuthLine: 'Eligible to work in Canada' } });
+  assert.match(said.summary, /Eligible to work in Canada\.$/); // punctuated, at the end of the summary
 });

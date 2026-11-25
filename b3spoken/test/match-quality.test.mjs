@@ -4,8 +4,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { extractText } from '../src/helper/resume/extract.mjs';
 import { buildLibrary } from '../src/helper/resume/library.mjs';
-import { scoreJob, makeContext } from '../src/helper/tailor/match.mjs';
+import { scoreJob, makeContext, parsePay, familiesOf } from '../src/helper/tailor/match.mjs';
 import { cleanProfile } from '../src/helper/profile.mjs';
+import { libraryText } from '../src/helper/tailor/tailor.mjs';
 
 const text = extractText(readFileSync(new URL('./fixtures/resume/sample-resume.docx', import.meta.url)), 'x.docx').text;
 const lib = buildLibrary(text);
@@ -74,4 +75,35 @@ test('documents are made ahead only for matches scoring 45 or more (and for jobs
   const ids = (o) => queryJobs(jobs, { now, limit: 50, ...o }).jobs.map((x) => x.id).sort();
   assert.deepEqual(ids({ minScore: PREP_MIN_SCORE }), ['a', 'b', 'pasted', 'saved']);
   assert.deepEqual(ids({}), ['a', 'b', 'c', 'd', 'pasted', 'saved']); // the board itself still lists every Stretch
+});
+
+// Wrong calls found by an audit of the real pool, 2026-11-25.
+test('a resume that says Cybersecurity counts as security experience', () => {
+  const lib = buildLibrary(`Jo Lee\njo@example.com\nSKILLS\nPython\nEXPERIENCE\nAnalyst, Acme, 2023 - 2024\n- Did the work.\nEDUCATION\nDiploma in Cybersecurity, 2026`);
+  const ctx = makeContext(lib, libraryText(lib), cleanProfile({ targetRoles: ['Security Analyst'], workAuth: 'citizen', done: true }), ['Security Analyst']);
+  const m = scoreJob({ title: 'Security Compliance Analyst', company: 'Acme', location: 'Burnaby, BC', description: 'You will use security tools and Python.' }, ctx);
+  assert.ok(m.have.includes('security'), `have: ${m.have}`);
+  assert.ok(!m.missing.includes('security'), `missing: ${m.missing}`);
+});
+
+test('pay: a month is a month, not the start of Montreal, and a stated Canadian range wins over a US one', () => {
+  assert.deepEqual(parsePay('CAD 70,000 - 90,000 More about Zafin'), { min: 70000, max: 90000, unit: 'year' });
+  assert.deepEqual(parsePay('$70,000 - $90,000 Montreal'), { min: 70000, max: 90000, unit: 'year' });
+  assert.deepEqual(parsePay('$122,400 - $176,000 USD and $115,700 - $166,399 CAD'), { min: 115700, max: 166399, unit: 'year' });
+  assert.equal(parsePay('$122,400 - $176,000 USD').currency, 'USD'); // US-only postings still convert, and say so
+  assert.deepEqual(parsePay('$25 - $30 an hour'), { min: 52000, max: 62400, unit: 'hour' }); // hourly is kept as a yearly figure
+});
+
+test('titles written with a slash or back to front are not thrown away', () => {
+  const ctx = (roles) => makeContext(lib, text, cleanProfile({ targetRoles: roles, workAuth: 'citizen', done: true }), roles);
+  const score = (title) => scoreJob({ title, company: 'Acme', location: 'Vancouver, BC', description: 'Support staff, troubleshoot systems and write documentation.' }, ctx(['IT Support Analyst']));
+  // A slash used to glue two words into one token, dropping the title below the field gate.
+  const slash = score('Systems Support/Data Analyst');
+  assert.ok(!slash.stops.length, `stopped: ${slash.stops}`);
+  assert.ok(slash.score >= score('Systems Support Data Analyst').score - 5, `${slash.score}`);
+  // "Noun, Qualifier" is how many Canadian employers write a title.
+  assert.ok(familiesOf('Technician, Staging and Support').includes('it'));
+  assert.ok(familiesOf('Analyst, Business Systems').includes('it'));
+  assert.ok(familiesOf('Administrator, Systems').includes('it'));
+  assert.deepEqual(familiesOf('Developer, Software'), familiesOf('Software Developer')); // same job either way round
 });

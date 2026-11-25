@@ -18,6 +18,8 @@ export function cleanProfile(p = {}) {
     cities: list(p.cities, 10, 60),
     remote: ['yes', 'no', 'only'].includes(p.remote) ? p.remote : 'yes',
     workAuth: AUTH.includes(p.workAuth) ? p.workAuth : '',
+    // One short line about working here, in the person's own words, printed under the summary. Empty = not shown.
+    workAuthLine: String(p.workAuthLine || '').replace(/\s+/g, ' ').trim().slice(0, 80),
     startDate: /^\d{4}-\d{2}-\d{2}$/.test(p.startDate || '') ? p.startDate : '',
     missingSkills: list(p.missingSkills, 30, 60),
     avoidIndustries: list(p.avoidIndustries, 20, 60),

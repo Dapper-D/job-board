@@ -18,9 +18,9 @@ const job = (o) => makeJob({ source: 'greenhouse', company: 'Acme', nativeId: o.
 const makePool = jobs => { const gz = gzipSync(JSON.stringify({ version: 1, jobs })); return { gz, meta: { version: 1, count: jobs.length, generatedAt: '2026-11-05T10:00:00Z', bytes: gz.length, sha256: createHash('sha256').update(gz).digest('hex') } }; };
 
 test('data folder per operating system', () => {
-  assert.equal(dataDir({ LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' }, 'win32', 'C:\\Users\\a'), 'C:\\Users\\a\\AppData\\Local\\B3spoken');
-  assert.equal(dataDir({}, 'darwin', '/Users/a'), '/Users/a/Library/Application Support/B3spoken');
-  assert.equal(dataDir({}, 'linux', '/home/a'), '/home/a/.local/share/b3spoken');
+  assert.equal(dataDir({ LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' }, 'win32', 'C:\\Users\\a'), 'C:\\Users\\a\\AppData\\Local\\B3spoken-Private');
+  assert.equal(dataDir({}, 'darwin', '/Users/a'), '/Users/a/Library/Application Support/B3spoken-Private');
+  assert.equal(dataDir({}, 'linux', '/home/a'), '/home/a/.local/share/b3spoken-private');
   assert.equal(dataDir({ B3SPOKEN_HOME: '/x' }, 'linux', '/home/a'), '/x');
 });
 
@@ -188,4 +188,19 @@ test('Check Job Bank now: PASS/FAIL lines in plain words, with advice for a drop
   assert.equal(good.ok, true); assert.match(good.advice, /works from this computer/);
   const bad = await checkJobBank({ wait: async () => {}, request: async () => { throw Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }); } });
   assert.equal(bad.ok, false); assert.equal(bad.lines.length, 2); assert.match(bad.advice, /cut the connection.*VPN/);
+});
+
+test('a card shows the employer’s own words, with a bare "About us" heading dropped', () => {
+  const now = new Date().toISOString();
+  const j = (description) => ({ ...job({ id: 'a', title: 'Analyst', location: 'Vancouver, BC', postedAt: now }), description, match: { label: 'Good', score: 60, reasons: ['You have Python'] } });
+  const snip = (d) => queryJobs([j(d)], {}).jobs[0].snippet;
+  assert.equal(snip('About Us\nWe monitor alerts for Canadian customers.'), 'We monitor alerts for Canadian customers.');
+  assert.equal(snip('Who We Are:\nScarborough Transit Connect is a joint venture.'), 'Scarborough Transit Connect is a joint venture.');
+  assert.equal(snip('About Apotex Inc.\n\r\nApotex is a global health company.'), 'Apotex is a global health company.');
+  // A real opening sentence is never cut, even though it names the company
+  const keep = 'The City of Edmonton is seeking a Client Services Analyst to join the team.';
+  assert.equal(snip(keep), keep);
+  assert.equal(snip('About our approach to security we care deeply, and you will too.'), 'About our approach to security we care deeply, and you will too.');
+  // the snippet reaches the board even when the scorer already has reasons to show
+  assert.ok(queryJobs([j('We monitor alerts.')], {}).jobs[0].snippet.length);
 });

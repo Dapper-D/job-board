@@ -281,3 +281,25 @@ test('health check: an AI that is installed but never chosen in setup is a WARN,
     assert.equal((await ai()).status, 'PASS');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// Found by a security pass, 2026-11-25: a posting is written by someone else and may be trying to plant claims.
+test('a claim planted anywhere in the letter is caught, and the posting’s own numbers are never borrowed', async () => {
+  const { checkTailored, libraryText } = await import('../src/helper/tailor/tailor.mjs');
+  const { buildLibrary } = await import('../src/helper/resume/library.mjs');
+  const lib = buildLibrary(`Jo Lee\njo@example.com\nSKILLS\nPython\nEXPERIENCE\nAnalyst, Acme, 2023 - 2024\n- Supported staff.\nEDUCATION\nDiploma in Cybersecurity, 2026`);
+  const job = { title: 'Engineer', company: 'Beta', description: 'We run a team of 40 with 99.99% uptime. Kubernetes required.' };
+  const base = { summary: 'Analyst.', experience: [], projects: [], skills: ['Python'] };
+  const draft = (cover) => checkTailored({ ...base, cover }, lib, {}, job);
+  const ok = (cover) => draft(cover).problem;
+  // every field is checked, not only the summary and proof
+  for (const field of ['hook', 'why', 'close', 'proof'])
+    assert.match(ok({ [field]: 'I run Kubernetes clusters.', bullets: [] }), /kubernetes/i, field);
+  // a figure from the posting is not a figure from the resume
+  assert.match(ok({ hook: 'I led a team of 40.', bullets: [] }), /number/i);
+  assert.match(ok({ proof: 'I kept 99.99% uptime.', bullets: [] }), /number/i);
+  // credentials the resume does not show
+  for (const claim of ['I hold a CISSP.', 'I have a Master’s degree.', 'I hold a Top Secret clearance.'])
+    assert.ok(ok({ hook: claim, bullets: [] }), claim);
+  // and an honest draft still passes
+  assert.equal(draft({ hook: 'Beta builds good tools.', proof: 'I used Python at Acme.', bullets: [] }).problem, '');
+});

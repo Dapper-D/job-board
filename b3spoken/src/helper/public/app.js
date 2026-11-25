@@ -36,6 +36,26 @@ const ago = (iso) => {
 };
 
 // Cards on screen whose PDFs can appear when the morning's documents finish: job id -> show them.
+// What the words on a card mean. Shown on hover, and spelled out under "What the labels mean".
+const LABEL_MEANS = {
+  Strong: "Strong: asks for what your resume already shows.",
+  Good: "Good: a solid match, with a few things you'd be learning.",
+  Stretch: "Stretch: worth applying to, but it asks for more than your resume shows.",
+  Skip: "Skip: doesn't fit what you asked for, or you can't take it.",
+};
+const CALL_MEANS = {
+  Apply: "Apply: your AI thinks this one is worth your time.",
+  Stretch: "Stretch: a long shot your AI thinks is still worth a try.",
+  Skip: "Skip: your AI advises against this one.",
+};
+// Pay written the way a person would say it, from the figures B3spoken already read out of the posting.
+function payText(p) {
+  if (!p || !p.min) return "";
+  const money = (n) => "$" + Math.round(n).toLocaleString("en-CA");
+  const span = p.max && p.max !== p.min ? `${money(p.min)}\u2013${money(p.max)}` : money(p.min);
+  return p.unit === "hour" ? `${span} an hour` : `${span} a year`;
+}
+const tabSorted = new Set(); // a tracked tab defaults to newest first, once, then respects your choice
 const cardFiles = new Map();
 let prepSeen = "";
 let offset = 0,
@@ -55,6 +75,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function trackerControls(j) {
   const box = el("div", "track");
+  box.hidden = true;
   const t = j.track || {};
   const sel = el("select");
   sel.setAttribute("aria-label", "Status");
@@ -94,8 +115,13 @@ function trackerControls(j) {
     if (!inView(r)) {
       const li = box.closest("li.job");
       li?.classList.add("leaving");
-      li?.append(el("p", "tip", `Moved to ${tabName(r.status)}.`));
-      setTimeout(() => li?.remove(), 1500);
+      const next = li?.nextElementSibling;
+      $("count").textContent = `Moved to ${tabName(r.status)}. ${$("count").textContent}`;
+      setTimeout(() => {
+        li?.remove();
+        // Keep the keyboard where the person was, instead of dropping them at the top of the document.
+        (next?.querySelector("a, button, select") || $("count")).focus?.();
+      }, 1500);
     }
     loadCounts();
     due.hidden = !(
@@ -117,7 +143,20 @@ function trackerControls(j) {
   more.open = !!t.notes;
   more.append(el("summary", null, "Notes"), notes);
   box.append(lab("Status", sel), lab("Follow up on", date), due, more);
-  return box;
+  // A card shows the job and its documents. Tracking lives behind one button, and the tabs along the top
+  // are where you look at everything you've applied to.
+  const wrap = el("div", "trackwrap");
+  const open = el("button", "small track-open", t.status || t.notes ? "Tracking" : "Track this");
+  open.type = "button";
+  open.setAttribute("aria-expanded", "false");
+  open.addEventListener("click", () => {
+    box.hidden = !box.hidden;
+    open.setAttribute("aria-expanded", String(!box.hidden));
+  });
+  if (!t.status && !t.notes) wrap.append(open);
+  else box.hidden = false; // already tracked: leave it in view
+  wrap.append(box);
+  return wrap;
 }
 async function showReadyDocs() {
   const t = await api("/api/tracker");
@@ -192,30 +231,36 @@ const query = (v, off, limit) =>
 function card(j) {
   const li = el("li", "job");
   const top = el("div", "top");
-  top.append(el("h2", null, j.title));
-  if (j.review)
-    top.append(
-      el(
-        "span",
-        `score ${j.match?.label.toLowerCase() || "good"}`,
-        `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
-      ),
+  const scoreSlot = el("span", "slot");
+  top.append(scoreSlot, el("h2", null, j.title));
+  if (j.review) {
+    const b = el(
+      "span",
+      `score ${j.match?.label.toLowerCase() || "good"}`,
+      `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
     );
-  else if (j.match)
-    top.append(
-      el(
-        "span",
-        `score ${j.match.label.toLowerCase()}`,
-        `${j.match.label} · ${j.match.score}`,
-      ),
+    b.title = `Your AI read this posting against your resume.\ntech ${j.review.techScore}/10: the languages, tools and projects it asks for.\nfit ${j.review.fitScore}/10: that plus experience, seniority, eligibility and location.\n${CALL_MEANS[j.review.call] || ""}`;
+    scoreSlot.append(b);
+  } else if (j.match) {
+    const b = el(
+      "span",
+      `score ${j.match.label.toLowerCase()}`,
+      `${j.match.label} · ${j.match.score}`,
     );
+    b.title = `${LABEL_MEANS[j.match.label] || j.match.label}\nScored out of 100 by B3spoken from the posting and your resume (no AI).`;
+    scoreSlot.append(b);
+  }
   li.append(top);
   const meta = el("div", "meta");
   meta.append(el("span", null, j.company), el("span", null, j.location || ""));
   if (j.remote) meta.append(el("span", null, "Remote"));
   if (j.postedAt) meta.append(el("span", null, ago(j.postedAt)));
   else if (j.firstSeen) meta.append(el("span", null, `first seen ${ago(j.firstSeen)}`));
-  if (j.salary) meta.append(el("span", null, j.salary));
+  // Pay reads as its own fact, not as another grey detail: it is what most people judge first.
+  const pay = payText(j.match?.pay) || String(j.salary || "").trim();
+  if (pay) meta.append(el("span", "pay", pay));
+  // When you applied, on the tracked tabs. The tracker has recorded it all along and never showed it.
+  if (j.track?.appliedAt) meta.append(el("span", "applied", `applied ${ago(j.track.appliedAt)}`));
   li.append(meta);
   if (j.aiTrap) {
     const t = el(
@@ -269,14 +314,21 @@ function card(j) {
     li.append(sum);
   } else if (j.match?.reasons?.length)
     li.append(el("p", "reasons", j.match.reasons.join(" · ")));
-  else if (j.snippet)
+  // The employer's own words, always, under whatever B3spoken makes of them. Scoring is an opinion about the
+  // job; this is the job. Without it there is nothing on the card the employer actually wrote.
+  if (j.snippet)
     li.append(
       el("p", "snippet", j.snippet + (j.snippet.length >= 280 ? "…" : "")),
     );
   const row = el("div", "row");
   const href = safeLink(j.applyUrl || j.url);
   if (href) {
-    const a = el("a", "apply", "Apply");
+    // Some sources give the application form; others only the posting. Say which this is.
+    const form = !!safeLink(j.applyUrl);
+    const a = el("a", "apply", form ? "Apply" : "View posting");
+    a.title = form
+      ? "Opens this employer's application form."
+      : "Opens the job posting on the employer's site. Their Apply button is on that page.";
     a.href = href;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
@@ -766,7 +818,7 @@ function drawReview(box, r) {
     el(
       "h3",
       null,
-      `AI review: ${r.call} · technical match ${r.techScore}/10 · overall fit ${r.fitScore}/10`,
+      `Your AI\u2019s read: ${r.call} \u00b7 technical match ${r.techScore}/10 \u00b7 overall fit ${r.fitScore}/10`,
     ),
   );
   if (r.summary) box.append(el("p", null, r.summary));
@@ -785,7 +837,7 @@ function drawReview(box, r) {
       );
       ul.append(li);
     }
-    box.append(el("h3", null, "What they ask for, and your evidence"), ul);
+    box.append(el("h3", null, "What they ask for, and what your resume shows"), ul);
   }
   if (r.gaps.length) {
     const ul = el("ul", "lines");
@@ -892,21 +944,70 @@ function drawPrep(box, p) {
   box.append(ul);
 }
 
+// A note in place of the list: nothing matched, or the helper couldn't be reached. Either way the person is told,
+// because a silently empty board looks exactly like a quiet day.
+function listNote(text, action) {
+  const box = el("div", "problems");
+  box.append(el("span", null, text));
+  if (action) {
+    const b = el("button", "small", action.label);
+    b.type = "button";
+    b.addEventListener("click", action.run);
+    box.append(document.createTextNode(" "), b);
+  }
+  const li = el("li");
+  li.append(box);
+  return li;
+}
+
+const DEFAULTS = { province: "", remote: "", age: "3", minLabel: "", q: "" };
+const activeFilters = () =>
+  Object.entries(DEFAULTS).filter(([id, def]) => ($(id)?.value ?? def) !== def).map(([id]) => id);
+
 async function load(reset = true) {
   if (reset) {
     offset = 0;
     $("list").replaceChildren();
     cardFiles.clear();
   }
-  const r = await api(`/api/jobs?${query(view, offset, 50)}`);
+  let r;
+  try {
+    r = await api(`/api/jobs?${query(view, offset, 50)}`);
+  } catch (e) {
+    $("list").replaceChildren(
+      listNote(`Couldn't load your jobs (${e.message}).`, { label: "Try again", run: () => load(reset) }),
+    );
+    $("count").textContent = "";
+    $("more").hidden = true;
+    return;
+  }
   r.jobs.forEach((j) => $("list").append(card(j)));
   offset += r.jobs.length;
   if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
   $("count").textContent =
-    `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
+    offset < r.total
+      ? `Showing ${offset.toLocaleString()} of ${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`
+      : `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
+  if (offset < r.total)
+    $("more").textContent = `Show ${Math.min(50, r.total - offset).toLocaleString()} more`;
   if (view) loadCounts();
   else showCounts(r.counts, r.total);
   $("more").hidden = offset >= r.total;
+  if (!r.total && reset) {
+    const on = activeFilters();
+    $("list").replaceChildren(
+      listNote(
+        on.length
+          ? "No jobs match those filters."
+          : view
+            ? "Nothing in this tab yet."
+            : "No new jobs today. B3spoken looks again every morning.",
+        on.length
+          ? { label: "Clear filters", run: () => { for (const [id, def] of Object.entries(DEFAULTS)) if ($(id)) $(id).value = def; load(); } }
+          : null,
+      ),
+    );
+  }
 }
 
 async function status() {
@@ -1213,7 +1314,7 @@ async function poll() {
   const s = await status().catch(() => null);
   if (s && !s.refreshing) {
     shownWhileRefreshing = false;
-    await load();
+    await load().catch(() => {}); // a failed load must not stop the loop
     return;
   }
   if (s?.scores && !shownWhileRefreshing) {
@@ -1268,9 +1369,18 @@ async function init() {
   for (const b of document.querySelectorAll(".tabs button"))
     b.addEventListener("click", () => {
       view = b.dataset.view;
-      for (const x of document.querySelectorAll(".tabs button"))
+      for (const x of document.querySelectorAll(".tabs button")) {
         x.classList.toggle("on", x === b);
-      document.querySelector(".filters").hidden = !!view;
+        if (x === b) x.setAttribute("aria-current", "true");
+        else x.removeAttribute("aria-current");
+      }
+      // Tracked tabs ignore the filters (see jobs.mjs), so the filter row is hidden there, but search and sort
+      // still work and a long Applied list is unusable without them.
+      // Only the board's own filters are hidden on a tracked tab; search and sort still work there.
+      for (const el2 of document.querySelectorAll(".filters > *"))
+        el2.hidden = !!view && !["q", "sort"].includes(el2.id || el2.querySelector?.("select,input")?.id);
+      document.querySelector(".filters").hidden = false;
+      if (view && !tabSorted.has(view)) { $("sort").value = "date"; tabSorted.add(view); }
       load();
     });
   $("pasteGo").addEventListener("click", async () => {

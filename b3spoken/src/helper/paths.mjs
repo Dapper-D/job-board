@@ -8,9 +8,9 @@ import { mkdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 
 export function dataDir(env = process.env, platform = process.platform, home = homedir()) {
   if (env.B3SPOKEN_HOME) return env.B3SPOKEN_HOME;
-  if (platform === 'win32') return win32.join(env.LOCALAPPDATA || win32.join(home, 'AppData', 'Local'), 'B3spoken');
-  if (platform === 'darwin') return posix.join(home, 'Library', 'Application Support', 'B3spoken');
-  return posix.join(env.XDG_DATA_HOME || posix.join(home, '.local', 'share'), 'b3spoken');
+  if (platform === 'win32') return win32.join(env.LOCALAPPDATA || win32.join(home, 'AppData', 'Local'), 'B3spoken-Private');
+  if (platform === 'darwin') return posix.join(home, 'Library', 'Application Support', 'B3spoken-Private');
+  return posix.join(env.XDG_DATA_HOME || posix.join(home, '.local', 'share'), 'b3spoken-private');
 }
 
 export function ensureDir(dir) { mkdirSync(dir, { recursive: true, mode: 0o700 }); return dir; }

@@ -1,6 +1,64 @@
 # B3spoken changelog
 
-## 0.1.19
+## 0.1.20 (private build)
+
+### From a recruiter screen of real generated documents
+- **Every address in your header is written out in full.** It showed the word "GitHub" with the address hidden in the link, so an applicant tracking system reading the text got no address at all, while LinkedIn's was spelled out. For someone whose strongest evidence is public repositories, that link is the most valuable thing in the header.
+- **Projects lead when your paid work isn't in the job's line of work.** A reader spends their first seconds on whatever is at the top; for a developer job, a resume whose paid roles are IT support was putting its weakest evidence first. Where the paid work carries the job's requirements, it still leads.
+- **The cover letter no longer repeats a resume line word for word.** Its opening paragraph was a verbatim copy of the bullets, so anyone who read the resume had already read the letter. It now takes the opening clause and says the rest in its own words.
+- **A gap is answered with what you have actually used.** The letter used to say "I haven't used these in a paid role yet", handing a reader a reason to stop. Where your resume shows the nearest equivalent (GitHub Issues for Jira, Docker for Kubernetes, GitHub Actions for cloud, and so on) it names that instead. Where there is no equivalent, it still says the gap plainly — it just doesn't volunteer that the work was unpaid.
+- **You can put one line about working here on your resume**, in your own words, in Edit setup. Recruiters look for it and its absence stalls applications. B3spoken suggests nothing from your dropdown answer on its own and prints nothing unless you write it.
+- **The Health check flags a job with no employer on it.** "Intern, Lagos, Nigeria" is filed by an applicant tracking system as a job at a company called Lagos, and a reader wonders what's missing.
+- **It also flags a line that credits an AI tool for the work** ("built X with AI-assisted development"). Readers take that as the tool's work; the tool belongs in your skills.
+
+### Matching: wrong calls found by auditing the real job pool
+- **"Cybersecurity" on your resume now counts as security experience.** It didn't, because the matcher needs a word break, so 225 of 499 board cards told you "Not on your resume: Security" — 36 of them while also saying "You have… cybersecurity". Fixing it moves real jobs: a Security Compliance Analyst in Burnaby from Good to Strong, and 44 jobs over the line where documents are made ahead.
+- **A job is no longer hidden because of a slash or a comma in its title.** "Systems Support/Data Analyst" was read as one word and dropped below the field gate; "Technician, Staging and Support" was filed under trades. Both are Vancouver jobs above the pay floor.
+- **Pay is read correctly.** The "Mo" in "Montreal" was being read as "month" and multiplied by twelve, which is how a support job came to claim "$1,080,000 a year". A posting stating both a US and a Canadian range now shows the Canadian one.
+- **Jobs that name no province are no longer hidden by the province filter.** "Canada Off-Site", "2 Locations" and postings with no location at all were dropped: 43 of 499 in one day, including the highest-scoring job on the board.
+
+### Security
+- **An address written as a literal can no longer reach a private or local service.** The check that blocks loopback and LAN addresses only ran for hostnames needing a DNS lookup, so a posting carrying `https://127.0.0.1/…` or a cloud metadata address went straight through. Now checked on every request and every redirect hop.
+- **The AI-trap detector catches what it was missing.** A trap sentence wrapped across two lines defeated it entirely, as did a zero-width character inside "AI", fullwidth letters, an HTML comment, and the common "new rules, highest priority" and "forget the above" shapes.
+- **Nothing a posting writes can pose as B3spoken's own instructions.** The trap sentence is quoted into the AI prompt as evidence; a crafted posting could close the quote and carry on as though it were us. It is now fenced and stripped of quote marks.
+- **The honesty check covers the whole cover letter.** It only read the summary, the proof paragraph and the bullets, so a claim planted in the opening, the "why this company" or the closing was never checked. It also treated any number appearing in the posting as if it were on your resume. Both fixed, and degrees, certifications and clearances are now checked too.
+
+### Board
+- **Pay is readable at a glance.** It was set in the same grey, at the same size, as "Canada" and "Remote", though it is the first thing most people judge a job on. It now reads as its own figure.
+- **The match chip leads the card**, so the scores line up as a column you can run your eye down instead of sitting at the far right edge, a whole card-width away from the title it belongs to.
+- **The employer's own words are back on the card.** Once a job had a score, its description was never shown, so a card carried nothing the employer actually wrote. A bare "About us" heading is dropped so the space goes to the job.
+- **The Applied tab works like a list you use.** Search and sort stay available there, those tabs open newest first, and each card says when you applied — the tracker has recorded that all along and never showed it.
+- **An empty board says why.** Nothing matched, or the helper couldn't be reached — before, both looked like a quiet day. A failed load no longer kills the refresh loop for the rest of the session.
+- **Readable in dark mode.** The Apply button was white on light blue, 2.49:1 — below any accessibility floor. Now 7.34:1.
+- Keyboard focus survives Windows high-contrast mode, the tabs tell a screen reader which one is selected, the list announces when it changes, and moving a job no longer throws keyboard focus to the top of the page.
+
+### Resumes
+- **Section headings applicant tracking systems recognise.** "Key Projects" is now "Projects", "Certifications & Training" is "Certifications", and "Other" is "Additional Experience". Published ATS guidance is consistent that non-standard section names are a common reason a section is read as nothing.
+- **Section headings never shrink below 11pt**, even when the body drops to 9.5pt to hold one page.
+- **The Health check now reads your lines back to you:** how many start with a weak verb (helped, worked on, was responsible for), use "I" or "we", run past two printed lines, or carry no figure. Suggestions only — B3spoken does not touch your words, and it says plainly that an invented number is worse than none.
+
+### From a reviewer's feedback
+- **Tracking folded away.** A card is about the job and its documents; the status and follow-up controls now sit behind a "Track this" button, and the tabs along the top remain the place to see everything you've applied to. Jobs you're already tracking keep theirs open.
+- **B3spoken has a DESIGN.md.** One place that says what the colours, spacing, type and three box shapes are for, so the look stays consistent whoever (or whatever) edits it next. Written in the format AI coding tools read.
+- **Keyboard focus is always visible**, as a ring in the accent colour, and the app now honours "reduce motion".
+- **The board says what its words mean.** A "What the labels mean" key above the list explains Strong, Good and Stretch, and says which number is which: the 0–100 score B3spoken works out itself, or your AI's tech and fit marks out of 10. Hovering a label on a card explains it too.
+- **Buttons tell the truth.** A job whose source gives only the posting now says "View posting" instead of "Apply", since the employer's own Apply button is on that page.
+- **"What they ask for, and your evidence" is now "…and what your resume shows."**
+- **Easier on the eye:** more room between cards and inside them, running text kept to a readable width, paragraphs that breathe, and pay written as "$76,800–$115,200 a year" instead of the posting's raw wording.
+- **You can see where you are in the list:** "Showing 50 of 97 jobs", and the button says how many more are coming.
+- **Warnings look like warnings.** Alert boxes now have a coloured edge and are used only for alerts; tags are flat chips. They no longer look like the same thing.
+- Under the surface: one set of design tokens (spacing, radius, type, colour roles) instead of hand-picked values, and several CSS rules that quietly overrode each other are gone.
+
+### Security
+- **An IPv4 address hidden inside an IPv6 one is blocked however it is written.** `::ffff:7f00:1` (127.0.0.1 in hex), `0:0:0:0:0:ffff:7f00:1`, `::ffff:0:7f00:1` and `::7f00:1` all got past the check that stops B3spoken fetching private or local addresses; only the dotted form was recognised. Found by a reviewer reading the source.
+
+- **Runs beside the public B3spoken instead of opening it.** The private build now uses port 4748 (the public one keeps 4747), installs to its own folder as "B3spoken (Private)", and keeps its own resume, answers, tracker and documents in `%LOCALAPPDATA%\B3spoken-Private`. Before this, starting it while the public app was running handed you the public app, because both read the same "already running" note.
+- The installer is now `B3spoken-Private-Setup-<version>.exe`, so it no longer replaces the public install and is easy to tell apart in your Downloads folder.
+- Installing this version does not carry over the resume and answers from the public app; set them up once in the private one.
+
+## 0.1.19 (private build)
+
+Same as the public 0.1.19, with the job-city address.
 
 ### A pop-up when new matches arrive
 - **The shared job scan now runs twice a day** (about 8 pm and 8 am Pacific), so new jobs reach the board within about 12 hours.
@@ -8,7 +66,9 @@
 - The first check on a computer only remembers what's already there, so you don't get a pop-up for every job on day one. Each job is announced once.
 - Turn it off in **Health check** ("Show a Windows pop-up when new matches arrive"). B3spoken needs to be running (it starts in the background when you sign in).
 
-## 0.1.18
+## 0.1.18 (private build)
+
+Same as the public 0.1.18, with the job-city address.
 
 ### Your AI reads your resume, and only your own words are kept
 - **Read it now uses the AI you picked**, straight after B3spoken's own quick reading. It handles layouts B3spoken's own reader gets wrong: the employer on the line above the title, dates first, no bullet marks, a LinkedIn PDF export, Markdown, achievements that wrap onto a second line, and long numbered master files.
@@ -21,14 +81,16 @@
 - **Chrome's built-in AI can read your resume**: free, and nothing leaves your computer. It reads a part at a time, so it's slower. Needs desktop Chrome 148 or newer and a computer with 16 GB of memory.
 - Setup now says plainly that Claude needs a paid plan (its free plan doesn't include Claude Code).
 
-## 0.1.17
+## 0.1.17 (private build)
 
 ### Master-format resumes ("1. IDENTITY", "2. PROFESSIONAL SUMMARY"…)
 - **Your name and contact details are read wherever the file keeps them.** A file that opened with a title and kept the name, email and phone in a numbered "Identity" or "Contact" section came out headed "Your Name" with no contact line, and its PDFs were named "Resume - Resume - …". Lines written as fields ("Name: …", "Email: … | Phone: …") are read without their labels, and an email line is never taken for the name.
 - **Bullets with no space after the dot are read** ("•Supported 80 students"), as many PDFs give them. Before, such a file showed titles only and could not make a resume.
 - If your resume came out as "Your Name", click **Read it** again after updating.
 
-## 0.1.16
+## 0.1.16 (private build)
+
+Same as the public 0.1.16, with the job-city address below.
 
 ### Fewer wrong matches
 - **Guarding a store isn't cybersecurity.** "Asset Protection Associate - Security License Required", "Event Security Officer" and "Loss Prevention" jobs no longer match security roles. "Information Security Officer" still does.
@@ -46,6 +108,13 @@
 
 ### Documents
 - Resumes and cover letters are made ahead of time for matches scoring 45 or more. Weaker Stretch matches stay on the board; their documents are made when you ask. Jobs you saved or added always get theirs.
+## 0.1.15 (private build)
+
+- A job open to several regions ("Remote - US / Remote - Canada") now lists its Canadian places first, so it doesn't read as a job you can't take.
+
+- **The address on each resume and cover letter is the job's city.** A job in Toronto gets "Toronto, ON" where your own city was; a job listing several cities uses the first one. Jobs that name no city (Remote, Canada, a province only, "Lower Mainland") keep your own address. The recruiter email draft uses the same address.
+- Documents already made are made again with the new address.
+- This build is published as a pre-release and only updates to other private builds.
 
 ## 0.1.14
 

@@ -9,6 +9,17 @@ test('private and reserved addresses are blocked', () => {
     assert.equal(isBlockedIp(ip), false, ip);
 });
 
+// An IPv4 address can be written inside an IPv6 one in several ways; every one must be checked as that IPv4
+// address. Writing 127.0.0.1 in hex (::ffff:7f00:1) used to get past the block.
+test('IPv4 addresses hidden in IPv6 are blocked however they are written', () => {
+  for (const ip of ['::ffff:127.0.0.1', '::ffff:7f00:1', '0:0:0:0:0:ffff:7f00:1', '::ffff:0000:7f00:0001',
+    '::ffff:a00:1', '::ffff:c0a8:1', '::ffff:ac10:1', '::ffff:a9fe:a9fe', '::ffff:192.168.1.1',
+    '::127.0.0.1', '::7f00:1', '::ffff:0.0.0.0'])
+    assert.equal(isBlockedIp(ip), true, ip);
+  for (const ip of ['::ffff:8.8.8.8', '::ffff:808:808', '::ffff:6810:1'])
+    assert.equal(isBlockedIp(ip), false, ip); // public addresses still pass, in either spelling
+});
+
 test('host rules', () => {
   assert.equal(hostAllowed('ubc.wd10.myworkdayjobs.com', ['*.myworkdayjobs.com']), true);
   assert.equal(hostAllowed('myworkdayjobs.com.evil.example', ['*.myworkdayjobs.com']), false);
