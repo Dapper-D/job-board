@@ -3,6 +3,7 @@
 ## 0.1.20 (private build)
 
 ### From a recruiter screen of real generated documents
+- **Every address in your header is written out in full.** It showed the word "GitHub" with the address hidden in the link, so an applicant tracking system reading the text got no address at all, while LinkedIn's was spelled out. For someone whose strongest evidence is public repositories, that link is the most valuable thing in the header.
 - **Projects lead when your paid work isn't in the job's line of work.** A reader spends their first seconds on whatever is at the top; for a developer job, a resume whose paid roles are IT support was putting its weakest evidence first. Where the paid work carries the job's requirements, it still leads.
 - **The cover letter no longer repeats a resume line word for word.** Its opening paragraph was a verbatim copy of the bullets, so anyone who read the resume had already read the letter. It now takes the opening clause and says the rest in its own words.
 - **A gap is answered with what you have actually used.** The letter used to say "I haven't used these in a paid role yet", handing a reader a reason to stop. Where your resume shows the nearest equivalent (GitHub Issues for Jira, Docker for Kubernetes, GitHub Actions for cloud, and so on) it names that instead. Where there is no equivalent, it still says the gap plainly — it just doesn't volunteer that the work was unpaid.

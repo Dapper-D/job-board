@@ -174,9 +174,12 @@ test('AI cover letter follows the template: subject, hook, three labelled bullet
   assert.doesNotMatch(back, /I'm applying/);
 });
 
-test('links: addresses in the resume are clickable; the header shows GitHub as a word', () => {
+test('links: addresses in the resume are clickable, and the header spells each one out in full', () => {
   assert.deepEqual(tokens('Burnaby | jordan@example.com | github.com/jl | linkedin.com/in/jl', { header: true }).filter(t => t.uri),
-    [{ w: 'jordan@example.com', uri: 'mailto:jordan@example.com' }, { w: 'GitHub', uri: 'https://github.com/jl' }, { w: 'linkedin.com/in/jl', uri: 'https://linkedin.com/in/jl' }]);
+    [{ w: 'jordan@example.com', uri: 'mailto:jordan@example.com' }, { w: 'github.com/jl', uri: 'https://github.com/jl' }, { w: 'linkedin.com/in/jl', uri: 'https://linkedin.com/in/jl' }]);
+  // https:// and www. are dropped from what is shown, never from the link itself
+  assert.deepEqual(tokens('https://www.example.dev/me | https://github.com/jl/', { header: true }).filter(t => t.uri),
+    [{ w: 'example.dev/me', uri: 'https://www.example.dev/me' }, { w: 'github.com/jl', uri: 'https://github.com/jl/' }]);
   assert.deepEqual(tokens('See github.com/Dapper-D/Under50.').at(-1), { w: 'github.com/Dapper-D/Under50.', uri: 'https://github.com/Dapper-D/Under50' });
   const raw = renderResume(planResume(lib, job('Developer', 'Python'))).toString('latin1');
   assert.match(raw, /\/Subtype \/Link .*\/URI \(https:\/\/github\.com\/jordanlee-example\)/);
