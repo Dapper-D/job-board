@@ -26,15 +26,27 @@ const BLOCKED_V4 = [
   ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
 ];
 const v4num = ip => ip.split('.').reduce((n, o) => (n << 8) + Number(o), 0) >>> 0;
+// One spelling per address, so the checks below can't be side-stepped by writing it another way.
+// WHATWG parsing turns ::ffff:127.0.0.1 and 0:0:0:0:0:ffff:7f00:1 both into ::ffff:7f00:1.
+function normalizeV6(ip) {
+  try { return new URL(`http://[${ip}]`).hostname.slice(1, -1); } catch { return String(ip).toLowerCase(); }
+}
 export function isBlockedIp(ip) {
   if (net.isIPv4(ip)) {
     const n = v4num(ip);
     return BLOCKED_V4.some(([base, bits]) => (n >>> (32 - bits)) === (v4num(base) >>> (32 - bits)));
   }
   if (net.isIPv6(ip)) {
-    const x = ip.toLowerCase();
-    const mapped = x.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isBlockedIp(mapped[1]);
+    const x = normalizeV6(ip);
+    // An IPv4 address hidden in an IPv6 one is checked as that IPv4 address, however it was written:
+    // ::ffff:127.0.0.1, ::ffff:7f00:1, 0:0:0:0:0:ffff:7f00:1, the translated ::ffff:0:7f00:1,
+    // and the deprecated ::127.0.0.1 / ::7f00:1.
+    const inside = x.match(/^::(?:ffff:(?:0:)?)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (inside) {
+      const [hi, lo] = inside.slice(1).map(h => parseInt(h, 16));
+      const v4 = `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+      if (net.isIPv4(v4)) return isBlockedIp(v4);
+    }
     return x === '::' || x === '::1' || /^f[cd]/.test(x) || /^fe[89ab]/.test(x) || /^ff/.test(x) || /^2001:db8/.test(x) || /^64:ff9b/.test(x);
   }
   return true;
