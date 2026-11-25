@@ -24,6 +24,10 @@
 - **The honesty check covers the whole cover letter.** It only read the summary, the proof paragraph and the bullets, so a claim planted in the opening, the "why this company" or the closing was never checked. It also treated any number appearing in the posting as if it were on your resume. Both fixed, and degrees, certifications and clearances are now checked too.
 
 ### Board
+- **Pay is readable at a glance.** It was set in the same grey, at the same size, as "Canada" and "Remote", though it is the first thing most people judge a job on. It now reads as its own figure.
+- **The match chip leads the card**, so the scores line up as a column you can run your eye down instead of sitting at the far right edge, a whole card-width away from the title it belongs to.
+- **The employer's own words are back on the card.** Once a job had a score, its description was never shown, so a card carried nothing the employer actually wrote. A bare "About us" heading is dropped so the space goes to the job.
+- **The Applied tab works like a list you use.** Search and sort stay available there, those tabs open newest first, and each card says when you applied — the tracker has recorded that all along and never showed it.
 - **An empty board says why.** Nothing matched, or the helper couldn't be reached — before, both looked like a quiet day. A failed load no longer kills the refresh loop for the rest of the session.
 - **Readable in dark mode.** The Apply button was white on light blue, 2.49:1 — below any accessibility floor. Now 7.34:1.
 - Keyboard focus survives Windows high-contrast mode, the tabs tell a screen reader which one is selected, the list announces when it changes, and moving a job no longer throws keyboard focus to the top of the page.

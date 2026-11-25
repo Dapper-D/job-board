@@ -55,6 +55,7 @@ function payText(p) {
   const span = p.max && p.max !== p.min ? `${money(p.min)}\u2013${money(p.max)}` : money(p.min);
   return p.unit === "hour" ? `${span} an hour` : `${span} a year`;
 }
+const tabSorted = new Set(); // a tracked tab defaults to newest first, once, then respects your choice
 const cardFiles = new Map();
 let prepSeen = "";
 let offset = 0,
@@ -230,7 +231,8 @@ const query = (v, off, limit) =>
 function card(j) {
   const li = el("li", "job");
   const top = el("div", "top");
-  top.append(el("h2", null, j.title));
+  const scoreSlot = el("span", "slot");
+  top.append(scoreSlot, el("h2", null, j.title));
   if (j.review) {
     const b = el(
       "span",
@@ -238,7 +240,7 @@ function card(j) {
       `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
     );
     b.title = `Your AI read this posting against your resume.\ntech ${j.review.techScore}/10: the languages, tools and projects it asks for.\nfit ${j.review.fitScore}/10: that plus experience, seniority, eligibility and location.\n${CALL_MEANS[j.review.call] || ""}`;
-    top.append(b);
+    scoreSlot.append(b);
   } else if (j.match) {
     const b = el(
       "span",
@@ -246,7 +248,7 @@ function card(j) {
       `${j.match.label} · ${j.match.score}`,
     );
     b.title = `${LABEL_MEANS[j.match.label] || j.match.label}\nScored out of 100 by B3spoken from the posting and your resume (no AI).`;
-    top.append(b);
+    scoreSlot.append(b);
   }
   li.append(top);
   const meta = el("div", "meta");
@@ -254,8 +256,11 @@ function card(j) {
   if (j.remote) meta.append(el("span", null, "Remote"));
   if (j.postedAt) meta.append(el("span", null, ago(j.postedAt)));
   else if (j.firstSeen) meta.append(el("span", null, `first seen ${ago(j.firstSeen)}`));
+  // Pay reads as its own fact, not as another grey detail: it is what most people judge first.
   const pay = payText(j.match?.pay) || String(j.salary || "").trim();
-  if (pay) meta.append(el("span", null, pay));
+  if (pay) meta.append(el("span", "pay", pay));
+  // When you applied, on the tracked tabs. The tracker has recorded it all along and never showed it.
+  if (j.track?.appliedAt) meta.append(el("span", "applied", `applied ${ago(j.track.appliedAt)}`));
   li.append(meta);
   if (j.aiTrap) {
     const t = el(
@@ -309,7 +314,9 @@ function card(j) {
     li.append(sum);
   } else if (j.match?.reasons?.length)
     li.append(el("p", "reasons", j.match.reasons.join(" · ")));
-  else if (j.snippet)
+  // The employer's own words, always, under whatever B3spoken makes of them. Scoring is an opinion about the
+  // job; this is the job. Without it there is nothing on the card the employer actually wrote.
+  if (j.snippet)
     li.append(
       el("p", "snippet", j.snippet + (j.snippet.length >= 280 ? "…" : "")),
     );
@@ -1369,7 +1376,11 @@ async function init() {
       }
       // Tracked tabs ignore the filters (see jobs.mjs), so the filter row is hidden there, but search and sort
       // still work and a long Applied list is unusable without them.
-      document.querySelector(".filters").hidden = !!view;
+      // Only the board's own filters are hidden on a tracked tab; search and sort still work there.
+      for (const el2 of document.querySelectorAll(".filters > *"))
+        el2.hidden = !!view && !["q", "sort"].includes(el2.id || el2.querySelector?.("select,input")?.id);
+      document.querySelector(".filters").hidden = false;
+      if (view && !tabSorted.has(view)) { $("sort").value = "date"; tabSorted.add(view); }
       load();
     });
   $("pasteGo").addEventListener("click", async () => {

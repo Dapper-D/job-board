@@ -85,8 +85,13 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
     else if (view === 'due') { if (!isDue(j.track, today)) return false; }
     else if (STATUS_VIEWS.includes(view)) { if (j.track?.status !== view) return false; }
     else if (j.track?.status && j.track.status !== 'saved') return false; // To apply: jobs you've acted on move to their own tab
-    // Tracked tabs show every job in them, whatever the filters, so each tab holds exactly what its count says.
-    if (view) return true;
+    // Tracked tabs ignore the board's filters, so each tab holds exactly what its count says. Search is the
+    // exception: after eighty applications, a list you can't search is a list you can't use.
+    if (view) {
+      if (!words.length) return true;
+      const hay = `${j.title} ${j.company} ${j.department || ''} ${j.location}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    }
     if (j.match && j.match.label === 'Skip' && !showSkipped && !j.pasted && !j.track) return false; // Skip jobs never appear (unless the person added or tracked them)
     if (minLabel && j.match && LABELS.indexOf(j.match.label) < LABELS.indexOf(minLabel)) return false;
     if (minScore && j.match && !j.pasted && !j.track && !((j.match.score ?? 0) >= minScore)) return false;
@@ -100,9 +105,19 @@ export function queryJobs(jobs, { q = '', province = '', remote = '', maxAgeDays
   // The list shows the first 3 places; the full job (GET /api/jobs/<id>) keeps them all.
   // One posting open to several regions ("Remote - US / Remote - Canada") shows its Canadian places first,
   // so it doesn't read as a job you can't take.
+  // Some postings open with a bare "About us" heading on its own line. Dropping it buys the card a line of
+  // actual content. Anything more aggressive than this cuts real sentences: plenty of postings open with
+  // "The City of Edmonton is seeking a...", which is exactly what the reader wants.
+  const HEADING = /^(?:about\s+(?:us|the\s+(?:company|team|role))|who\s+we\s+are|our\s+story|company\s+overview|about\s+[A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*){0,2})\s*[:\-\u2014]?\s*$/i;
+  const roleText = (d) => {
+    const t = String(d || '').trim();
+    const nl = t.indexOf('\n');
+    if (nl < 0 || nl > 60) return t;
+    return HEADING.test(t.slice(0, nl).trim()) ? t.slice(nl + 1).trim() : t;
+  };
   const slim = ({ description, ...rest }) => {
     const places = canadaFirst(String(rest.location || '').split(' / '), rest.remote);
-    return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: String(description || '').slice(0, 280) };
+    return { ...rest, location: places.slice(0, 3).join(' / '), moreLocations: Math.max(0, places.length - 3), snippet: roleText(description).slice(0, 280) };
   };
   if (sort === 'score') hits.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0) || String(b.postedAt || '').localeCompare(String(a.postedAt || '')));
   return { total: hits.length, jobs: hits.slice(offset, offset + Math.min(limit, 200)).map(slim) };
