@@ -71,6 +71,17 @@
     <button id="saveKw" type="button">Save</button>
   </section>
   <div id="problems" class="problems" hidden></div>
+  <details id="key" class="key">
+    <summary>What the labels mean</summary>
+    <dl>
+      <dt><span class="score strong">Strong</span></dt><dd>Asks for what your resume already shows.</dd>
+      <dt><span class="score good">Good</span></dt><dd>A solid match, with a few things you'd be learning.</dd>
+      <dt><span class="score stretch">Stretch</span></dt><dd>Worth applying to, but it asks for more than your resume shows.</dd>
+    </dl>
+    <p>The number beside the label is out of 100, worked out by B3spoken from the posting and your resume.
+      Where you've connected an AI, the card shows its read instead: <b>tech</b> (languages, tools and projects)
+      and <b>fit</b> (that plus experience, seniority, eligibility and location), each out of 10.</p>
+  </details>
   <p id="count" class="count"></p>
   <ol id="list" class="list"></ol>
   <button id="more" type="button" hidden>Show more</button>

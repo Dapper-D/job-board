@@ -2,6 +2,18 @@
 
 ## 0.1.20 (private build)
 
+### From a reviewer's feedback
+- **The board says what its words mean.** A "What the labels mean" key above the list explains Strong, Good and Stretch, and says which number is which: the 0–100 score B3spoken works out itself, or your AI's tech and fit marks out of 10. Hovering a label on a card explains it too.
+- **Buttons tell the truth.** A job whose source gives only the posting now says "View posting" instead of "Apply", since the employer's own Apply button is on that page.
+- **"What they ask for, and your evidence" is now "…and what your resume shows."**
+- **Easier on the eye:** more room between cards and inside them, running text kept to a readable width, paragraphs that breathe, and pay written as "$76,800–$115,200 a year" instead of the posting's raw wording.
+- **You can see where you are in the list:** "Showing 50 of 97 jobs", and the button says how many more are coming.
+- **Warnings look like warnings.** Alert boxes now have a coloured edge and are used only for alerts; tags are flat chips. They no longer look like the same thing.
+- Under the surface: one set of design tokens (spacing, radius, type, colour roles) instead of hand-picked values, and several CSS rules that quietly overrode each other are gone.
+
+### Security
+- **An IPv4 address hidden inside an IPv6 one is blocked however it is written.** `::ffff:7f00:1` (127.0.0.1 in hex), `0:0:0:0:0:ffff:7f00:1`, `::ffff:0:7f00:1` and `::7f00:1` all got past the check that stops B3spoken fetching private or local addresses; only the dotted form was recognised. Found by a reviewer reading the source.
+
 - **Runs beside the public B3spoken instead of opening it.** The private build now uses port 4748 (the public one keeps 4747), installs to its own folder as "B3spoken (Private)", and keeps its own resume, answers, tracker and documents in `%LOCALAPPDATA%\B3spoken-Private`. Before this, starting it while the public app was running handed you the public app, because both read the same "already running" note.
 - The installer is now `B3spoken-Private-Setup-<version>.exe`, so it no longer replaces the public install and is easy to tell apart in your Downloads folder.
 - Installing this version does not carry over the resume and answers from the public app; set them up once in the private one.

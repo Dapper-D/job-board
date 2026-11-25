@@ -36,6 +36,25 @@ const ago = (iso) => {
 };
 
 // Cards on screen whose PDFs can appear when the morning's documents finish: job id -> show them.
+// What the words on a card mean. Shown on hover, and spelled out under "What the labels mean".
+const LABEL_MEANS = {
+  Strong: "Strong: asks for what your resume already shows.",
+  Good: "Good: a solid match, with a few things you'd be learning.",
+  Stretch: "Stretch: worth applying to, but it asks for more than your resume shows.",
+  Skip: "Skip: doesn't fit what you asked for, or you can't take it.",
+};
+const CALL_MEANS = {
+  Apply: "Apply: your AI thinks this one is worth your time.",
+  Stretch: "Stretch: a long shot your AI thinks is still worth a try.",
+  Skip: "Skip: your AI advises against this one.",
+};
+// Pay written the way a person would say it, from the figures B3spoken already read out of the posting.
+function payText(p) {
+  if (!p || !p.min) return "";
+  const money = (n) => "$" + Math.round(n).toLocaleString("en-CA");
+  const span = p.max && p.max !== p.min ? `${money(p.min)}\u2013${money(p.max)}` : money(p.min);
+  return p.unit === "hour" ? `${span} an hour` : `${span} a year`;
+}
 const cardFiles = new Map();
 let prepSeen = "";
 let offset = 0,
@@ -193,29 +212,31 @@ function card(j) {
   const li = el("li", "job");
   const top = el("div", "top");
   top.append(el("h2", null, j.title));
-  if (j.review)
-    top.append(
-      el(
-        "span",
-        `score ${j.match?.label.toLowerCase() || "good"}`,
-        `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
-      ),
+  if (j.review) {
+    const b = el(
+      "span",
+      `score ${j.match?.label.toLowerCase() || "good"}`,
+      `${j.review.call} · tech ${j.review.techScore}/10 · fit ${j.review.fitScore}/10`,
     );
-  else if (j.match)
-    top.append(
-      el(
-        "span",
-        `score ${j.match.label.toLowerCase()}`,
-        `${j.match.label} · ${j.match.score}`,
-      ),
+    b.title = `Your AI read this posting against your resume.\ntech ${j.review.techScore}/10: the languages, tools and projects it asks for.\nfit ${j.review.fitScore}/10: that plus experience, seniority, eligibility and location.\n${CALL_MEANS[j.review.call] || ""}`;
+    top.append(b);
+  } else if (j.match) {
+    const b = el(
+      "span",
+      `score ${j.match.label.toLowerCase()}`,
+      `${j.match.label} · ${j.match.score}`,
     );
+    b.title = `${LABEL_MEANS[j.match.label] || j.match.label}\nScored out of 100 by B3spoken from the posting and your resume (no AI).`;
+    top.append(b);
+  }
   li.append(top);
   const meta = el("div", "meta");
   meta.append(el("span", null, j.company), el("span", null, j.location || ""));
   if (j.remote) meta.append(el("span", null, "Remote"));
   if (j.postedAt) meta.append(el("span", null, ago(j.postedAt)));
   else if (j.firstSeen) meta.append(el("span", null, `first seen ${ago(j.firstSeen)}`));
-  if (j.salary) meta.append(el("span", null, j.salary));
+  const pay = payText(j.match?.pay) || String(j.salary || "").trim();
+  if (pay) meta.append(el("span", null, pay));
   li.append(meta);
   if (j.aiTrap) {
     const t = el(
@@ -276,7 +297,12 @@ function card(j) {
   const row = el("div", "row");
   const href = safeLink(j.applyUrl || j.url);
   if (href) {
-    const a = el("a", "apply", "Apply");
+    // Some sources give the application form; others only the posting. Say which this is.
+    const form = !!safeLink(j.applyUrl);
+    const a = el("a", "apply", form ? "Apply" : "View posting");
+    a.title = form
+      ? "Opens this employer's application form."
+      : "Opens the job posting on the employer's site. Their Apply button is on that page.";
     a.href = href;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
@@ -766,7 +792,7 @@ function drawReview(box, r) {
     el(
       "h3",
       null,
-      `AI review: ${r.call} · technical match ${r.techScore}/10 · overall fit ${r.fitScore}/10`,
+      `Your AI\u2019s read: ${r.call} \u00b7 technical match ${r.techScore}/10 \u00b7 overall fit ${r.fitScore}/10`,
     ),
   );
   if (r.summary) box.append(el("p", null, r.summary));
@@ -785,7 +811,7 @@ function drawReview(box, r) {
       );
       ul.append(li);
     }
-    box.append(el("h3", null, "What they ask for, and your evidence"), ul);
+    box.append(el("h3", null, "What they ask for, and what your resume shows"), ul);
   }
   if (r.gaps.length) {
     const ul = el("ul", "lines");
@@ -903,7 +929,11 @@ async function load(reset = true) {
   offset += r.jobs.length;
   if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
   $("count").textContent =
-    `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
+    offset < r.total
+      ? `Showing ${offset.toLocaleString()} of ${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`
+      : `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
+  if (offset < r.total)
+    $("more").textContent = `Show ${Math.min(50, r.total - offset).toLocaleString()} more`;
   if (view) loadCounts();
   else showCounts(r.counts, r.total);
   $("more").hidden = offset >= r.total;
