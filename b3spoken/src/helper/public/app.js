@@ -58,7 +58,8 @@ function payText(p) {
 const tabSorted = new Set(); // a tracked tab defaults to newest first, once, then respects your choice
 const cardFiles = new Map();
 let prepSeen = "";
-let offset = 0,
+const PER_PAGE = 20; // one page of jobs; the pager under the list moves between pages
+let page = 0, // which page you're on, counting from 0
   timer,
   view = "",
   docs = {};
@@ -200,10 +201,7 @@ function drawStatusBadge(li, status) {
 async function loadCounts() {
   try {
     const r = await api(`/api/jobs?${query("", 0, 1)}`);
-    showCounts(r.counts, r.total);
-    // The count above the list follows too (a job moved to another tab leaves this one).
-    const n = view ? r.counts?.[view] ?? 0 : r.total;
-    $("count").textContent = `${n.toLocaleString()} ${n === 1 ? "job" : "jobs"}`;
+    showCounts(r.counts, r.total); // the tab numbers only; load() owns the count line above the list
   } catch {}
 }
 function showCounts(c = {}, toApply = null) {
@@ -964,36 +962,101 @@ const DEFAULTS = { province: "", remote: "", age: "3", minLabel: "", q: "" };
 const activeFilters = () =>
   Object.entries(DEFAULTS).filter(([id, def]) => ($(id)?.value ?? def) !== def).map(([id]) => id);
 
-async function load(reset = true) {
-  if (reset) {
-    offset = 0;
-    $("list").replaceChildren();
-    cardFiles.clear();
+// Which page numbers the pager shows: the first and last always, the current one with a neighbour either
+// side, and a 0 where numbers were left out (drawn as an ellipsis, never as a page).
+// <pager-window>
+function pageWindow(current, pages) {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  const keep = new Set([1, pages, current - 1, current, current + 1]);
+  if (current <= 4) for (const n of [2, 3, 4, 5]) keep.add(n);
+  if (current > pages - 4) for (const n of [pages - 4, pages - 3, pages - 2, pages - 1]) keep.add(n);
+  const out = [];
+  for (let n = 1; n <= pages; n++) {
+    if (keep.has(n)) out.push(n);
+    else if (out[out.length - 1] !== 0) out.push(0);
   }
+  return out;
+}
+// </pager-window>
+
+function drawPager(total) {
+  const box = $("pager");
+  box.replaceChildren();
+  const pages = Math.ceil(total / PER_PAGE);
+  box.hidden = pages <= 1;
+  if (pages <= 1) return;
+  // Moving pages puts you at the top of the list, and tells a screen reader where you are, instead of
+  // leaving you halfway down a page of jobs you have already read.
+  const go = async (to) => {
+    page = to;
+    await load(false);
+    $("count").scrollIntoView({ block: "start" });
+    $("count").focus();
+  };
+  const step = (label, to, enabled) => {
+    const b = el("button", "page-step", label);
+    b.type = "button";
+    b.disabled = !enabled;
+    if (enabled) b.addEventListener("click", () => go(to));
+    box.append(b);
+  };
+  step("Previous", page - 1, page > 0);
+  for (const n of pageWindow(page + 1, pages)) {
+    if (!n) {
+      const gap = el("span", "page-gap", "\u2026");
+      gap.setAttribute("aria-hidden", "true");
+      box.append(gap);
+      continue;
+    }
+    const here = n === page + 1;
+    const b = el("button", here ? "page on" : "page", n.toLocaleString());
+    b.type = "button";
+    b.setAttribute("aria-label", `Page ${n} of ${pages}`);
+    if (here) {
+      b.setAttribute("aria-current", "page");
+      b.disabled = true;
+    } else b.addEventListener("click", () => go(n - 1));
+    box.append(b);
+  }
+  step("Next", page + 1, page + 1 < pages);
+}
+
+let loadSeq = 0;
+async function load(reset = true) {
+  if (reset) page = 0;
+  const mine = ++loadSeq;
   let r;
   try {
-    r = await api(`/api/jobs?${query(view, offset, 50)}`);
+    r = await api(`/api/jobs?${query(view, page * PER_PAGE, PER_PAGE)}`);
   } catch (e) {
+    if (mine !== loadSeq) return;
     $("list").replaceChildren(
       listNote(`Couldn't load your jobs (${e.message}).`, { label: "Try again", run: () => load(reset) }),
     );
     $("count").textContent = "";
-    $("more").hidden = true;
+    $("pager").hidden = true;
     return;
   }
-  r.jobs.forEach((j) => $("list").append(card(j)));
-  offset += r.jobs.length;
+  if (mine !== loadSeq) return; // a newer load started while this one was in flight
+  // The page you were on can empty out while you sit on it: jobs expire overnight, or a refresh drops some.
+  const pages = Math.ceil(r.total / PER_PAGE);
+  if (r.total && page >= pages) {
+    page = pages - 1;
+    return load(false);
+  }
+  cardFiles.clear();
+  $("list").replaceChildren(...r.jobs.map((j) => card(j)));
   if (cardFiles.size) showReadyDocs().catch(() => {}); // documents made since the page last looked
+  const first = page * PER_PAGE + 1;
+  const last = page * PER_PAGE + r.jobs.length;
   $("count").textContent =
-    offset < r.total
-      ? `Showing ${offset.toLocaleString()} of ${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`
+    r.jobs.length < r.total
+      ? `Jobs ${first.toLocaleString()}\u2013${last.toLocaleString()} of ${r.total.toLocaleString()}`
       : `${r.total.toLocaleString()} ${r.total === 1 ? "job" : "jobs"}`;
-  if (offset < r.total)
-    $("more").textContent = `Show ${Math.min(50, r.total - offset).toLocaleString()} more`;
   if (view) loadCounts();
   else showCounts(r.counts, r.total);
-  $("more").hidden = offset >= r.total;
-  if (!r.total && reset) {
+  drawPager(r.total);
+  if (!r.total) {
     const on = activeFilters();
     $("list").replaceChildren(
       listNote(
@@ -1314,12 +1377,12 @@ async function poll() {
   const s = await status().catch(() => null);
   if (s && !s.refreshing) {
     shownWhileRefreshing = false;
-    await load().catch(() => {}); // a failed load must not stop the loop
+    await load(false).catch(() => {}); // a failed load must not stop the loop; load(false) keeps your page
     return;
   }
   if (s?.scores && !shownWhileRefreshing) {
     shownWhileRefreshing = true;
-    await load().catch(() => {});
+    await load(false).catch(() => {});
   }
   setTimeout(poll, 2000);
 }
@@ -1341,7 +1404,6 @@ async function init() {
     });
   for (const id of ["province", "remote", "age", "minLabel", "sort"])
     $(id).addEventListener("change", () => load());
-  $("more").addEventListener("click", () => load(false));
   $("updateGo").addEventListener("click", update);
   $("healthGo").addEventListener("click", health);
   $("checkUpdate").addEventListener("click", async () => {

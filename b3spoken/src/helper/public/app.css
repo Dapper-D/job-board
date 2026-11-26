@@ -36,7 +36,14 @@ button:hover { border-color: var(--muted); }
 .key dl { display: grid; grid-template-columns: auto 1fr; gap: var(--s2) var(--s3); align-items: baseline; margin: var(--s3) 0; max-width: var(--measure); }
 .key dt, .key dd { margin: 0; }
 .key p { margin: 0; color: var(--muted); max-width: var(--measure); line-height: 1.55; }
-#more { margin-block: var(--s5); }
+/* Pages of jobs. One page is 20 cards; the numbers below the list are the only way through, so they are
+   big enough to hit on a phone and wrap instead of scrolling sideways. */
+.pager { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: center; margin-block: var(--s5); }
+.pager button { min-width: 44px; min-height: 44px; padding: var(--s2) var(--s3); }
+.pager .page.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.pager button:disabled { cursor: default; opacity: .5; }
+.pager .page.on:disabled { opacity: 1; }
+.pager .page-gap { color: var(--muted); padding-inline: var(--s1); }
 .list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s4); }
 .job { background: var(--card); border: 1px solid var(--line); border-radius: var(--r3); padding: var(--s4) var(--s5); box-shadow: var(--lift); }
 .job > * + * { margin-top: var(--s2); }

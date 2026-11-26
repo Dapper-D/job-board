@@ -30,6 +30,7 @@
 - **The honesty check covers the whole cover letter.** It only read the summary, the proof paragraph and the bullets, so a claim planted in the opening, the "why this company" or the closing was never checked. It also treated any number appearing in the posting as if it were on your resume. Both fixed, and degrees, certifications and clearances are now checked too.
 
 ### Board
+- **The board comes in pages of 20.** It used to pour every match into one endless column with a "Show 50 more" button under it, so finding the job you were looking at after a scroll meant scrolling again. Numbered pages, Previous and Next, the count line reading "Jobs 21-40 of 312", and turning a page puts you back at the top of the list. Filters, search and tabs start again at page 1; the pager hides itself when everything fits on one page.
 - **Pay is readable at a glance.** It was set in the same grey, at the same size, as "Canada" and "Remote", though it is the first thing most people judge a job on. It now reads as its own figure.
 - **The match chip leads the card**, so the scores line up as a column you can run your eye down instead of sitting at the far right edge, a whole card-width away from the title it belongs to.
 - **The employer's own words are back on the card.** Once a job had a score, its description was never shown, so a card carried nothing the employer actually wrote. A bare "About us" heading is dropped so the space goes to the job.
