@@ -1,0 +1,28 @@
+# main must stay the public build. PR #23 merged the private branch into main and turned the public app into the
+# private one - its folder, its port, its installer, its release tags, pre-releases only - which every public
+# download would have got. This runs on main and on every pull request into it. It does not run on the private
+# branch, which is supposed to carry those things.
+name: Public build identity
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+      - run: node b3spoken/scripts/public-build-check.mjs

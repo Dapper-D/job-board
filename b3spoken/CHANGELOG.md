@@ -26,6 +26,9 @@
 - **Nothing a posting writes can pose as B3spoken's own instructions.** The trap sentence is quoted into the AI prompt as evidence; a crafted posting could close the quote and carry on as though it were us. It is now fenced and stripped of quote marks.
 - **The honesty check covers the whole cover letter.** It only read the summary, the proof paragraph and the bullets, so a claim planted in the opening, the "why this company" or the closing was never checked. It also treated any number appearing in the posting as if it were on your resume. Both fixed, and degrees, certifications and clearances are now checked too.
 
+### Build
+- **A merge can no longer turn the public app into the private one.** The private branch is the same app with its own data folder, port 4748, its own installer, `-private` release tags and pre-releases only; merged into main once, that is what every public download would have been. A check on main and on every pull request into it now fails when any of that identity appears, and says which file carries it.
+
 ### Board
 - **The board comes in pages of 20.** It used to pour every match into one endless column with a "Show 50 more" button under it, so finding the job you were looking at after a scroll meant scrolling again. Numbered pages, Previous and Next, the count line reading "Jobs 21-40 of 312", and turning a page puts you back at the top of the list. Filters, search and tabs start again at page 1; the pager hides itself when everything fits on one page.
 - **Pay is readable at a glance.** It was set in the same grey, at the same size, as "Canada" and "Remote", though it is the first thing most people judge a job on. It now reads as its own figure.
