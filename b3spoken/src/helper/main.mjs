@@ -243,7 +243,7 @@ export function createApp(
   const documentStamp = () =>
     createHash("sha256")
       .update(
-        "resume-layout-v2|" +
+        "resume-layout-v3|" +
           JSON.stringify(ob.library()) +
           "|" +
           JSON.stringify(ob.profile()),
