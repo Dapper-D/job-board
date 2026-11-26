@@ -245,7 +245,7 @@ export function createApp(
   const documentStamp = () =>
     createHash("sha256")
       .update(
-        "resume-layout-v2|job-city-address|" +
+        "resume-layout-v3|job-city-address|" +
           JSON.stringify(ob.library()) +
           "|" +
           JSON.stringify(ob.profile()),

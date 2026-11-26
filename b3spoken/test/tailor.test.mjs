@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { extractText } from '../src/helper/resume/extract.mjs';
 import { buildLibrary } from '../src/helper/resume/library.mjs';
 import { parsePay, scoreJob, makeContext, yearsOfExperience } from '../src/helper/tailor/match.mjs';
@@ -211,15 +212,42 @@ test('polish: brackets touch their links, the role sought drops the team name, a
   assert.deepEqual(parseAiJson('```json\n{"a": [1, 2,], "b": “x”,}\n```'), { a: [1, 2], b: 'x' });
 });
 
-test('resume: as many projects as fit on one page, best fit first, at most 2 bullets each', async () => {
+// How much of the page is left blank: the lowest line of text drawn on it, against the 50pt bottom margin.
+function blankAtBottom(pdf) {
+  let lowest = Infinity;
+  for (const m of pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
+    let s; try { s = inflateSync(Buffer.from(m[1], 'latin1')).toString('latin1'); } catch { s = m[1]; }
+    if (!/Td/.test(s)) continue;
+    for (const d of s.matchAll(/(-?[\d.]+) (-?[\d.]+) Td/g)) lowest = Math.min(lowest, parseFloat(d[2]));
+  }
+  return lowest - 50;
+}
+
+test('resume: the page gets used - every project that fits, extra bullets on the best of them, still one page', async () => {
   const many = structuredClone(lib);
   for (let i = 0; i < 6; i++) many.entries.push({ id: `p${i}`, kind: 'projects', heading: `Project ${i} (github.com/x/p${i} | Python)`, dates: '', details: [], bullets: [0, 1, 2].map(k => ({ id: `p${i}b${k}`, text: `Built part ${k} of project ${i} in Python with tests.`, flagged: false })) });
   const pdf = renderResume(planResume(many, job('Developer', 'Python')));
   const text = extractText(pdf, 'r.pdf').text;
-  assert.match(pdf.toString('latin1'), /\/Count 1 /);
+  assert.match(pdf.toString('latin1'), /\/Count 1 /); // never a second page
   const shown = [0, 1, 2, 3, 4, 5].filter(i => text.includes(`Project ${i} (`));
-  assert.ok(shown.length >= 4, `expected most projects on the page, got ${shown.length}`);
-  for (const i of shown) assert.doesNotMatch(text, new RegExp(`Built part 2 of project ${i} `)); // never a third bullet
+  assert.ok(shown.length >= 5, `expected the projects on the page, got ${shown.length}`);
+  // No half-empty page while there was still something to put on it.
+  assert.ok(blankAtBottom(pdf) < 60, `${Math.round(blankAtBottom(pdf))}pt of the page left blank`);
+  // A third bullet is the last thing added, so it goes to the projects that fit the job best, never to the last.
+  const thirds = shown.filter(i => new RegExp(`Built part 2 of project ${i} `).test(text));
+  assert.deepEqual(thirds, shown.slice(0, thirds.length));
+  assert.deepEqual(renderResume(planResume(many, job('Developer', 'Python'))), pdf); // same library, same page
+});
+
+test('resume: one long work entry no longer costs every other entry its second bullet', async () => {
+  const jobs = structuredClone(lib);
+  for (let i = 0; i < 6; i++) jobs.entries.push({ id: `e${i}`, kind: 'experience', heading: `Support Analyst ${i}, Company ${i}`, dates: `Jan 201${i} - Dec 201${i}`, details: [], bullets: [0, 1, 2].map(k => ({ id: `e${i}b${k}`, text: `Handled part ${k} of the work at company ${i} using Python and SQL every day.`, flagged: false })) });
+  const pdf = renderResume(planResume(jobs, job('Developer', 'Python and SQL')));
+  const text = extractText(pdf, 'r.pdf').text;
+  assert.match(pdf.toString('latin1'), /\/Count 1 /);
+  const seconds = [0, 1, 2, 3, 4, 5].filter(i => text.includes(`Handled part 1 of the work at company ${i}`));
+  assert.ok(seconds.length >= 4, `expected most entries to keep a second bullet, got ${seconds.length}`);
+  assert.ok(blankAtBottom(pdf) < 60, `${Math.round(blankAtBottom(pdf))}pt of the page left blank`);
 });
 
 test('the pay floor applies to "CA$…K" ranges', () => {

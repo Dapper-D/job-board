@@ -81,6 +81,31 @@ export function newestFirst(list) {
     .map((x) => x.e);
 }
 
+// The words a project is made of, for telling two projects apart.
+const entryWords = (e) =>
+  new Set(
+    norm(`${e.heading} ${e.bullets.map((b) => b.text).join(" ")}`)
+      .split(" ")
+      .filter((w) => w.length > 3 && !STOP.has(w)),
+  );
+
+// Projects in fit order, except that the second slot goes to the strongest project that is NOT more of the same.
+// A security tool beside the web work says something a third web project doesn't: that the range is real. Breadth
+// only shows if it survives the page cut, so it has to be near the top rather than last.
+function diversify(list) {
+  if (list.length < 3) return list;
+  const [lead, ...rest] = list;
+  const a = entryWords(lead);
+  const alike = (e) => {
+    const b = entryWords(e);
+    let hit = 0;
+    for (const w of b) if (a.has(w)) hit++;
+    return hit / Math.max(1, Math.min(a.size, b.size));
+  };
+  const pick = rest.find((e) => alike(e) < 0.35); // rest is already strongest first
+  return pick ? [lead, pick, ...rest.filter((e) => e !== pick)] : list;
+}
+
 // order: optional list of bullet IDs from the AI, best first. Unknown or flagged IDs are ignored.
 // ai: optional checked selection from checkTailored(); when given it decides the summary, skills, entries and bullets.
 export function planResume(lib, job, { order = [], ai = null, profile = {} } = {}) {
@@ -115,7 +140,7 @@ export function planResume(lib, job, { order = [], ai = null, profile = {} } = {
         weight: usable(e).reduce((n, b) => n + score(b), 0),
       }));
   let experience = pick("experience");
-  let projects = pick("projects").sort((a, b) => b.weight - a.weight);
+  let projects = diversify(pick("projects").sort((a, b) => b.weight - a.weight));
   const education = [...pick("education"), ...pick("certifications")];
   const other = [...pick("volunteer"), ...pick("awards")];
   let skills = (lib.skills || [])
@@ -277,6 +302,17 @@ function drawTokens(doc, x, y, line, size, bold = false) {
 // ---- Resume ----
 // A one-page export must not quietly erase most of the work history just to
 // display more projects. Prefer fewer projects/bullets before reducing jobs.
+// One page, as full as the evidence allows. The search below finds a layout that fits, then fills what is left
+// of the page with the strongest thing still in hand: another bullet on the entries that fit this job best,
+// then the projects that didn't make the first pass, then second bullets on the projects that got one. Nothing
+// is reordered to fill space and the type size never shrinks to make room, so the top of the page stays the
+// strongest part of it, and an empty strip at the bottom means there was genuinely nothing better to put there.
+const BASE_PROJECTS = 3; // what the first pass aims for; the fill pass adds more when they fit
+const MAX_PROJECTS = 6; // a reader has stopped reading before a seventh
+const MAX_BULLETS = 3; // per entry
+const GROW_SIZES = [12, 11.5, 11]; // when the evidence runs out before the page does, the type grows instead
+const MAX_TOP_BULLETS = 4; // the entry that fits the job best can carry one more
+
 export function renderResumeWithReport(plan) {
   if (
     ![...plan.experience, ...plan.projects, ...plan.education].some(
@@ -297,6 +333,7 @@ export function renderResumeWithReport(plan) {
   const expTotal = plan.experience.length;
   const minExp = expTotal >= 4 ? 3 : Math.min(expTotal, 2);
   const projectMin = plan.projects.length ? 1 : 0;
+  const projectCeiling = Math.min(plan.projects.length, MAX_PROJECTS);
   const rankedExperience = [...plan.experience].sort(
     (a, b) => (b.weight || 0) - (a.weight || 0),
   );
@@ -315,79 +352,138 @@ export function renderResumeWithReport(plan) {
     education: plan.education.filter((e) => e.kind === "education"),
     other: [],
   };
-  const maxProjects = Math.min(plan.projects.length, 4);
-  for (
-    let projectCount = maxProjects;
-    projectCount >= projectMin;
-    projectCount--
-  ) {
-    for (
-      let experienceCount = expTotal;
-      experienceCount >= minExp;
-      experienceCount--
-    ) {
-      const selectedExperience =
-        experienceCount === expTotal
-          ? plan.experience
-          : toShow(rankedExperience.slice(0, experienceCount));
-      const selectedProjects = plan.projects.slice(0, projectCount);
-      for (const base of [plan, compressed]) {
-        for (const size of [10.5, 9.5]) {
-          for (
-            let projectTwos = projectCount;
-            projectTwos >= 0;
-            projectTwos--
-          ) {
-            for (const jobBullets of [2, 1]) {
-              const selected = {
-                ...base,
-                experience: selectedExperience,
-                projects: selectedProjects,
-              };
-              const result = layoutResume(selected, {
-                size,
-                maxBullets: jobBullets,
-                maxProjects: projectCount,
-                projBullets: projectTwos,
-              });
-              if (!result.fits) continue;
-              const included = {
-                experience: selectedExperience.map((e) => e.id),
-                projects: selectedProjects.map((e) => e.id),
-              };
-              const omitted = {
-                experience: plan.experience
-                  .filter((e) => !included.experience.includes(e.id))
-                  .map((e) => e.heading),
-                projects: plan.projects
-                  .filter((e) => !included.projects.includes(e.id))
-                  .map((e) => e.heading),
-              };
-              const note =
-                omitted.experience.length || omitted.projects.length
-                  ? `One-page resume: omitted ${omitted.experience.length} of ${expTotal} selected work entries and ${omitted.projects.length} of ${plan.projects.length} selected projects. Review the omissions before applying.`
-                  : "";
-              return { pdf: result.doc.build(), included, omitted, note };
-            }
-          }
-        }
+  // How many bullets each work entry gets: the ones that fit the job best get two, the rest one.
+  const bulletMap = (count, twos) =>
+    new Map(
+      rankedExperience
+        .slice(0, count)
+        .map((e, i) => [e.id, Math.min(i < twos ? 2 : 1, e.bullets.length)]),
+    );
+  // One attempt: a set of choices, laid out and measured. Each costs well under a millisecond, and nothing here
+  // changes the plan, so the same library and the same posting always make the same page.
+  const attempt = (c) => {
+    const selectedExperience =
+      c.experienceCount === expTotal
+        ? plan.experience
+        : toShow(rankedExperience.slice(0, c.experienceCount));
+    const selectedProjects = plan.projects.slice(0, c.projectCount);
+    const result = layoutResume(
+      { ...c.base, experience: selectedExperience, projects: selectedProjects },
+      {
+        size: c.size,
+        maxBullets: 2,
+        expBullets: c.bullets,
+        maxProjects: selectedProjects.length,
+        projBullets: c.projTwos,
+        projThrees: c.projThrees || 0,
+      },
+    );
+    return { ...c, selectedExperience, selectedProjects, result };
+  };
+  // First pass: the most content that fits. What it gives up, in order: a second bullet on the work entries that
+  // fit the job least, then a project, then a project's second bullet, then the longer summary and skills, then
+  // 9.5pt type, and only when none of that is enough, a work entry.
+  const firstFit = () => {
+    for (let experienceCount = expTotal; experienceCount >= minExp; experienceCount--)
+      for (let twos = experienceCount; twos >= 0; twos--)
+        for (let projectCount = Math.min(plan.projects.length, BASE_PROJECTS); projectCount >= projectMin; projectCount--)
+          for (let projTwos = projectCount; projTwos >= 0; projTwos--)
+            for (const base of [plan, compressed])
+              for (const size of [10.5, 9.5]) {
+                const a = attempt({
+                  experienceCount,
+                  bullets: bulletMap(experienceCount, twos),
+                  projectCount,
+                  projTwos,
+                  projThrees: 0,
+                  base,
+                  size,
+                });
+                if (a.result.fits) return a;
+              }
+    return null;
+  };
+  let current = firstFit();
+  if (!current)
+    throw Object.assign(
+      new Error(
+        `The selected content cannot fit one readable page while retaining at least ${minExp} work entries. Shorten long entries or choose fewer projects rather than silently dropping experience.`,
+      ),
+      { status: 422 },
+    );
+  // Fill pass: the next thing worth adding, while it fits. A kind that no longer fits is set aside and the
+  // smaller kinds after it are still tried, so the page ends up as full as it can be without being padded.
+  const nextUp = (c, blocked) => {
+    const ranked = rankedExperience.slice(0, c.experienceCount);
+    if (!blocked.has("bullet"))
+      for (const e of ranked) {
+        const n = c.bullets.get(e.id) || 0;
+        if (n < MAX_BULLETS && e.bullets.length > n)
+          return { ...c, bullets: new Map(c.bullets).set(e.id, n + 1), added: "bullet" };
+      }
+    if (!blocked.has("project") && c.projectCount < projectCeiling)
+      return { ...c, projectCount: c.projectCount + 1, added: "project" };
+    if (!blocked.has("projBullet") && c.projTwos < c.projectCount)
+      return { ...c, projTwos: c.projTwos + 1, added: "projBullet" };
+    const top = ranked[0];
+    const n = top ? c.bullets.get(top.id) || 0 : 0;
+    if (!blocked.has("topBullet") && top && n < MAX_TOP_BULLETS && top.bullets.length > n)
+      return { ...c, bullets: new Map(c.bullets).set(top.id, n + 1), added: "topBullet" };
+    // Last, a third bullet on the projects that fit the job best, two bullets being the usual limit.
+    const three = c.projThrees || 0;
+    if (
+      !blocked.has("projThree") &&
+      three < Math.min(c.projTwos, c.projectCount) &&
+      (plan.projects[three]?.bullets.length || 0) > 2
+    )
+      return { ...c, projThrees: three + 1, added: "projThree" };
+    return null;
+  };
+  const blocked = new Set();
+  for (let guard = 0; guard < 30; guard++) {
+    const next = nextUp(current, blocked);
+    if (!next) break;
+    const a = attempt(next);
+    if (a.result.fits) current = a;
+    else blocked.add(next.added);
+  }
+  // Nothing left worth adding and a strip of page still empty: set the whole thing in larger type rather than
+  // leave a short library looking like a draft. Content is spent first, so this never pushes anything off.
+  if (current.result.remaining > 24)
+    for (const size of GROW_SIZES) {
+      if (size <= current.size) break;
+      const a = attempt({ ...current, size });
+      if (a.result.fits) {
+        current = a;
+        break;
       }
     }
-  }
-  throw Object.assign(
-    new Error(
-      `The selected content cannot fit one readable page while retaining at least ${minExp} work entries. Shorten long entries or choose fewer projects rather than silently dropping experience.`,
-    ),
-    { status: 422 },
-  );
+  const included = {
+    experience: current.selectedExperience.map((e) => e.id),
+    projects: current.selectedProjects.map((e) => e.id),
+  };
+  const omitted = {
+    experience: plan.experience
+      .filter((e) => !included.experience.includes(e.id))
+      .map((e) => e.heading),
+    projects: plan.projects
+      .filter((e) => !included.projects.includes(e.id))
+      .map((e) => e.heading),
+  };
+  const note =
+    omitted.experience.length || omitted.projects.length
+      ? `One-page resume: omitted ${omitted.experience.length} of ${expTotal} selected work entries and ${omitted.projects.length} of ${plan.projects.length} selected projects. Review the omissions before applying.`
+      : "";
+  return { pdf: current.result.doc.build(), included, omitted, note };
 }
 
 export const renderResume = (plan) => renderResumeWithReport(plan).pdf;
 
-// projBullets: how many of the projects (best fit first) get 2 bullets; the rest get 1.
+// projBullets: how many of the projects (best fit first) get 2 bullets; the rest get 1. projThrees: how many of
+// those get a third. expBullets: how many bullets each work entry gets, by entry id; maxBullets covers the rest.
 function layoutResume(
   plan,
-  { size, maxBullets, maxProjects, projBullets = maxProjects },
+  { size, maxBullets, maxProjects, projBullets = maxProjects, projThrees = 0, expBullets = null },
 ) {
   const doc = new Doc({
     width: PAGE.w,
@@ -486,7 +582,7 @@ function layoutResume(
   const exp = () => {
     if (plan.experience.length) {
       heading("Professional Experience");
-      plan.experience.forEach((e) => entry(e, maxBullets));
+      plan.experience.forEach((e) => entry(e, expBullets?.get(e.id) ?? maxBullets));
     }
   };
   const proj = () => {
@@ -495,7 +591,7 @@ function layoutResume(
       plan.projects
         .slice(0, maxProjects)
         .forEach((e, i) =>
-          entry(e, i < projBullets ? Math.min(2, maxBullets) : 1),
+          entry(e, i < projThrees ? 3 : i < projBullets ? Math.min(2, maxBullets) : 1),
         );
     }
   };
@@ -523,7 +619,7 @@ function layoutResume(
     heading("Additional Experience");
     plan.other.forEach((e) => entry(e, 2));
   }
-  return { doc, fits };
+  return { doc, fits, remaining: y - PAGE.margin };
 }
 
 // ---- Cover letter ----
