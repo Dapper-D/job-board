@@ -45,7 +45,7 @@ import { checkLink } from "./paste.mjs";
 import { VERSION } from "./version.mjs";
 import { findContacts, draftEmail } from "./contacts.mjs";
 import { noteCounts, entriesMissingEmployer } from "./resume/quality.mjs";
-import { addressFor } from "./places.mjs";
+import { addressFor, employerCities } from "./places.mjs";
 import {
   findKits,
   readKit,
@@ -177,7 +177,11 @@ export function createApp(
       jobBank?.jobs,
     );
     byId = new Map(merged.map((j) => [j.id, j]));
+    cityIndex = null; // rebuilt from the new pool the next time a document needs it
   };
+  // Private build: where each employer is, read off its own postings. Only built when a document asks for it.
+  let cityIndex = null;
+  const employerCityIndex = () => (cityIndex ||= employerCities(merged));
 
   async function refresh({ force = false } = {}) {
     if (state.refreshing)
@@ -245,7 +249,7 @@ export function createApp(
   const documentStamp = () =>
     createHash("sha256")
       .update(
-        "resume-layout-v3|job-city-address|" +
+        "resume-layout-v3|job-city-address-v2|" +
           JSON.stringify(ob.library()) +
           "|" +
           JSON.stringify(ob.profile()),
@@ -582,7 +586,7 @@ export function createApp(
         }
       }
     }
-    const plan = planResume(lib, job, { order, ai, profile: ob.profile() });
+    const plan = planResume(lib, job, { order, ai, profile: ob.profile(), cities: employerCityIndex() });
     const letter = coverLetter(plan, job, match, prof);
     const folder = join(
       dir,
@@ -1005,12 +1009,14 @@ export function createApp(
       writeJson(cacheFile, cache);
     }
     const lib = ob.library();
-    const plan = lib?.entries ? planResume(lib, job, { profile: ob.profile() }) : null;
+    const plan = lib?.entries
+      ? planResume(lib, job, { profile: ob.profile(), cities: employerCityIndex() })
+      : null;
     return {
       ...found,
       hunter: !!readJson(secretsFile, {}).hunterKey,
       draft: draftEmail(
-        { name: lib?.contact?.name || "", contact: addressFor(lib?.contact?.lines || [], job) },
+        { name: lib?.contact?.name || "", contact: addressFor(lib?.contact?.lines || [], job, employerCityIndex()) },
         job,
         plan,
         found.contacts?.[0],

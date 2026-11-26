@@ -108,7 +108,7 @@ function diversify(list) {
 
 // order: optional list of bullet IDs from the AI, best first. Unknown or flagged IDs are ignored.
 // ai: optional checked selection from checkTailored(); when given it decides the summary, skills, entries and bullets.
-export function planResume(lib, job, { order = [], ai = null, profile = {} } = {}) {
+export function planResume(lib, job, { order = [], ai = null, profile = {}, cities = null } = {}) {
   requireResumeContent(lib);
   const jobText = norm(`${job.title} ${job.description || ""}`);
   const jobTerms = termsIn(
@@ -193,7 +193,7 @@ export function planResume(lib, job, { order = [], ai = null, profile = {} } = {
   const headline = cleanTitle(job.title);
   return {
     name: lib.contact?.name || "",
-    contact: addressFor((lib.contact?.lines || []).slice(0, 2), job), // private build: the job's own city
+    contact: addressFor((lib.contact?.lines || []).slice(0, 2), job, cities), // private build: the job's city
     headline, // the role sought (used in the summary and file names, never printed as a title held)
     // Their own sentence about working here, if they wrote one. Never invented from the dropdown alone.
     summary: [withSeeking(summary, headline), String(profile.workAuthLine || "").trim().replace(/([^.!?])$/, "$1.")].filter(Boolean).join(" "),

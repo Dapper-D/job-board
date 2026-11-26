@@ -126,8 +126,8 @@ export function jobCity(location) {
 /** The resume's contact lines with the person's own city replaced by the job's ("Surrey, BC | 604…" -> "Toronto, ON | 604…").
  *  The piece replaced is the one that names a place in Canada and isn't an email, phone number or web address.
  *  With no such piece, the job's city goes first. A job that names no city leaves the lines as they are. */
-export function addressFor(lines, job) {
-  const city = jobCity(job?.location);
+export function addressFor(lines, job, cities = null) {
+  const city = cities ? cityForJob(job, cities) : jobCity(job?.location);
   if (!city || !lines?.length) return lines || [];
   let done = false;
   const out = lines.map(line => line.split(/(\s+[|•·]\s+)/).map(piece => {
@@ -137,4 +137,41 @@ export function addressFor(lines, job) {
   }).join(''));
   if (!done) out[0] = `${city} | ${out[0]}`;
   return out;
+}
+
+// ---- Private build: postings that name no city ----
+// "Remote (Canada)" names no city, but the employer still has one, and its other postings in the same pool say
+// where. The city only ever comes from that employer's own Canadian postings - never from a guess about the
+// company - and when the posting names a province, only a city in that province will do.
+const COMPANY_NOISE = /\b(inc|ltd|llc|corp|corporation|limited|holdings|group|technologies|technology|canada)\b/g;
+export const companyKey = (name) =>
+  fold(String(name || '')).replace(COMPANY_NOISE, '').replace(/[^a-z0-9]+/g, '');
+
+/** Map of company key -> that employer's cities, commonest first. Built once per job pool. */
+export function employerCities(jobs) {
+  const counts = new Map();
+  for (const j of jobs || []) {
+    const city = jobCity(j.location);
+    const key = companyKey(j.company);
+    if (!city || !key) continue;
+    const m = counts.get(key) || new Map();
+    m.set(city, (m.get(city) || 0) + 1);
+    counts.set(key, m);
+  }
+  const out = new Map();
+  for (const [key, m] of counts)
+    out.set(key, [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c]) => c));
+  return out;
+}
+
+/** The city to put on a resume for this job: the posting's own, else this employer's. '' when neither is known. */
+export function cityForJob(job, cities) {
+  const own = jobCity(job?.location);
+  if (own) return own;
+  const list = cities?.get(companyKey(job?.company)) || [];
+  if (!list.length) return '';
+  const where = provincesOf(job?.location || '');
+  // "Remote - BC" with a head office in Toronto gets neither: the posting's province is the one thing it did say.
+  if (where.size) return list.find((c) => where.has(c.slice(-2))) || '';
+  return list[0];
 }

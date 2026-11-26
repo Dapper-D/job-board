@@ -95,3 +95,32 @@ test('a job open to several regions lists its Canadian places first', () => {
   const j = { id: 'x', title: 'Developer', company: 'Acme', location: 'Remote US / Remote Canada', remote: true, postedAt: new Date().toISOString(), description: 'Build things' };
   assert.equal(jobsMod.queryJobs([j], { sort: 'date' }).jobs[0].location, 'Remote Canada / Remote US');
 });
+
+test('a posting with no city borrows the employer\'s own, read off its other postings', async () => {
+  const { employerCities, cityForJob, addressFor } = await import('../src/helper/places.mjs');
+  const pool = [
+    { company: 'Scotiabank', location: 'Toronto, ON' },
+    { company: 'Scotiabank Inc.', location: 'Toronto, Ontario, Canada' },
+    { company: 'Scotiabank', location: 'Montreal, QC' },
+    { company: 'Arctic Wolf', location: 'Waterloo, ON' },
+    { company: 'Boosta', location: 'Remote (worldwide)' }, // nothing to learn from
+  ];
+  const cities = employerCities(pool);
+  // The posting's own city always wins.
+  assert.equal(cityForJob({ company: 'Scotiabank', location: 'Burnaby, BC' }, cities), 'Burnaby, BC');
+  // No city in the posting: the employer's commonest one, and company names match through Inc./Ltd.
+  assert.equal(cityForJob({ company: 'Scotiabank', location: 'Remote (Canada)' }, cities), 'Toronto, ON');
+  assert.equal(cityForJob({ company: 'Arctic Wolf Ltd.', location: 'Canada' }, cities), 'Waterloo, ON');
+  assert.equal(cityForJob({ company: 'Arctic Wolf Networks', location: 'Canada' }, cities), ''); // a different name is a different employer
+  // A posting that names a province said something: only a city in that province will do.
+  assert.equal(cityForJob({ company: 'Scotiabank', location: 'Remote - British Columbia' }, cities), '');
+  assert.equal(cityForJob({ company: 'Scotiabank', location: 'Remote - Quebec' }, cities), 'Montreal, QC');
+  // Nothing known about the employer: the resume keeps the address it had.
+  assert.equal(cityForJob({ company: 'Boosta', location: 'Remote (Canada)' }, cities), '');
+  assert.equal(cityForJob({ company: 'Someone Else', location: 'Remote (Canada)' }, cities), '');
+  const lines = ['Surrey, BC | 604-555-0123 | me@example.com'];
+  assert.equal(addressFor(lines, { company: 'Scotiabank', location: 'Remote (Canada)' }, cities)[0],
+    'Toronto, ON | 604-555-0123 | me@example.com');
+  assert.equal(addressFor(lines, { company: 'Boosta', location: 'Remote (Canada)' }, cities)[0], lines[0]);
+  assert.deepEqual(addressFor(lines, { company: 'Scotiabank', location: 'Remote (Canada)' }), lines); // public build: unchanged
+});
