@@ -183,43 +183,67 @@ there. Do not parse the contact lines.
 ### Free-text boxes
 
 Employers do not ask the same questions, and a pre-written answer for an arbitrary question does not
-exist. So the box is classified first, and the class decides what happens. The class is decided once
-per question text and cached forever, so the same question is never reasoned about twice.
+exist. **The AI drafts an answer for the box and fills it in; the person reads the filled form and
+submits.** (Owner's decision, overriding a research council that preferred pausing on anything not
+already answered. His reasoning is the feature's reasoning: it fills, he verifies, he submits.)
+
+A draft is written from his own material — the resume library, his previously written answers, and
+the posting — and it is subject to the same no-inventing rule as every other field in this app. What
+the draft may *not* do is listed below, and those limits are his own standing rule about not lying,
+not a second opinion about his preference.
+
+The box is still classified first, because the class decides whether a draft is even allowed.
 
 | Class | Examples | Behaviour |
 |---|---|---|
 | **Reusable** | behavioural ("a time you handled conflict"), capability prose ("your experience with CI") | answered from the bank when the normalised question text matches exactly; otherwise pause and the answer enters the bank |
-| **Parametrized** | anything containing a number, a named technology or a company ("years of Kubernetes") | never reused freely — the answer is a factual claim, and near-identical wording hides a different fact. Pause |
-| **Always pause** | "why do you want to work here", "why this city", compensation, anything legal or attesting | the person writes it. Forty seconds, and the only box where reuse can actually blow up |
+| **Draftable** | "why do you want to work here", "why this role", "tell us about a project", anything open-ended | drafted and filled from his resume, his past answers and the posting |
+| **Parametrized** | anything asking for a number, a duration or a proficiency ("years of Kubernetes", "rate yourself 1-5") | filled only from a figure already on his resume or already answered by him. Never estimated — a plausible number is the easiest lie to tell by accident. No stored figure, box left blank and flagged |
+| **Attestation** | work authorization, sponsorship, criminal record, visa, non-compete, references, reason for leaving | **pause, every time.** Not drafted, not stored. A wrong answer here is a false statement to an employer, and it is the field that produced the worst known failure in a shipped tool |
 
 **The answer bank** (`answers-bank.json`, same protections as the answer store) holds answers the
 person wrote, keyed by normalised question text, with the slot it was filed under, when it was
 written, how often it has been reused and where it last went.
 
-- **Exact normalised match auto-fills. Nothing else does, ever** — no similarity threshold, no
-  closest match. A model may be called once, on first sighting of a question, to file it under one of
-  about fifteen slots from a closed list; that result is cached. The model picks a slot, never a value.
+- **A previous answer in his own words beats a fresh draft.** When the normalised question text
+  matches one he has answered before, that answer is used as-is. Otherwise the AI drafts one. Either
+  way the box ends up filled.
+- **What a draft may not contain**, checked before it is typed, not left to the reading:
+  - a fact that is not in his resume library or his own earlier answers — no invented duration,
+    proficiency, certification, employer or outcome;
+  - a `[square bracket]` placeholder. The review prompt already emits these where only he can confirm
+    something; a box whose draft still has one is left blank and flagged rather than typed;
+  - a company name that is not this employer's;
+  - a sentence claiming sole ownership of a project he built jointly with someone else. Those pause.
+    An honest tool starts producing claims he cannot defend in an interview exactly there.
+  A draft failing any of these is not quietly rewritten — the box is left blank and flagged, which is
+  visible, where a confident wrong sentence is not.
 - **Seeding, so week one is not a wall of pauses.** The owner already has twenty-odd cover letters and
   tailored resumes. At setup these are harvested into the bank as drafts, each marked unapproved and
   labelled with the letter it came from. Non-zero bank on day one, in his own words, and nothing
   unapproved is ever typed without him reading it.
-- **The pause panel** shows the question verbatim, the candidate answer, the character count against
-  the field's real `maxlength`, and three buttons: Use, Use and save the edit, Skip. Editing happens
-  in the panel, never in the employer's textarea, which has no undo and re-renders on blur.
-- **An edit forks** rather than overwriting, capped at three variants per slot; a fourth replaces one.
-  Overwriting would let one company-specific sentence quietly poison the next ten applications.
+- **Verifying is a list, not a scroll hunt.** The panel shows every box the session filled, with the
+  question, the text that went in, where it came from (drafted, or written by you on <date>), and the
+  character count against the field's real `maxlength`. Editing happens in the panel, never in the
+  employer's textarea, which has no undo and re-renders on blur. Nothing is submitted by the tool, so
+  this list is what "I verify before I hit submit" actually means in practice.
+- **An edit is kept.** The edited text goes into the bank as his own answer, forked rather than
+  overwriting, capped at three variants per slot. Over time his own words displace the drafts, which
+  is the point: the tool should sound more like him each week, not less.
 - **Every reused answer carries its provenance** — written on, reused n times, last sent to X — and
   every proper noun and every number in it is highlighted. Those are exactly the tokens that go stale,
   and a reader scans for *empty*, not for *wrong*.
 - **A hard block before anything is typed:** text containing a company name that is not this
   employer's is refused. The one real reuse failure is the paragraph that still names the last company.
 
-Never auto-answered in a free-text box, at any confidence: compensation of any kind; any proficiency
-or duration claim that is not already on the resume; attestations (work authorization, visa, criminal
-record, non-compete, reason for leaving, references, start date); company-specific motivation; and any
-sentence describing sole ownership of the projects the owner built jointly with someone else — those
-need his eyes every time, because an honest tool starts producing claims he cannot defend in an
-interview exactly there.
+Compensation is filled from the figures he set in setup (his pay floor and his target), never from a
+number the AI picks, because it is an anchor he cannot take back.
+
+**On the posting as an input.** A draft is written partly from the posting, and a posting can carry
+text aimed at an AI. The existing `guard.mjs` flags those; beyond that, the checks above are what
+hold, because they test the draft against *his* material rather than against the posting's
+intentions, and nothing the posting says can add a fact that is not already in his library. He also
+reads every drafted box before submitting, which is the backstop he asked for.
 
 ### Matching a field to an answer
 
@@ -302,13 +326,16 @@ reads and submits.
 
 ### Where the AI is allowed
 
-The AI has exactly two jobs here, both of which produce a label and never a sentence: filing a
-question under one of about fifteen slots on first sighting, and choosing which stored answer fits a
-field. **It may never produce the text that gets typed** — the string always comes from the person's
-own file. That is what stops a posting or an application page whose text carries instructions aimed at
-an AI from steering what is typed into a form. The worst a crafted question can achieve is the
-person's own answer in the wrong box, which the review catches. `guard.mjs` keeps flagging such
-postings, but it is a regex denylist and is a signal, not a boundary.
+For **structured fields** — name, address, dates, dropdowns, every field with a defined answer — the
+AI only ever produces a label: which stored answer fits this field. The string typed comes from the
+person's file. Nothing a page says can introduce a value there.
+
+For **free-text boxes** the AI does write the draft, by the owner's decision, and the protection moves
+from "it cannot write" to "what it writes is checked against his own material before it is typed, and
+he reads it before he submits": no fact outside his library, no unresolved placeholder, no other
+company's name, no sole-ownership claim on shared work, no estimated number. A draft that fails leaves
+the box blank and flagged. `guard.mjs` keeps flagging postings that carry instructions aimed at an AI,
+but it is a regex denylist and is a signal, not a boundary — the checks on the draft are the boundary.
 
 **Navigation** is governed by an allowlist, not a single pin, because real applications hop origins
 routinely — employer careers domain to ATS domain, Workday tenant to SSO and back, and Phenom's
