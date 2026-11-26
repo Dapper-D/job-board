@@ -1,9 +1,11 @@
 # B3spoken: unit tests on Windows, Mac and Linux, then a live check that calls every job source for real.
+# Runs on main and on the private branch. The live check is skipped on private pushes: that branch carries no
+# scan changes of its own, so calling every real job source again would tell us nothing main hasn't already said.
 # No secrets are used here.
 name: B3spoken
 on:
   push:
-    branches: [main]
+    branches: [main, private-job-city-address]
     paths: ['b3spoken/**', '.github/workflows/b3spoken.yml']
   pull_request:
     branches: [main]
@@ -37,6 +39,7 @@ jobs:
         run: node scripts/helper-smoke.mjs
   live-check:
     needs: test
+    if: github.ref != 'refs/heads/private-job-city-address'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:

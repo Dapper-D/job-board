@@ -1,10 +1,10 @@
-# Runs the test suite on every pull request and every push to main, on Windows, Mac and Linux.
+# Runs the test suite on every pull request and every push to main or the private branch, on Windows, Mac and Linux.
 # No secrets are available here, so code from a pull request can't reach the release key.
 name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, private-job-city-address]
 permissions:
   contents: read
 concurrency:
