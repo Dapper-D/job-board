@@ -1,9 +1,11 @@
 # B3spoken: builds B3spoken.exe and the Windows installer, installs it on a clean Windows
 # runner, tests it, uninstalls it, and keeps the installer as a build artifact. Nothing is signed or published here.
+# The installer's file name, install folder and shortcut are read from b3spoken.iss, so this works on both the
+# public build (B3spoken-Setup-*.exe) and the private one (B3spoken-Private-Setup-*.exe) without naming either.
 name: B3spoken Windows build
 on:
   push:
-    branches: [main]
+    branches: [main, private-job-city-address]
     paths: ['b3spoken/**', 'setup.ps1', 'uninstall.ps1', '.github/workflows/b3spoken-windows.yml']
   pull_request:
     branches: [main]
@@ -47,27 +49,43 @@ jobs:
         run: node scripts/background-check.mjs
       - name: Build B3spoken.exe and the installer
         run: node scripts/build-exe.mjs
+      - name: Read the names this build installs under
+        shell: pwsh
+        run: |
+          $iss = Get-Content installer\b3spoken.iss -Raw
+          $base = [regex]::Match($iss, '(?m)^OutputBaseFilename=(.+)$').Groups[1].Value.Trim()
+          $dir = [regex]::Match($iss, '(?m)^DefaultDirName=\{localappdata\}\\(.+)$').Groups[1].Value.Trim()
+          $icon = [regex]::Match($iss, '(?m)^Name: "\{autoprograms\}\\([^"]+)"').Groups[1].Value.Trim()
+          if (-not $base -or -not $dir -or -not $icon) { throw 'could not read the names out of b3spoken.iss' }
+          $glob = $base -replace '\{#AppVersion\}', '*'
+          $app = Join-Path $env:LOCALAPPDATA $dir
+          Write-Host "installer dist\$glob.exe -> $app, shortcut '$icon'"
+          "SETUP_GLOB=dist\$glob.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "ARTIFACT_GLOB=b3spoken/dist/$glob.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_DIR=$app" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "START_LNK=$env:APPDATA\Microsoft\Windows\Start Menu\Programs\$icon.lnk" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - name: Install (silently, for this user only)
         shell: pwsh
         run: |
-          $setup = Get-ChildItem dist\B3spoken-Setup-*.exe | Select-Object -First 1
+          $setup = Get-ChildItem $env:SETUP_GLOB | Select-Object -First 1
+          if (-not $setup) { throw "no installer at $env:SETUP_GLOB" }
           Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
-          if (-not (Test-Path "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe")) { throw 'not installed' }
-          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\B3spoken.lnk")) { throw 'no Start menu shortcut' }
+          if (-not (Test-Path "$env:APP_DIR\B3spoken.exe")) { throw "not installed in $env:APP_DIR" }
+          if (-not (Test-Path $env:START_LNK)) { throw "no Start menu shortcut at $env:START_LNK" }
       - name: Test the installed app
         shell: pwsh
-        run: node scripts/exe-smoke.mjs "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe"
+        run: node scripts/exe-smoke.mjs "$env:APP_DIR\B3spoken.exe"
       - name: One-click AI installers (Claude Code and Codex) install and are found
         run: node scripts/ai-install-check.mjs
       - name: Uninstall
         shell: pwsh
         run: |
-          Start-Process "$env:LOCALAPPDATA\Programs\B3spoken\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          Start-Process "$env:APP_DIR\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
           Start-Sleep -Seconds 3
-          if (Test-Path "$env:LOCALAPPDATA\Programs\B3spoken\B3spoken.exe") { throw 'still installed' }
+          if (Test-Path "$env:APP_DIR\B3spoken.exe") { throw 'still installed' }
       - name: Keep the installer
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: b3spoken-windows-installer
-          path: b3spoken/dist/B3spoken-Setup-*.exe
+          path: ${{ env.ARTIFACT_GLOB }}
           retention-days: 14

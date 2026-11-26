@@ -5,6 +5,9 @@
 ### Setup
 - **Setup no longer tells you that you haven't got an AI you have.** It only reported what B3spoken found on its last look, and on a fresh install nothing has been looked at yet: the first job-pool download takes about half a minute and setup opens straight away. It now looks when you reach that step, and says "Checking whether you already have it" while it does, instead of "Not installed yet".
 
+### Setup
+- **Setup no longer tells you that you haven't got an AI you have.** It only reported what B3spoken found on its last look, and on a fresh install nothing has been looked at yet: the first job-pool download takes about half a minute and setup opens straight away. It now looks when you reach that step, and says "Checking whether you already have it" while it does, instead of "Not installed yet".
+
 ### From a recruiter screen of real generated documents
 - **Every address in your header is written out in full.** It showed the word "GitHub" with the address hidden in the link, so an applicant tracking system reading the text got no address at all, while LinkedIn's was spelled out. For someone whose strongest evidence is public repositories, that link is the most valuable thing in the header.
 - **Projects lead when your paid work isn't in the job's line of work.** A reader spends their first seconds on whatever is at the top; for a developer job, a resume whose paid roles are IT support was putting its weakest evidence first. Where the paid work carries the job's requirements, it still leads.
